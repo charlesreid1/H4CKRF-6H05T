@@ -101,7 +101,7 @@ async def bench(tmp_path: Path):
             approval=approval,
             session_paths=session,
         )
-        agent = HackrfAgent(llm=llm, executor=executor, permissions=perms)
+        agent = HackrfAgent(llm=llm, executor=executor)
         yield {
             "agent": agent,
             "llm": llm,
@@ -412,12 +412,12 @@ class TestBlockedAction:
         assert not any(c[0] == "transmit_iq" for c in bench["driver"].calls)
 
 
-class TestGrantInjection:
-    """Test 9 & 10: Active grants appear as mid-conversation system message."""
+class TestGrantsNotLeakedToLLM:
+    """The LLM never sees grant state — it's enforced by the executor's
+    risk gate, and the LLM discovers scope by trying and being told."""
 
-    async def test_active_grants_injected_as_system_message(self, bench) -> None:
-        """Active TX grant → per-turn system message in the request."""
-        # Create a grant.
+    async def test_active_grants_do_not_appear_in_request(self, bench) -> None:
+        """Even with active grants, the request contains no grant text."""
         await bench["perms"].grant(
             kind="tx",
             band_start_hz=433_000_000,
@@ -426,32 +426,15 @@ class TestGrantInjection:
             ttl_seconds=3600,
         )
 
-        bench["llm"].responses = [
-            make_text_response("Got it."),
-        ]
-        await collect_events(bench["agent"], "hello")
-
-        # Inspect the LLM call.
-        assert len(bench["llm"].calls) == 1
-        messages = bench["llm"].calls[0]["messages"]
-
-        # The last message should be a {"role": "system", ...} with grant info.
-        system_msgs = [m for m in messages if m.get("role") == "system"]
-        assert len(system_msgs) == 1
-        assert "Currently active TX grants" in system_msgs[0]["content"]
-        assert "433000000" in system_msgs[0]["content"]
-
-    async def test_no_grants_no_system_message(self, bench) -> None:
-        """No active grants → no mid-conversation system message."""
-        bench["llm"].responses = [
-            make_text_response("Hello!"),
-        ]
+        bench["llm"].responses = [make_text_response("Got it.")]
         await collect_events(bench["agent"], "hello")
 
         messages = bench["llm"].calls[0]["messages"]
-        system_msgs = [m for m in messages if m.get("role") == "system"]
-        # No system messages mid-conversation when there are no grants.
-        assert len(system_msgs) == 0
+        for msg in messages:
+            content_str = str(msg.get("content", ""))
+            assert "grant" not in content_str.lower()
+            assert "<system-reminder>" not in content_str
+            assert msg.get("role") != "system"
 
 
 class TestHistoryTrimming:
@@ -566,72 +549,6 @@ class TestRunawayProtection:
         errors = [e for e in events if isinstance(e, AgentError) and not e.recoverable]
         assert len(errors) >= 1
         assert "cap" in errors[-1].message.lower()
-
-
-class TestMidConvSystemFallback:
-    """Test 14: Mid-conversation system rejection fallback."""
-
-    async def test_fallback_to_system_reminder_on_rejection(self, bench) -> None:
-        """When LLM rejects mid-conv system, agent falls back to <system-reminder>."""
-        # Create a grant so the per-turn system message is non-empty.
-        await bench["perms"].grant(
-            kind="tx",
-            band_start_hz=433_000_000,
-            band_stop_hz=434_000_000,
-            max_gain_db=30,
-            ttl_seconds=3600,
-        )
-
-        # First call: raise an error that looks like mid-conv-system rejection.
-        # Second call (retry): return a normal text response.
-        call_count = [0]
-
-        async def fake_send(*, system, messages, tools, max_tokens=None):
-            call_count[0] += 1
-            if call_count[0] == 1:
-                raise RuntimeError("role 'system' is not supported on this model (400)")
-            return make_text_response("Hello after fallback!")
-
-        bench["llm"].send = fake_send  # type: ignore[assignment]
-
-        events = await collect_events(bench["agent"], "hello")
-
-        # Two calls were made.
-        assert call_count[0] == 2
-
-        # The turn ended normally.
-        assert events[-1].type == "turn_ended"
-
-        # The agent should now have supports_mid_conv_system = False.
-        assert bench["agent"]._supports_mid_conv_system is False
-
-    async def test_system_reminder_in_user_message(self, bench) -> None:
-        """After fallback, the user message contains <system-reminder> block."""
-        # Create a grant.
-        await bench["perms"].grant(
-            kind="tx",
-            band_start_hz=433_000_000,
-            band_stop_hz=434_000_000,
-            max_gain_db=30,
-            ttl_seconds=3600,
-        )
-
-        # Agent already in fallback mode.
-        bench["agent"]._supports_mid_conv_system = False
-
-        bench["llm"].responses = [make_text_response("Ok")]
-        await collect_events(bench["agent"], "check grants")
-
-        # The messages sent to the LLM should contain a <system-reminder> block
-        # inside a user message, not a role:"system" message.
-        messages = bench["llm"].calls[0]["messages"]
-        system_msgs = [m for m in messages if m.get("role") == "system"]
-        assert len(system_msgs) == 0  # No mid-conv system messages.
-
-        # The last user message should have the <system-reminder> block.
-        last_user = [m for m in messages if m.get("role") == "user"][-1]
-        content_str = str(last_user["content"])
-        assert "<system-reminder>" in content_str
 
 
 class TestSystemPromptAndTools:

@@ -60,15 +60,19 @@ BLOCKED bands — you may NOT operate here at all:
 Every command passes through a host-side risk gate. The gate classifies your
 command into one of four tiers:
 
-- **LOW** — Read-only informational commands (get_device_info, sweep_spectrum,
-  capture_iq with duration ≤ 2 s, read_iq_summary, decode_ook, grant_list,
-  audit_query). Executed immediately; no operator approval needed.
-- **MEDIUM** — Extended captures (duration > 2 s), or transmissions inside an
-  active TX grant band. Requires one-click operator approval.
-- **HIGH** — Transmissions in unclassified bands (not ISM, not blocked, no
-  grant). Requires explicit operator confirmation with a justification review.
-- **BLOCKED** — Any action (RX or TX) in a BLOCKED band, or any transmission
-  without a required justification. Refused by the host; you cannot override.
+- **LOW** — Read-only informational commands: get_device_info, grant_list,
+  audit_query, read_iq_summary, decode_ook, sweep_spectrum with dwell_s ≤ 2 s,
+  and capture_iq with duration_s ≤ 5 s. Executed immediately; no operator
+  approval needed.
+- **MEDIUM** — Longer RX (sweeps with dwell_s > 2 s, captures with
+  duration_s > 5 s), or a TX in an ISM band that is either covered by an
+  active grant or uses tx_vga_gain_db ≤ 30 without a grant. Requires
+  one-tap operator approval.
+- **HIGH** — TX in an ISM band with tx_vga_gain_db > 30 and no grant, TX in
+  amateur bands, or TX in any unclassified frequency. Requires explicit
+  operator confirmation with a justification review.
+- **BLOCKED** — Any TX in a BLOCKED band, any TX missing required args,
+  or any invalid input. Refused by the host; you cannot override.
 
 == Command Envelope ==
 

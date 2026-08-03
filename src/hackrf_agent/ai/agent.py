@@ -1,8 +1,8 @@
 """The conversation loop — where the LLM and executor boundaries meet.
 
-``HackrfAgent.chat(...)`` ties an ``LLMClient``, a ``CommandExecutor``, and
-a ``PermissionService`` together. It yields typed ``AgentEvent`` objects to
-the caller (the CLI in Part 7). Zero hardware imports. Zero UI imports.
+``HackrfAgent.chat(...)`` ties an ``LLMClient`` and a ``CommandExecutor``
+together. It yields typed ``AgentEvent`` objects to the caller (the CLI
+in Part 7). Zero hardware imports. Zero UI imports.
 """
 
 from __future__ import annotations
@@ -26,7 +26,6 @@ from hackrf_agent.domain.models import (
     CommandResult,
     ExecuteCommand,
 )
-from hackrf_agent.domain.permission_service import PermissionService
 
 logger = logging.getLogger(__name__)
 
@@ -127,17 +126,13 @@ class HackrfAgent:
         *,
         llm: LLMClient,
         executor: CommandExecutor,
-        permissions: PermissionService,
         max_history_messages: int = MAX_HISTORY_MESSAGES,
         max_tool_calls_per_turn: int = 20,
-        supports_mid_conversation_system: bool = True,
     ) -> None:
         self._llm = llm
         self._executor = executor
-        self._permissions = permissions
         self._max_history = max_history_messages
         self._max_tool_calls_per_turn = max_tool_calls_per_turn
-        self._supports_mid_conv_system = supports_mid_conversation_system
         self._messages: list[dict[str, Any]] = []
 
     @property
@@ -162,24 +157,10 @@ class HackrfAgent:
 
         tool_calls_this_turn = 0
         while True:
-            # 2. Build the request.
-            history = self._trim_history(self._messages)
-            grants = await self._permissions.list_active()
-            per_turn_system = self._build_per_turn_system(grants)
-            if per_turn_system is not None and self._supports_mid_conv_system:
-                # Append a mid-conversation system message to the trimmed
-                # history. This does NOT go into self._messages (we
-                # rebuild it every turn from the live grant list).
-                request_messages = history + [per_turn_system]
-            elif per_turn_system is not None:
-                # Fallback: inject a <system-reminder> into the last
-                # user message. Only kicks in if the model rejected
-                # mid-conversation system in a prior turn.
-                request_messages = self._inject_system_reminder(
-                    history, per_turn_system["content"],
-                )
-            else:
-                request_messages = history
+            # 2. Build the request. Grants are enforced by the executor's
+            # risk gate; the LLM finds out via the tool_result if it
+            # proposes something out of scope. No per-turn grant briefing.
+            request_messages = self._trim_history(self._messages)
 
             # 3. Send.
             try:
@@ -190,14 +171,6 @@ class HackrfAgent:
                     max_tokens=4096,
                 )
             except Exception as e:  # noqa: BLE001 — SDK error taxonomy varies
-                # Handle mid-conversation-system rejection specifically.
-                if self._is_mid_conv_system_rejection(e):
-                    logger.info(
-                        "model does not support mid-conversation system; "
-                        "falling back to <system-reminder> for this session"
-                    )
-                    self._supports_mid_conv_system = False
-                    continue  # retry the same turn with the fallback
                 yield AgentError(
                     message=f"LLM request failed: {type(e).__name__}: {e}",
                     recoverable=False,
@@ -316,43 +289,6 @@ class HackrfAgent:
             "cache_control": {"type": "ephemeral"},
         }]
 
-    def _build_per_turn_system(self, grants: list[Any]) -> dict[str, Any] | None:
-        """Return a mid-conversation system message describing active grants,
-        or None if the grant list is empty (nothing to report)."""
-        if not grants:
-            return None
-        lines = ["Currently active TX grants:"]
-        for g in grants:
-            lines.append(
-                f"- {g.band_start_hz}–{g.band_stop_hz} Hz, "
-                f"max_gain_db={g.max_gain_db}, "
-                f"expires_at={g.expires_at.isoformat()}"
-            )
-        return {"role": "system", "content": "\n".join(lines)}
-
-    def _inject_system_reminder(
-        self,
-        messages: list[dict[str, Any]],
-        reminder_text: str,
-    ) -> list[dict[str, Any]]:
-        """Fallback for models that reject mid-conversation system.
-
-        Wraps ``reminder_text`` in <system-reminder> and appends it to
-        the last user message's content. Returns a new list; does NOT
-        mutate ``messages``.
-        """
-        if not messages or messages[-1].get("role") != "user":
-            return messages
-        out = list(messages)
-        last = dict(out[-1])
-        block = f"\n\n<system-reminder>\n{reminder_text}\n</system-reminder>"
-        if isinstance(last["content"], str):
-            last["content"] = last["content"] + block
-        elif isinstance(last["content"], list):
-            last["content"] = list(last["content"]) + [{"type": "text", "text": block}]
-        out[-1] = last
-        return out
-
     def _trim_history(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Return the last ``self._max_history`` messages, pair-safe.
 
@@ -467,16 +403,3 @@ class HackrfAgent:
             expected_effect=raw.get("expected_effect", "") or "",
         )
 
-    @staticmethod
-    def _is_mid_conv_system_rejection(err: Exception) -> bool:
-        """Heuristic: does this look like the 'role system not supported'
-        400 the API returns on non-Opus-4.8 models?
-
-        We can't rely on ``anthropic`` being imported (fake tests), so
-        we string-match on the message. Belt-and-braces the check by
-        also looking for HTTP 400.
-        """
-        msg = str(err).lower()
-        return "role 'system' is not supported" in msg or (
-            "400" in msg and "system" in msg and "not supported" in msg
-        )

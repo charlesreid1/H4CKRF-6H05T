@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from hackrf_agent.ai.agent import AgentError, HackrfAgent, ToolCallCompleted, TurnEnded
+from hackrf_agent.ai.agent import HackrfAgent
 from hackrf_agent.ai.llm_client import AnthropicClient
 from hackrf_agent.data.db import ensure_schema
 from hackrf_agent.domain.approval import FakeApprovalPort
