@@ -127,34 +127,56 @@ hackrf-agent/
 │   └── execute_command.schema.json        # Machine-readable JSON Schema
 ├── src/hackrf_agent/
 │   ├── __init__.py
-│   ├── ai/                                # LLM plumbing
+│   ├── ai/                                # LLM plumbing (Part 6 — COMPLETE)
 │   │   ├── agent.py                       # HackrfAgent — conversation loop
-│   │   ├── llm_client.py                  # Anthropic / OpenRouter / Ollama abstraction
-│   │   ├── prompts.py                     # SYSTEM_PROMPT
-│   │   └── result_formatter.py            # bytes → compact JSON
+│   │   ├── llm_client.py                  # LLMClient protocol + AnthropicClient + FakeLLMClient
+│   │   └── prompts.py                     # SYSTEM_PROMPT + EXECUTE_COMMAND_TOOL_SCHEMA
 │   ├── domain/                            # Core logic (no I/O to hardware or LLM)
 │   │   ├── models.py                      # Dataclasses & enums
 │   │   ├── executor.py                    # CommandExecutor — the chokepoint
 │   │   ├── risk_assessor.py               # LOW/MEDIUM/HIGH/BLOCKED
 │   │   ├── frequency_policy.py            # BLOCKED_BANDS, ISM_BANDS
 │   │   ├── permission_service.py          # Scoped, time-limited grants
-│   │   └── audit_service.py               # SQLite-backed audit log
-│   ├── hw/                                # HackRF drivers
+│   │   ├── audit_service.py               # SQLite-backed audit log
+│   │   ├── approval.py                    # ApprovalPort protocol + test doubles (prod impl in Part 7)
+│   │   ├── handlers.py                    # One async callable per CommandAction
+│   │   ├── result_formatter.py            # bytes → compact JSON summaries
+│   │   └── session.py                     # SessionPaths + new_session factory
+│   ├── hw/                                # HackRF drivers (Part 4 — COMPLETE)
 │   │   ├── hackrf_driver.py               # pyhackrf wrapper (primary)
 │   │   ├── hackrf_subprocess.py           # CLI escape hatch
-│   │   └── dsp.py                         # FFT, peak detect, decoders
-│   ├── cli/                               # Terminal interface
-│   │   ├── main.py                        # Typer entrypoint
-│   │   ├── tui.py                         # Optional Textual TUI
-│   │   ├── approval.py                    # CLI approval prompts
-│   │   └── permissions_cmd.py             # grant/revoke/list subcommands
-│   └── data/                              # Persistence
-│       ├── schema.sql                     # DDL for audit + grants
-│       └── settings.py                    # config.toml + keyring wrapper
+│   │   ├── dsp.py                         # FFT, peak detect, IQ conversion
+│   │   └── exceptions.py                  # HackrfError hierarchy
+│   ├── cli/                               # Terminal interface (Part 7 — PLANNED)
+│   │   └── __init__.py
+│   └── data/                              # Persistence (Part 3 — COMPLETE)
+│       ├── db.py                           # ensure_schema + open_connection
+│       └── schema.sql                     # DDL for audit + grants
 ├── tests/
 │   ├── unit/                              # No hardware, no network, no LLM
-│   ├── integration/                       # External deps (hardware, LLM, or fakes)
-│   ├── e2e/                               # Full workflow with fake LLM + mock HW
+│   │   ├── test_llm_client.py            # 23 tests — LLM client fakes, rate limiter, construction
+│   │   ├── test_prompts.py               # 19 tests — system prompt, tool schema, determinism
+│   │   ├── test_models.py                # 17 tests — domain model validation
+│   │   ├── test_risk_assessor.py         # 41 tests — risk decision tree
+│   │   ├── test_frequency_policy.py      # 37 tests — band tables, blocked/ISM checks
+│   │   ├── test_dsp.py                   # 23 tests — FFT, peak detection, IQ conversion
+│   │   ├── test_hackrf_subprocess.py     # 14 tests — argv validation, allowlist, error paths
+│   │   ├── test_hackrf_driver.py         # 33 tests — gain/freq/sample rate validation
+│   │   ├── test_db.py                    # schema + connection tests
+│   │   ├── test_audit_service.py         # audit log writer + reader
+│   │   ├── test_permission_service.py    # grant CRUD + TTL enforcement
+│   │   ├── test_approval.py              # ApprovalPort protocol + test doubles
+│   │   ├── test_handlers.py              # handler dispatch + arg extraction
+│   │   ├── test_result_formatter.py      # format helpers for each action
+│   │   └── test_session.py               # SessionPaths + new_session
+│   ├── integration/                      # External deps (hardware, LLM, or fakes)
+│   │   ├── test_agent_loop.py            # 23 tests — full agent loop with FakeLLMClient
+│   │   ├── test_agent_live.py            # 1 @llm test — live Claude round-trip
+│   │   ├── test_executor.py              # 17 tests — full executor funnel
+│   │   ├── test_dsp_pipeline.py          # 2 tests — synthetic IQ through DSP
+│   │   ├── test_hackrf_driver.py         # 3 @hardware tests — real device RX-only
+│   │   └── test_persistence_roundtrip.py # audit + grants round-trip
+│   ├── e2e/                              # Full workflow with fake LLM + mock HW
 │   └── fixtures/
 │       ├── iq/                            # Golden .iq files
 │       └── audit/                         # Canonical audit DB snapshots
@@ -218,12 +240,12 @@ Data directories on macOS:
 
 | Tier | Command | What runs |
 |------|---------|-----------|
-| **Unit** | `pytest tests/unit -q` | Pure logic — no hardware, network, or LLM. Default tier. **68 Part 4 tests + 94 Parts 2–3 tests = 162 unit tests.** |
-| **Integration (no marker)** | `pytest tests/integration -q -m "not hardware and not llm"` | Executor, persistence roundtrip, DSP pipeline. Runs in CI on every push. |
+| **Unit** | `pytest tests/unit -q` | Pure logic — no hardware, network, or LLM. Default tier. **240+ tests across 14 files.** |
+| **Integration (safe)** | `pytest tests/integration -q -m "not hardware and not llm"` | Executor, agent loop, DSP pipeline, persistence roundtrip — all with fakes. Runs in CI on every push. **80+ tests.** |
 | **Integration (hardware)** | `pytest tests/integration --hardware -q` | Requires HackRF attached. RX-only tests. No TX. 3 tests in `test_hackrf_driver.py`. |
 | **Integration (LLM)** | `pytest tests/integration --llm -q` | Requires `ANTHROPIC_API_KEY`. One benign round-trip. |
 | **End-to-end** | `pytest tests/e2e -q` | Full workflow with fake LLM + mock hardware. |
-| **All safe-for-CI** | `pytest tests/unit/ tests/integration/test_dsp_pipeline.py tests/integration/test_persistence_roundtrip.py -q` | Unit + DSP pipeline + persistence. **201 tests, completes in ~5 s.** |
+| **All safe-for-CI** | `pytest tests/unit/ tests/integration/ -q -m "not hardware and not llm"` | All unit + integration-safe. **323 tests, completes in ~20 s.** |
 
 ### Pytest Markers
 
@@ -260,14 +282,18 @@ GitHub Actions matrix (defined in `.github/workflows/ci.yml`, to be created):
 ## Code Quality
 
 ```bash
-# Lint
+# Lint (target: clean)
 ruff check src/ tests/
 
 # Format
 ruff format src/ tests/
 
-# Type check
+# Type check (target: clean)
 mypy src/
+
+# Verify ai/ package never imports hardware or UI
+grep -R "import pyhackrf\|from hackrf_agent.hw\|import numpy\|import rich\|import typer" src/hackrf_agent/ai/
+# Expect: exit=1 (no matches)
 ```
 
 Pre-commit hooks (to be configured in `.pre-commit-config.yaml`):
@@ -275,6 +301,7 @@ Pre-commit hooks (to be configured in `.pre-commit-config.yaml`):
 - `mypy` on `src/`
 - Schema regeneration (`execute_command.schema.json` from Pydantic model)
 - No committed `.iq` files over 1 MB
+- `grep` check — ai/ package must not import hardware or UI
 
 ---
 
@@ -287,15 +314,21 @@ Checklist (see `docs/execute_command_schema.md` for the full reference):
 3. Add a row to the risk table in `risk_assessor.py` — every new action needs a
    defined tier for every band it could touch.
 4. Add a test case in `tests/unit/test_risk_assessor.py`.
-5. Add the action handler in `executor.py` (dispatcher dict).
+5. Add the action handler in `handlers.py` (dispatch table).
 6. Add a result-formatting rule in `result_formatter.py`.
-7. Regenerate `schemas/execute_command.schema.json` and `docs/execute_command_schema.md`.
-8. Add the action to `SYSTEM_PROMPT` in `prompts.py` so the LLM knows about it.
+7. Add handler wiring in `executor.py` (the dispatcher dict in `HANDLERS`).
+8. Regenerate `schemas/execute_command.schema.json` and `docs/execute_command_schema.md`.
+9. Add the action to `SYSTEM_PROMPT` in `prompts.py` so the LLM knows about it.
+10. Add an agent-loop test in `tests/integration/test_agent_loop.py` exercising the
+    new action through the LLM tool-use path.
 
 ---
 
 ## References
 
+- **`docs/ai-package.md`** — LLM integration architecture (Part 6), agent loop, prompts, tool schema
+- **`docs/tests.md`** — Complete test documentation, all tiers, all files, quality gates
+- **`docs/safety.md`** — FCC citations, band policy, risk tiers
 - **HackRF Wiki**: [github.com/greatscottgadgets/hackrf/wiki](https://github.com/greatscottgadgets/hackrf/wiki)
 - **pyhackrf on PyPI**: [pypi.org/project/pyhackrf/](https://pypi.org/project/pyhackrf/)
 - **Anthropic Tool Use Docs**: [docs.anthropic.com/en/docs/build-with-claude/tool-use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)

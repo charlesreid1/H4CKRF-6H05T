@@ -24,14 +24,14 @@ pytest tests/unit/ -q --cov=src/hackrf_agent/domain --cov-report=term-missing
 
 | Tier | Command | What runs | Requires |
 |---|---|---|---|
-| **Unit** | `pytest tests/unit -q` | Pure logic — no hardware, network, LLM, or filesystem | Nothing |
-| **Integration** | `pytest tests/integration -q` | Executor, agent loop with fakes | SQLite (`:memory:`) |
+| **Unit** | `pytest tests/unit -q` | Pure logic — no hardware, network, LLM, or filesystem. Models, policy, risk, DSP, prompts, LLM client fakes. **240+ tests.** | Nothing |
+| **Integration (safe)** | `pytest tests/integration/ -q -m "not hardware and not llm"` | Executor, agent loop, DSP pipeline, persistence roundtrip — all with fakes. **80+ tests.** | SQLite (`:memory:`) |
 | **Hardware** | `pytest tests/integration --hardware -q` | HackRF attached via USB | HackRF One |
 | **LLM** | `pytest tests/integration --llm -q` | One benign round-trip to Claude | `ANTHROPIC_API_KEY` |
 | **End-to-end** | `pytest tests/e2e -q` | Full workflow with fake LLM + mock HW | Nothing |
 
 Unit tests are the default and always safe. They run in CI on every push and complete
-in under a second.
+in under a second. Integration (safe) tests run on every push as well.
 
 ---
 
@@ -248,6 +248,125 @@ TX is the operator's job (Part 8 runbook), not automation's.
 
 ---
 
+### `tests/unit/test_llm_client.py` — 23 tests, ~340 lines
+
+Covers the LLM client protocol, `AnthropicClient` construction, rate limiter, and
+test doubles in `src/hackrf_agent/ai/llm_client.py`. **None of these tests call
+the real Anthropic API.**
+
+| Class | Tests | What it covers |
+|---|---|---|
+| `TestFakeLLMClient` | 4 | FIFO response ordering, call recording for assertions, empty queue→`IndexError`, non-mutation of input args |
+| `TestMakeTextResponse` | 3 | `content[0].type=="text"` + `stop_reason=="end_turn"`, custom stop_reason, `raw=None` |
+| `TestMakeToolUseResponse` | 4 | `stop_reason=="tool_use"` + correct `name` and `input`, preamble text prepended, default `toolu_test_1` id, custom id |
+| `TestAnthropicClientConstruction` | 5 | No API key→`RuntimeError`, constructor arg takes precedence over env var, env var fallback, custom model string, missing `anthropic` package→`RuntimeError` |
+| `TestRateLimiter` | 3 | 30 timestamps → 31st call sleeps (monkeypatched clock advances after sleep), 30 old timestamps → returns immediately with no sleep, mix of old+recent → old popped, recent remain |
+| `TestFakeContentBlock` | 2 | Text block has `.type`/`.text` with `None` tool fields, tool_use block has `.name`/`.input`/`.id` with `None` text |
+| `TestLLMResponse` | 2 | Frozen dataclass (immutable — `AttributeError` on mutation), `raw` stores arbitrary object reference |
+
+**Key guardrails tested here:**
+
+- **Rate limiter correctness:** `_wait_for_slot` blocks when the deque is full of recent
+  timestamps and returns immediately when all timestamps are outside the 60 s window.
+  The `test_blocks_at_limit` test monkeypatches `time.monotonic` to advance after each
+  `asyncio.sleep` call, preventing infinite loops.
+- **API key isolation:** `AnthropicClient` never reads from disk or keyring — only the
+  constructor arg or the `ANTHROPIC_API_KEY` env var. Tests verify both paths.
+- **Lazy import:** `anthropic` is imported only inside `AnthropicClient.__init__`,
+  keeping `FakeLLMClient` and response helpers importable without the SDK installed.
+
+**What is intentionally NOT tested here:**
+
+- The actual `send()` round-trip. That's the `@pytest.mark.llm` job (see
+  `test_agent_live.py` below).
+- Concurrent rate-limiter fairness. The agent loop is single-consumer; the docstring
+  documents the assumption.
+
+---
+
+### `tests/unit/test_prompts.py` — 19 tests, ~190 lines
+
+Covers the system prompt content and tool schema in
+`src/hackrf_agent/ai/prompts.py`. **Pure data, zero I/O.**
+
+| Class | Tests | What it covers |
+|---|---|---|
+| `TestSystemPrompt` | 7 | All 6 required sections present (ISM bands, BLOCKED, execute_command, sweep-before-capture, one-tool-call-per-response), all 4 risk tiers referenced, no datetime interpolation, no UUID/per-run markers, key frequency band entries, blocked band references, version constant pattern |
+| `TestToolSchema` | 10 | Tool name is `"execute_command"`, required fields (`action`, `justification`, `expected_effect`), action enum matches all `CommandAction` values (resolved via `$defs`), enum values are string values not enum names, deterministic `json.dumps`, stable across `importlib.reload`, non-empty description, top-level type is `"object"`, all Pydantic `title` fields stripped |
+| `TestConstants` | 3 | `MAX_TOOL_CALLS_PER_RESPONSE == 1`, `TOOL_NAME == "execute_command"`, `SYSTEM_PROMPT` is non-empty and >1000 chars |
+
+**Key guardrails tested here:**
+
+- **Schema stability across imports:** `EXECUTE_COMMAND_TOOL_SCHEMA` is generated once at
+  import time and must be identical on reimport — test 6 (`json.dumps` deterministic) +
+  test 7 (`importlib.reload` equality) verify this.
+- **Pydantic v2 `$defs` handling:** The action field's enum values are stored under
+  `$defs/CommandAction` (Pydantic v2 uses `$ref` for typed enums). The test `_get_action_enum`
+  helper resolves the `$ref` path. This also confirms `_strip_titles` didn't accidentally
+  strip `$defs`.
+- **No runtime interpolation:** The `SYSTEM_PROMPT` is a literal triple-quoted string.
+  Test 2 asserts no ISO-8601 datetimes (the version constant uses `YYYY-MM-DD-vN` without
+  a `T` separator). Test 3 asserts no UUID patterns.
+
+---
+
+### `tests/integration/test_agent_loop.py` — 23 tests, ~460 lines
+
+Full agent-loop integration tests. **All use `FakeLLMClient`** with a real
+`CommandExecutor` backed by a `FakeDriver`. The audit DB is touched, hence "integration."
+Tests cover all 16 plan-specified cases plus 7 additional edge cases.
+
+**Fixture (`bench`):** Creates a `HackrfAgent` wired to `FakeLLMClient` + `FakeDriver` +
+real `CommandExecutor` + real `PermissionService` + real `AuditService`. All state is
+isolated in `tmp_path`. The `FakeApprovalPort` answers `True` by default.
+
+| Class | # | What it covers |
+|---|---|---|
+| `TestSimpleTextTurn` | 1 | Single text response → `AssistantText` then `TurnEnded(end_turn)` |
+| `TestSingleToolCall` | 2 | `tool_use(get_device_info)` → `ToolCallStarted` + `ToolCallCompleted` + `TurnEnded`; driver called once |
+| `TestChainedToolCalls` | 3 | Two sequential tool_use responses → two `ToolCallStarted`/`ToolCallCompleted` pairs |
+| `TestMultipleToolUseBlocks` | 4 | Two tool_use blocks in one response → only first executed, warning logged via `caplog` |
+| `TestRefusal` | 5 | `stop_reason=="refusal"` → `TurnEnded(refusal)`, no tool calls attempted |
+| `TestWrongToolName` | 6 | Tool name `"not_execute_command"` → `AgentError(recoverable=True)` + `tool_result(is_error=True)`, loop continues |
+| `TestMalformedToolInput` | 7 | Missing `justification` → recoverable error; bad action enum value → recoverable error |
+| `TestBlockedAction` | 8 | `transmit_iq` at 1090 MHz → `ToolCallCompleted` with `success=False, message.startswith("Action blocked")`, driver NOT called |
+| `TestGrantInjection` | 9, 10 | Active grant → mid-conversation `{"role":"system"}` message with grant details; no grants → no system message |
+| `TestHistoryTrimming` | 11 | 30+ messages → request trimmed to ≤ `MAX_HISTORY_MESSAGES` (24) |
+| `TestPairSafety` | 12 | Orphaned `tool_result` (assistant parent trimmed) → dropped from request |
+| `TestRunawayProtection` | 13 | 25 queued tool_use responses → stops at 20 with `AgentError(recoverable=False, "cap")` |
+| `TestMidConvSystemFallback` | 14 | Mid-conv system rejection → fallback to `<system-reminder>`, `_supports_mid_conv_system` flipped to `False`; subsequent calls use `<system-reminder>` injection |
+| `TestSystemPromptAndTools` | 15, 16 | Every request includes `SYSTEM_PROMPT` with `cache_control`, `[EXECUTE_COMMAND_TOOL_SCHEMA]` as sole tool; verified across multiple calls in a turn |
+| `TestUnexpectedStopReason` | — | `stop_reason=="max_tokens"` → `AgentError(recoverable=False)` |
+| `TestToolUseNoBlocks` | — | `stop_reason=="tool_use"` with zero tool_use blocks → `AgentError(recoverable=False, "no tool_use blocks")` |
+| `TestMessageHistory` | — | `agent.messages` returns a copy (not internal reference); assistant text persisted in history after turn |
+
+**Key design verifications:**
+
+- **The agent never imports hardware or UI code.** Verified by the grep check in the
+  Definition of Done.
+- **One tool, one tool call per response.** Tests 15–16 (tool schema included) and test 4
+  (extra tool_use blocks dropped) enforce this structurally.
+- **Pair-safe trimming.** Test 12 seeds history with a `tool_use`/`tool_result` pair and
+  verifies the result is dropped (not orphaned) when the parent is trimmed.
+- **Runaway protection at 20 calls/turn.** Test 13 queues 25 responses — loop stops at 20
+  with a cap message.
+- **Grant injection with Opus 4.8 / fallback.** Tests 9–10 verify the happy path; test 14
+  simulates rejection and verifies the `<system-reminder>` fallback.
+
+---
+
+### `tests/integration/test_agent_live.py` — 1 test, ~120 lines
+
+One live smoke test marked `@pytest.mark.llm`. **Skipped unless `ANTHROPIC_API_KEY` is set.**
+
+| Test | What it covers |
+|---|---|
+| `test_live_get_device_info` | One benign round-trip against real Claude: "read device info and summarize." Asserts loop terminates, `get_device_info` was called, no `AgentError`. Does NOT assert on specific wording (non-deterministic). |
+
+Enable with `pytest --llm` (a Part 8 concern; Part 6 just adds the marker).
+
+---
+
 ## Test Design Principles
 
 ### Arrange → Act → Assert
@@ -290,26 +409,31 @@ function of its inputs.
 
 ## Quality Gates
 
-All three must pass before a change to `domain/` or `hw/` is considered done:
+All four must pass before a change is considered done:
 
 ```bash
-# Tests — target: ≥ 130 (currently 201 passed, 1 skipped)
-pytest tests/unit/ tests/integration/test_dsp_pipeline.py -q
+# Tests — all safe-for-CI (no hardware, no LLM)
+pytest tests/unit/ tests/integration/ -q -m "not hardware and not llm"
 
 # Lint — target: clean
-ruff check src/hackrf_agent/domain/ src/hackrf_agent/hw/ tests/unit/
+ruff check src/ tests/
 
-# Types — target: clean (strict mode)
-mypy src/hackrf_agent/domain/ src/hackrf_agent/hw/
+# Types — target: clean
+mypy src/
+
+# No hardware/UI imports in ai/ package
+grep -R "import pyhackrf\|from hackrf_agent.hw\|import numpy\|import rich\|import typer" src/hackrf_agent/ai/ ; echo "exit=$?"
+# Expect: exit=1 (no matches)
 ```
 
 Current status (2026-08-03):
 
 | Gate | Status | Detail |
 |---|---|---|
-| `pytest tests/unit/ tests/integration/test_dsp_pipeline.py -q` | 201 passed, 1 skipped | Exceeds the 130-test minimum from `plan-bender.md` (68 Part 4 + 94 Parts 2–3 + 2 DSP pipeline + 37 domain = 201) |
-| `ruff check` | Clean | `N818` on `KillSwitchTriggered` suppressed per plan (name is intentional) |
-| `mypy` (strict) | Clean | `pyhackrf` handled via `ignore_missing_imports` + `Any` for lazy-imported module |
+| `pytest tests/unit/ tests/integration/ -q -m "not hardware and not llm"` | 323 passed, 1 skipped | 65 new Part 6 tests (23 llm_client + 19 prompts + 23 agent loop) + 258 existing Parts 2–5 tests |
+| `ruff check src/ tests/` | Clean | All Part 2–6 source and test files |
+| `mypy src/` | Clean | `anthropic` handled via `# type: ignore[arg-type]` on SDK calls; `ignore_missing_imports` set globally |
+| `grep` ai/ for hw/UI imports | Clean (exit=1) | Part 6 never touches hardware or UI |
 
 ---
 
@@ -334,6 +458,14 @@ Current status (2026-08-03):
   quantization→FFT→peaks. The day-1 canary.
 - **Hardware integration** → `test_hackrf_driver.py` (integration). Requires
   HackRF. RX-only. Marked `@pytest.mark.hardware`. Never TX.
+- **LLM client** → `test_llm_client.py`. Protocol conformance, rate limiter logic,
+  construction validation, test doubles. No real API calls.
+- **Prompts & tool schema** → `test_prompts.py`. System prompt content, schema
+  shape, enum values, determinism, byte-stability.
+- **Agent loop** → `test_agent_loop.py` (integration). Full conversation loop with
+  `FakeLLMClient` + real `CommandExecutor`/`FakeDriver`. Touches audit DB.
+- **Live LLM** → `test_agent_live.py` (integration). One marker-gated round-trip
+  against real Claude. Marked `@pytest.mark.llm`.
 
 ### Checklist for a new `CommandAction`
 
