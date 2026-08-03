@@ -246,13 +246,15 @@ class RiskAssessor:
                 requires_confirmation=False,
             )
 
-        # Grant check — any active grant covering this TX → MEDIUM
+        # Grant check — any active grant covering this TX → LOW (auto-execute)
+        # The operator has already pre-authorized this band + gain via
+        # `hackrf-agent grant tx ...`; no per-command approval needed.
         for grant in active_grants:
             if grant.covers_transmission(center_hz, gain_db):
                 return RiskAssessment(
-                    level=RiskLevel.MEDIUM,
+                    level=RiskLevel.LOW,
                     reason="in-scope grant covers this transmission",
-                    requires_confirmation=True,
+                    requires_confirmation=False,
                 )
 
         # ISM band rules

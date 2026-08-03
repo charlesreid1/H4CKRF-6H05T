@@ -428,7 +428,8 @@ class TestTransmitIqIsmNoGrant:
 
 
 class TestTransmitIqWithGrants:
-    def test_grant_fully_covers_medium(self, assessor: RiskAssessor) -> None:
+    def test_grant_fully_covers_low(self, assessor: RiskAssessor) -> None:
+        """In-scope grant → LOW, no confirmation prompt (pre-authorized)."""
         grant = active_grant(433_000_000, 434_000_000, max_gain_db=30)
         result = assessor.assess(
             make_command(
@@ -438,7 +439,8 @@ class TestTransmitIqWithGrants:
             ),
             [grant],
         )
-        assert result.level == RiskLevel.MEDIUM
+        assert result.level == RiskLevel.LOW
+        assert result.requires_confirmation is False
         assert "in-scope grant" in result.reason
 
     def test_grant_gain_exceeded_falls_to_ism_high(self, assessor: RiskAssessor) -> None:
