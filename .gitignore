@@ -3,6 +3,7 @@
 plan*
 .python-version
 M0MA-V3SP3R/
+attic
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
