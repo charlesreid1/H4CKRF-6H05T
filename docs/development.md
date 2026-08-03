@@ -81,7 +81,31 @@ The core logic (models, policy, risk, permissions, audit, LLM loops, CLI) can be
 developed and tested without HackRF hardware. Tests marked `@pytest.mark.hardware`
 are skipped by default. See [Testing](#testing) below.
 
-**Current status (2026-08-02):** HackRF One is not connected to this development
+### Running Hardware Tests (Manual)
+
+When a HackRF One is attached, run the hardware-marked tests with:
+
+```bash
+pytest tests/integration/test_hackrf_driver.py --hardware -v
+```
+
+Three tests run:
+
+1. **`test_get_device_info`** — opens the device, reads serial/firmware/board
+   revision, asserts non-empty strings.
+2. **`test_sweep_spectrum_returns_expected_shape`** — 100 ms RX sweep of the
+   433–434 MHz ISM band at 2 Msps; asserts correct array shapes and dtypes.
+3. **`test_kill_switch_aborts_sweep`** — starts a 5 s sweep in a background task,
+   fires `stop_event.set()` after 100 ms, asserts `KillSwitchTriggered` within 2 s.
+
+**Never TX in automated tests.** No `transmit_iq` test exists; manual TX smoke
+testing is covered by the Part 8 runbook.
+
+CI skips all `@pytest.mark.hardware` tests by default. The `--hardware` flag is
+gated by a `pytest_addoption` hook (to be added in `tests/conftest.py` when CI
+infrastructure is set up).
+
+**Current status (2026-08-03):** HackRF One is not connected to this development
 machine. `hackrf_info` verification is deferred. The `pyhackrf` package imports as
 `import hackrf` but will fail at `CDLL('libhackrf.so.0')` until libhackrf is installed
 via Homebrew (`brew install hackrf`).
@@ -194,12 +218,12 @@ Data directories on macOS:
 
 | Tier | Command | What runs |
 |------|---------|-----------|
-| **Unit** | `pytest tests/unit -q` | Pure logic — no hardware, network, or LLM. Default tier. |
-| **Integration (no marker)** | `pytest tests/integration -q --ignore=tests/integration/test_hackrf_driver.py --ignore=tests/integration/test_agent_live.py` | Executor, agent loop with fakes. Runs in CI on every push. |
-| **Integration (hardware)** | `pytest tests/integration --hardware -q` | Requires HackRF attached. RX-only tests. No TX. |
+| **Unit** | `pytest tests/unit -q` | Pure logic — no hardware, network, or LLM. Default tier. **68 Part 4 tests + 94 Parts 2–3 tests = 162 unit tests.** |
+| **Integration (no marker)** | `pytest tests/integration -q -m "not hardware and not llm"` | Executor, persistence roundtrip, DSP pipeline. Runs in CI on every push. |
+| **Integration (hardware)** | `pytest tests/integration --hardware -q` | Requires HackRF attached. RX-only tests. No TX. 3 tests in `test_hackrf_driver.py`. |
 | **Integration (LLM)** | `pytest tests/integration --llm -q` | Requires `ANTHROPIC_API_KEY`. One benign round-trip. |
 | **End-to-end** | `pytest tests/e2e -q` | Full workflow with fake LLM + mock hardware. |
-| **All** | `pytest -q` | Unit + integration (no marker). Safe for CI. |
+| **All safe-for-CI** | `pytest tests/unit/ tests/integration/test_dsp_pipeline.py tests/integration/test_persistence_roundtrip.py -q` | Unit + DSP pipeline + persistence. **201 tests, completes in ~5 s.** |
 
 ### Pytest Markers
 
