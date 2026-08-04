@@ -8,7 +8,7 @@ import typer
 
 from hackrf_agent.cli.audit_cmd import audit_app
 from hackrf_agent.cli.chat_cmd import chat
-from hackrf_agent.cli.doctor_cmd import doctor, set_api_key
+from hackrf_agent.cli.doctor_cmd import doctor
 from hackrf_agent.cli.permissions_cmd import grant_app
 from hackrf_agent.cli.settings import DEFAULT_HOME, SettingsService
 
@@ -22,7 +22,6 @@ app.add_typer(grant_app, name="grant")
 app.add_typer(audit_app, name="audit")
 app.command("chat")(chat)
 app.command("doctor")(doctor)
-app.command("set-api-key")(set_api_key)
 
 
 @app.callback()

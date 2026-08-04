@@ -14,7 +14,7 @@ Three files, three responsibilities:
 
 ```
 src/hackrf_agent/ai/
-├── llm_client.py   # LLMClient protocol + AnthropicClient + FakeLLMClient
+├── llm_client.py   # LLMClient protocol + OpenRouterClient + FakeLLMClient
 ├── prompts.py      # SYSTEM_PROMPT + EXECUTE_COMMAND_TOOL_SCHEMA (pure data)
 └── agent.py        # HackrfAgent.chat() — the conversation loop
 ```
@@ -83,18 +83,20 @@ class LLMClient(Protocol):
     ) -> LLMResponse: ...
 ```
 
-### `AnthropicClient`
+### `OpenRouterClient`
 
-Concrete implementation backed by the `anthropic` SDK. Key behaviors:
+Concrete implementation backed by the `openai` SDK pointed at OpenRouter. Key behaviors:
 
-- **Lazy import:** `anthropic` is imported inside `__init__`, so `FakeLLMClient`
+- **Lazy import:** `openai` is imported inside `__init__`, so `FakeLLMClient`
   and response helpers are importable without the SDK installed.
-- **API key resolution:** Constructor arg → `ANTHROPIC_API_KEY` env var. Never
-  reads from disk or keyring — that's Part 7's job.
+- **API key resolution:** Constructor arg → `OPENROUTER_API_KEY` env var. The
+  CLI's `SettingsService` (Part 7) loads a `.env` file into the environment on
+  startup, so this fallback picks up dotenv values transparently.
 - **Rate limiter:** At most 30 requests per rolling 60-second window. Enforced
   via `collections.deque[float]` of timestamps + `asyncio.Lock`. On saturation,
   `send()` awaits until a slot opens; it does NOT raise.
-- **Model:** `claude-sonnet-5` by default. Override via `AnthropicClient(model=...)`.
+- **Model:** `anthropic/claude-sonnet-5` by default. Override via
+  `OpenRouterClient(model=...)`.
   The agent loop never hard-codes a model string — it's injected via the
   `LLMClient` protocol.
 - **Retries:** SDK default (`max_retries=2`) handles 429/5xx. No second retry
@@ -179,10 +181,11 @@ Built at import time from Pydantic's `ExecuteCommand.model_json_schema()`:
 
 ```python
 {
-    "name": "execute_command",
-    "description": "Request that the host execute exactly one HackRF action...",
-    "input_schema": { ... }  # Pydantic-generated JSON Schema, titles stripped
-}
+    "function": {
+        "name": "execute_command",
+        "description": "Request that the host execute exactly one HackRF action...",
+        "parameters": { ... }  # Pydantic-generated JSON Schema, titles stripped
+    }
 ```
 
 Key properties:
@@ -217,7 +220,7 @@ A tool-use turn produces: `AssistantText` (optional) → `ToolCallStarted` →
 
 ### Message History
 
-The agent owns a `list[dict[str, Any]]` of Anthropic-format messages. Key
+The agent owns a `list[dict[str, Any]]` of provider-format messages. Key
 behaviors:
 
 - **Pair-safe trimming:** Before each request, the history is trimmed to the
@@ -254,13 +257,12 @@ When the model returns `stop_reason == "tool_use"`:
    set `is_error=True` so the model sees the failure clearly.
 6. Loop (bounded by `max_tool_calls_per_turn = 20`).
 
-### Prompt Caching
+### Message Format Translation
 
-The top-level `system` parameter includes `cache_control: {"type": "ephemeral"}`
-on the `SYSTEM_PROMPT` block. This caches the stable system prompt prefix so
-only the volatile per-turn messages are transmitted on subsequent requests. The
-`SYSTEM_PROMPT` is ~1.6K tokens, above the 1024-token minimum for Sonnet-family
-caching.
+The ``OpenRouterClient`` translates between the internal message format
+(Anthropic-shaped, for minimal agent-loop churn) and the OpenAI Chat
+Completions wire format that OpenRouter exposes. See ``llm_client.py`` for
+the field-by-field mapping.
 
 ### Error Handling Philosophy
 
@@ -300,8 +302,8 @@ It assembles all Parts 2–6 into a working product:
    `_run_chat()`. The `--help` output works without `pyhackrf` installed.
 2. Constructs `CommandExecutor` (Part 5) — with `RiskAssessor`, `PermissionService`,
    `AuditService`, `ResultFormatter`, `HackrfDriver`, and `CliApprovalPort`.
-3. Constructs `AnthropicClient` (Part 6) — with the API key from `SettingsService`
-   (keychain-backed) and model from `config.toml`.
+3. Constructs `OpenRouterClient` (Part 6) — with the API key from `SettingsService`
+   (env-var-backed, with optional `.env` loading) and model from `config.toml`.
 4. Constructs `HackrfAgent` (Part 6) — injecting `llm`, `executor`, and
    `max_history_messages` from config.
 5. Calls `agent.chat(user_message)` in the `_repl` loop, consuming the
@@ -329,9 +331,9 @@ approval flow, kill switch semantics, and configuration.
 
 | Setting | Default | Where |
 |---|---|---|
-| Model | `claude-sonnet-5` | `AnthropicClient(model=...)` constructor arg |
-| API key | (required) | Constructor arg or `ANTHROPIC_API_KEY` env var |
-| Max tokens | 4096 | `AnthropicClient(max_tokens=...)` |
+| Model | `anthropic/claude-sonnet-5` | `OpenRouterClient(model=...)` constructor arg |
+| API key | (required) | Constructor arg or `OPENROUTER_API_KEY` env var |
+| Max tokens | 4096 | `OpenRouterClient(max_tokens=...)` |
 | Rate limit | 30 req / 60 s | `RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_WINDOW_S` constants |
 | History cap | 24 messages | `MAX_HISTORY_MESSAGES` in `agent.py` |
 | Tool calls per turn | 20 | `HackrfAgent(max_tool_calls_per_turn=...)` |
@@ -341,9 +343,8 @@ approval flow, kill switch semantics, and configuration.
 
 ## References
 
-- **Anthropic Tool Use Docs**: [docs.anthropic.com/en/docs/build-with-claude/tool-use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
-- **Prompt Caching**: [docs.anthropic.com/en/docs/build-with-claude/prompt-caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
-- **Mid-conversation System Messages**: Opus 4.8+ only; see prompt caching docs §"Mid-conversation system messages"
+- **OpenRouter API Docs**: [openrouter.ai/docs](https://openrouter.ai/docs)
+- **OpenAI Function Calling**: [platform.openai.com/docs/guides/function-calling](https://platform.openai.com/docs/guides/function-calling)
 - **`docs/tests.md`** — Part 6 test documentation (llm_client, prompts, agent loop, live)
 - **`docs/safety.md`** — BLOCKED bands, risk tiers, FCC citations
 - **`docs/development.md`** — Project layout, setup, quality tooling

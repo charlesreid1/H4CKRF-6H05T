@@ -1,6 +1,6 @@
 """Live-LLM smoke test for the ``chat`` command.
 
-Requires BOTH a HackRF attached AND an Anthropic API key.
+Requires BOTH a HackRF attached AND an OpenRouter API key.
 Always skipped in CI.
 """
 
@@ -17,8 +17,8 @@ pytestmark = pytest.mark.llm
 
 
 @pytest.mark.skipif(
-    not os.environ.get("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set",
+    not os.environ.get("OPENROUTER_API_KEY"),
+    reason="OPENROUTER_API_KEY not set",
 )
 @pytest.mark.hardware
 def test_chat_smoke(tmp_path):
@@ -30,12 +30,8 @@ def test_chat_smoke(tmp_path):
     home.mkdir(parents=True, exist_ok=True)
     runner = CliRunner()
 
-    # Store API key into the test keychain backend first.
-    api_key = os.environ["ANTHROPIC_API_KEY"]
-    from hackrf_agent.cli.settings import SettingsService
-
-    svc = SettingsService(home_dir=home)
-    svc.set_api_key(api_key)
+    # OPENROUTER_API_KEY is already in the environment (required by the
+    # module-level skipif) — SettingsService picks it up directly.
 
     result = runner.invoke(
         app,

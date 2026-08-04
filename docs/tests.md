@@ -26,7 +26,7 @@ pytest tests/integration/ tests/e2e/ -q  # Fakes for hardware + LLM
 
 ```bash
 pytest --hardware -m hardware            # Requires HackRF One attached via USB
-pytest --llm -m llm                      # Requires ANTHROPIC_API_KEY
+pytest --llm -m llm                      # Requires OPENROUTER_API_KEY
 ```
 
 ### Snapshot update mode
@@ -72,7 +72,7 @@ These tests wire multiple real components together but fake external dependencie
 - **`@pytest.mark.hardware`** — `test_hackrf_driver.py` runs `get_device_info` and a
   bounded RX sweep. Never TX. Requires `--hardware` flag.
 - **`@pytest.mark.llm`** — `test_agent_live.py` runs one benign round-trip against
-  real Claude. Requires `--llm` flag and `ANTHROPIC_API_KEY`.
+  real Claude via OpenRouter. Requires `--llm` flag and `OPENROUTER_API_KEY`.
 
 ### End-to-end (`tests/e2e/`)
 
@@ -98,7 +98,7 @@ corresponding `--hardware`/`--llm` flag is passed.
 | Pipeline | Trigger | What |
 |----------|---------|------|
 | `tests.yml` | Every push + PR | Lint, typecheck, unit (3.11 + 3.12), integration+e2e (no markers) |
-| `tests-llm.yml` | Nightly 03:00 UTC + manual | `@pytest.mark.llm` with org's `ANTHROPIC_API_KEY` secret |
+| `tests-llm.yml` | Nightly 03:00 UTC + manual | `@pytest.mark.llm` with org's `OPENROUTER_API_KEY` secret |
 | `tests-hardware.yml` | Manual dispatch only | `@pytest.mark.hardware` on self-hosted `hackrf-attached` runner |
 
 ### Snapshot philosophy

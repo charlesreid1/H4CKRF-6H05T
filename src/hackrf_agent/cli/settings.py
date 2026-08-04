@@ -1,20 +1,25 @@
-"""Config file + keychain-backed secret storage.
+"""Config file + environment-backed secret storage.
 
-One class: :class:`SettingsService`.  All keychain I/O goes through here.
+One class: :class:`SettingsService`.  The OpenRouter API key is read
+from the ``OPENROUTER_API_KEY`` environment variable, with support
+for loading a ``.env`` file from the current working directory (via
+``python-dotenv``) so contributors can drop credentials in a
+git-ignored file next to the repo.
 """
 
 from __future__ import annotations
 
-import contextlib
+import os
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
-import keyring
+from dotenv import load_dotenv
 
-KEYRING_SERVICE: Final[str] = "hackrf-agent"
-KEYRING_USERNAME: Final[str] = "anthropic-api-key"
+from hackrf_agent.ai.llm_client import DEFAULT_MODEL
+
+ENV_API_KEY: Final[str] = "OPENROUTER_API_KEY"
 
 DEFAULT_HOME: Final[Path] = Path.home() / ".hackrf-agent"
 
@@ -29,21 +34,32 @@ class Settings:
     """
 
     home_dir: Path
-    model: str = "claude-sonnet-5"
+    model: str = DEFAULT_MODEL
     max_history_messages: int = 24
     auto_approve_medium: bool = False
 
 
 class SettingsService:
-    """Reads ``~/.hackrf-agent/config.toml`` + the OS keychain.
+    """Reads ``~/.hackrf-agent/config.toml`` + the ``OPENROUTER_API_KEY`` env var.
 
     Does NOT create the file on first read — that's the doctor
     command's job. All fields fall back to defaults if the file
     is absent or malformed.
+
+    On construction, loads variables from a ``.env`` file in the
+    current working directory (if present) into ``os.environ`` without
+    overriding values already set. This lets contributors keep their
+    key in a git-ignored ``.env`` alongside the project.
     """
 
     def __init__(self, home_dir: Path | None = None) -> None:
         self._home_dir = home_dir or DEFAULT_HOME
+        # Load a `.env` sitting next to CWD (project root, typically). Do
+        # not walk upward — that would silently pick up a stray .env in a
+        # parent directory. Pre-existing env vars always win.
+        dotenv_path = Path.cwd() / ".env"
+        if dotenv_path.is_file():
+            load_dotenv(dotenv_path=dotenv_path, override=False)
 
     @property
     def home_dir(self) -> Path:
@@ -80,7 +96,7 @@ class SettingsService:
             return Settings(home_dir=self._home_dir)
         return Settings(
             home_dir=self._home_dir,
-            model=str(raw.get("model", "claude-sonnet-5")),
+            model=str(raw.get("model", DEFAULT_MODEL)),
             max_history_messages=int(raw.get("max_history_messages", 24)),
             auto_approve_medium=bool(raw.get("auto_approve_medium", False)),
         )
@@ -98,19 +114,16 @@ class SettingsService:
         tmp.write_text(content, encoding="utf-8")
         tmp.replace(self.config_path)
 
-    # -- keychain -----------------------------------------------------------
+    # -- api key ------------------------------------------------------------
 
     def get_api_key(self) -> str | None:
-        """Return the stored API key, or None if not set."""
-        return keyring.get_password(KEYRING_SERVICE, KEYRING_USERNAME)
+        """Return the ``OPENROUTER_API_KEY`` env var, stripped.
 
-    def set_api_key(self, key: str) -> None:
-        """Store the API key in the OS keychain. Overwrites any existing value."""
-        if not key or not key.strip():
-            raise ValueError("API key must be non-empty")
-        keyring.set_password(KEYRING_SERVICE, KEYRING_USERNAME, key.strip())
-
-    def delete_api_key(self) -> None:
-        """Remove the stored API key. Idempotent."""
-        with contextlib.suppress(keyring.errors.PasswordDeleteError):
-            keyring.delete_password(KEYRING_SERVICE, KEYRING_USERNAME)
+        Returns ``None`` when the variable is unset or empty after
+        stripping whitespace.
+        """
+        raw = os.environ.get(ENV_API_KEY)
+        if raw is None:
+            return None
+        stripped = raw.strip()
+        return stripped or None

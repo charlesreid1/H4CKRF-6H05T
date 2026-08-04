@@ -1,6 +1,6 @@
-"""Live LLM smoke test — one benign round-trip against real Claude.
+"""Live LLM smoke test — one benign round-trip against OpenRouter.
 
-Skipped unless ``ANTHROPIC_API_KEY`` is set. Marked ``@pytest.mark.llm``.
+Skipped unless ``OPENROUTER_API_KEY`` is set. Marked ``@pytest.mark.llm``.
 """
 
 import os
@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from hackrf_agent.ai.agent import HackrfAgent
-from hackrf_agent.ai.llm_client import AnthropicClient
+from hackrf_agent.ai.llm_client import OpenRouterClient
 from hackrf_agent.data.db import ensure_schema
 from hackrf_agent.domain.approval import FakeApprovalPort
 from hackrf_agent.domain.audit_service import AuditService
@@ -29,8 +29,8 @@ pytestmark = pytest.mark.llm
 
 
 @pytest.mark.skipif(
-    not os.environ.get("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set",
+    not os.environ.get("OPENROUTER_API_KEY"),
+    reason="OPENROUTER_API_KEY not set",
 )
 async def test_live_get_device_info(tmp_path: Path) -> None:
     """One benign round-trip against real Claude with a fake driver.
@@ -61,8 +61,8 @@ async def test_live_get_device_info(tmp_path: Path) -> None:
             session_paths=session,
         )
 
-        llm = AnthropicClient()
-        agent = HackrfAgent(llm=llm, executor=executor, permissions=perms)
+        llm = OpenRouterClient()
+        agent = HackrfAgent(llm=llm, executor=executor)
 
         events = []
         async for ev in agent.chat("Please read the device info and summarize it in one sentence."):

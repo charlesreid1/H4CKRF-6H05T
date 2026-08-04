@@ -272,12 +272,11 @@ class HackrfAgent:
     # ------------------------------------------------------------------
 
     def _build_top_level_system(self) -> list[dict[str, Any]]:
-        """The stable system prompt, with prompt-cache marker on the last block."""
+        """The stable system prompt block list."""
         return [
             {
                 "type": "text",
                 "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
             }
         ]
 
@@ -326,17 +325,8 @@ class HackrfAgent:
                         "input": dict(block.input or {}),
                     }
                 )
-            elif btype == "thinking":
-                # We never surface thinking to the user, but preserve
-                # the block if the model returns one (Opus 4.8 requires
-                # blocks to be echoed back unchanged in continuation).
-                serialized.append(
-                    {
-                        "type": "thinking",
-                        "thinking": getattr(block, "thinking", ""),
-                    }
-                )
-            # Silently drop any unknown block types.
+            # Silently drop any unknown block types (including thinking —
+            # OpenRouter does not emit provider-native thinking blocks).
         if serialized:
             self._messages.append({"role": "assistant", "content": serialized})
 

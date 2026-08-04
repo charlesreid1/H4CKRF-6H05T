@@ -520,7 +520,7 @@ class TestSystemPromptAndTools:
     """Tests 15 & 16: System prompt and tool schema are always included."""
 
     async def test_system_prompt_included(self, bench) -> None:
-        """Every request includes the SYSTEM_PROMPT with cache_control."""
+        """Every request includes the full SYSTEM_PROMPT."""
         bench["llm"].responses = [make_text_response("Hi")]
         await collect_events(bench["agent"], "hello")
 
@@ -528,7 +528,6 @@ class TestSystemPromptAndTools:
         assert isinstance(system, list)
         assert len(system) == 1
         assert system[0]["text"] == SYSTEM_PROMPT
-        assert system[0]["cache_control"] == {"type": "ephemeral"}
 
     async def test_tool_schema_included(self, bench) -> None:
         """Every request includes EXECUTE_COMMAND_TOOL_SCHEMA as the sole tool."""

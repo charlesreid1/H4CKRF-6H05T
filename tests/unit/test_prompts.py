@@ -89,18 +89,18 @@ class TestToolSchema:
 
     def test_name_is_execute_command(self) -> None:
         """The tool schema's name is 'execute_command'."""
-        assert EXECUTE_COMMAND_TOOL_SCHEMA["name"] == "execute_command"
+        assert EXECUTE_COMMAND_TOOL_SCHEMA["function"]["name"] == "execute_command"
 
     def test_required_fields(self) -> None:
-        """The input_schema requires 'action', 'justification', 'expected_effect'."""
-        required = EXECUTE_COMMAND_TOOL_SCHEMA["input_schema"]["required"]
+        """The parameters schema requires 'action', 'justification', 'expected_effect'."""
+        required = EXECUTE_COMMAND_TOOL_SCHEMA["function"]["parameters"]["required"]
         assert "action" in required
         assert "justification" in required
         assert "expected_effect" in required
 
     def _get_action_enum(self) -> list[str]:
         """Resolve the action field's enum, which Pydantic v2 places under $defs."""
-        schema = EXECUTE_COMMAND_TOOL_SCHEMA["input_schema"]
+        schema = EXECUTE_COMMAND_TOOL_SCHEMA["function"]["parameters"]
         props = schema["properties"]
         # The action field may be a $ref to a definition, or inline.
         action_schema = props["action"]
@@ -145,12 +145,12 @@ class TestToolSchema:
 
     def test_has_description(self) -> None:
         """The tool schema has a non-empty description."""
-        desc = EXECUTE_COMMAND_TOOL_SCHEMA.get("description", "")
+        desc = EXECUTE_COMMAND_TOOL_SCHEMA["function"].get("description", "")
         assert len(desc) > 50  # Should be a substantial description.
 
-    def test_input_schema_has_type_object(self) -> None:
-        """The input_schema's top-level type is 'object'."""
-        assert EXECUTE_COMMAND_TOOL_SCHEMA["input_schema"]["type"] == "object"
+    def test_parameters_has_type_object(self) -> None:
+        """The parameters schema's top-level type is 'object'."""
+        assert EXECUTE_COMMAND_TOOL_SCHEMA["function"]["parameters"]["type"] == "object"
 
     def test_no_title_fields_in_schema(self) -> None:
         """Pydantic title fields are stripped from the schema."""

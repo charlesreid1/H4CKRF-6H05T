@@ -2,38 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-
 from hackrf_agent.cli.settings import (
+    ENV_API_KEY,
     Settings,
     SettingsService,
 )
-
-
-@pytest.fixture
-def fake_keyring(monkeypatch):
-    """Replace keyring.get_password / set_password / delete_password
-    with an in-memory dict for the duration of the test.
-    """
-    store: dict[tuple[str, str], str] = {}
-
-    def _get(service, user):
-        return store.get((service, user))
-
-    def _set(service, user, val):
-        store[(service, user)] = val
-
-    def _del(service, user):
-        if (service, user) not in store:
-            import keyring.errors
-
-            raise keyring.errors.PasswordDeleteError("not found")
-        del store[(service, user)]
-
-    monkeypatch.setattr("keyring.get_password", _get)
-    monkeypatch.setattr("keyring.set_password", _set)
-    monkeypatch.setattr("keyring.delete_password", _del)
-    return store
+from hackrf_agent.ai.llm_client import DEFAULT_MODEL
 
 
 class TestSettingsServiceLoad:
@@ -42,7 +16,7 @@ class TestSettingsServiceLoad:
     def test_fresh_dir_returns_defaults(self, tmp_path) -> None:
         svc = SettingsService(home_dir=tmp_path)
         s = svc.load()
-        assert s.model == "claude-sonnet-5"
+        assert s.model == DEFAULT_MODEL
         assert s.max_history_messages == 24
         assert s.auto_approve_medium is False
         assert s.home_dir == tmp_path
@@ -51,13 +25,13 @@ class TestSettingsServiceLoad:
         svc = SettingsService(home_dir=tmp_path)
         orig = Settings(
             home_dir=tmp_path,
-            model="claude-opus-4-8",
+            model="anthropic/claude-opus-4-8",
             max_history_messages=48,
             auto_approve_medium=True,
         )
         svc.save(orig)
         loaded = svc.load()
-        assert loaded.model == "claude-opus-4-8"
+        assert loaded.model == "anthropic/claude-opus-4-8"
         assert loaded.max_history_messages == 48
         assert loaded.auto_approve_medium is True
 
@@ -66,45 +40,63 @@ class TestSettingsServiceLoad:
         cfg.write_text("not = valid = toml")
         svc = SettingsService(home_dir=tmp_path)
         s = svc.load()
-        assert s.model == "claude-sonnet-5"
+        assert s.model == DEFAULT_MODEL
 
     def test_missing_file_returns_defaults(self, tmp_path) -> None:
         svc = SettingsService(home_dir=tmp_path / "nonexistent")
         s = svc.load()
-        assert s.model == "claude-sonnet-5"
+        assert s.model == DEFAULT_MODEL
 
 
-class TestSettingsServiceKeychain:
-    """Tests for SettingsService keychain methods."""
+class TestSettingsServiceApiKey:
+    """Tests for SettingsService.get_api_key()."""
 
-    def test_get_api_key_none_when_not_stored(self, tmp_path, fake_keyring) -> None:
+    def test_get_api_key_none_when_env_unset(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.delenv(ENV_API_KEY, raising=False)
         svc = SettingsService(home_dir=tmp_path)
         assert svc.get_api_key() is None
 
-    def test_set_and_get_api_key(self, tmp_path, fake_keyring) -> None:
+    def test_get_api_key_returns_env(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv(ENV_API_KEY, "sk-from-env")
         svc = SettingsService(home_dir=tmp_path)
-        svc.set_api_key("sk-fake")
-        assert svc.get_api_key() == "sk-fake"
+        assert svc.get_api_key() == "sk-from-env"
 
-    def test_set_empty_api_key_raises(self, tmp_path, fake_keyring) -> None:
+    def test_get_api_key_empty_env_is_none(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv(ENV_API_KEY, "")
         svc = SettingsService(home_dir=tmp_path)
-        with pytest.raises(ValueError, match="API key must be non-empty"):
-            svc.set_api_key("")
-
-    def test_set_whitespace_stripped(self, tmp_path, fake_keyring) -> None:
-        svc = SettingsService(home_dir=tmp_path)
-        svc.set_api_key("   sk-real   ")
-        assert svc.get_api_key() == "sk-real"
-
-    def test_delete_nonexistent_does_not_raise(self, tmp_path, fake_keyring) -> None:
-        svc = SettingsService(home_dir=tmp_path)
-        svc.delete_api_key()  # should not raise
-
-    def test_delete_existing_key(self, tmp_path, fake_keyring) -> None:
-        svc = SettingsService(home_dir=tmp_path)
-        svc.set_api_key("sk-to-delete")
-        svc.delete_api_key()
         assert svc.get_api_key() is None
+
+    def test_get_api_key_strips_whitespace(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv(ENV_API_KEY, "   sk-padded   ")
+        svc = SettingsService(home_dir=tmp_path)
+        assert svc.get_api_key() == "sk-padded"
+
+    def test_get_api_key_whitespace_only_is_none(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv(ENV_API_KEY, "   \t  ")
+        svc = SettingsService(home_dir=tmp_path)
+        assert svc.get_api_key() is None
+
+    def test_dotenv_file_loaded_from_cwd(self, tmp_path, monkeypatch) -> None:
+        """A .env file in CWD populates the env var when it isn't already set."""
+        monkeypatch.delenv(ENV_API_KEY, raising=False)
+        cwd = tmp_path / "proj"
+        cwd.mkdir()
+        (cwd / ".env").write_text(f"{ENV_API_KEY}=sk-from-dotenv\n")
+        monkeypatch.chdir(cwd)
+        svc = SettingsService(home_dir=tmp_path / "home")
+        assert svc.get_api_key() == "sk-from-dotenv"
+
+    def test_env_var_wins_over_dotenv(self, tmp_path, monkeypatch) -> None:
+        """An already-set env var is not overridden by .env — protects
+        against a stale .env silently shadowing an intentional override.
+        """
+        cwd = tmp_path / "proj"
+        cwd.mkdir()
+        (cwd / ".env").write_text(f"{ENV_API_KEY}=sk-from-dotenv\n")
+        monkeypatch.chdir(cwd)
+        monkeypatch.setenv(ENV_API_KEY, "sk-from-real-env")
+        svc = SettingsService(home_dir=tmp_path / "home")
+        assert svc.get_api_key() == "sk-from-real-env"
 
 
 class TestSettingsServicePaths:

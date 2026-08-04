@@ -23,7 +23,7 @@ command funnels through the same deterministic chokepoint.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  CLOUD (Claude / OpenRouter / Ollama-local)              │
+│  CLOUD (OpenRouter)                                    │
 │  Sees: system prompt, chat history, ONE tool schema,     │
 │         JSON tool results (never raw IQ)                 │
 └─────────────▲───────────────────────────┬────────────────┘
@@ -53,7 +53,7 @@ command funnels through the same deterministic chokepoint.
 
 | Package | Purpose |
 |---------|---------|
-| `hackrf_agent.ai` | LLM plumbing: `HackrfAgent` conversation loop, `LLMClient` protocol + Anthropic impl, system prompt, `ResultFormatter` |
+| `hackrf_agent.ai` | LLM plumbing: `HackrfAgent` conversation loop, `LLMClient` protocol + OpenRouter impl, system prompt, `ResultFormatter` |
 | `hackrf_agent.domain` | The chokepoint and its dependencies: `CommandExecutor`, `RiskAssessor`, `FrequencyPolicy`, `PermissionService`, `AuditService`, `ApprovalPort`, `SessionPaths`, `models.py` |
 | `hackrf_agent.hw` | HackRF drivers: `HackrfDriver` (pyhackrf primary), `HackrfSubprocess` (escape hatch), `dsp.py` (FFT, peak detect, decoders) |
 | `hackrf_agent.cli` | Human interface: Typer app, approval prompts, kill switch, grant commands, audit inspection |
@@ -171,5 +171,5 @@ Loop continues or TurnEnded
 | **Approval denied** | `ApprovalPort.request()` returns `False`; executor returns `CommandResult(success=False, error="approval_denied")`. Handler never called. |
 | **Hardware error** | Handler raises `HackrfError`; executor catches, returns `CommandResult(success=False, error="HackrfNotFoundError: ...")`. `RESULT` row logged with `success=False`. |
 | **Argument error** | Handler raises `ValueError` (bad path, invalid arg); executor catches, returns `CommandResult(success=False, error="ValueError: ...")`. |
-| **LLM refusal** | Anthropic returns `stop_reason="refusal"`; agent yields `TurnEnded(stop_reason="refusal")`. |
+| **LLM refusal** | Provider returns `stop_reason="refusal"`; agent yields `TurnEnded(stop_reason="refusal")`. |
 | **Runaway tool calls** | Agent loop caps at 20 tool calls per turn; yields `AgentError(recoverable=False, message="tool-call cap reached")`. |

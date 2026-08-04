@@ -132,7 +132,7 @@ hackrf-agent/
 │   ├── __init__.py
 │   ├── ai/                                # LLM plumbing (Part 6 — COMPLETE)
 │   │   ├── agent.py                       # HackrfAgent — conversation loop
-│   │   ├── llm_client.py                  # LLMClient protocol + AnthropicClient + FakeLLMClient
+│   │   ├── llm_client.py                  # LLMClient protocol + OpenRouterClient + FakeLLMClient
 │   │   └── prompts.py                     # SYSTEM_PROMPT + EXECUTE_COMMAND_TOOL_SCHEMA
 │   ├── domain/                            # Core logic (no I/O to hardware or LLM)
 │   │   ├── models.py                      # Dataclasses & enums
@@ -153,12 +153,12 @@ hackrf-agent/
 │   ├── cli/                               # Terminal interface (Part 7 — COMPLETE)
 │   │   ├── main.py                         # Typer app; mounts all subcommands
 │   │   ├── parsing.py                      # Band, duration, gain parsers
-│   │   ├── settings.py                     # SettingsService (config.toml + keychain)
+│   │   ├── settings.py                     # SettingsService (config.toml + OPENROUTER_API_KEY env)
 │   │   ├── kill_switch.py                  # SIGINT → stop_event + TX revoke
 │   │   ├── approval.py                     # CliApprovalPort (MEDIUM Y/n, HIGH CONFIRM)
 │   │   ├── permissions_cmd.py              # grant tx / list / revoke
 │   │   ├── audit_cmd.py                    # audit tail
-│   │   ├── doctor_cmd.py                   # doctor + set-api-key
+│   │   ├── doctor_cmd.py                   # doctor
 │   │   ├── chat_cmd.py                     # chat REPL, event rendering
 │   │   └── __init__.py
 │   └── data/                              # Persistence (Part 3 — COMPLETE)
@@ -182,7 +182,7 @@ hackrf-agent/
 │   │   ├── test_result_formatter.py      # format helpers for each action
 │   │   ├── test_session.py               # SessionPaths + new_session
 │   │   ├── test_cli_parsing.py           # 23 tests — band/duration/gain parsers (Part 7)
-│   │   ├── test_cli_settings.py          # 13 tests — SettingsService, keychain mocks (Part 7)
+│   │   ├── test_cli_settings.py          # SettingsService: config.toml + env-var api key (Part 7)
 │   │   ├── test_cli_kill_switch.py       # 7 tests — SIGINT, double-tap, revoke (Part 7)
 │   │   └── test_cli_approval.py          # 7 tests — MEDIUM/HIGH prompts (Part 7)
 │   ├── integration/                      # External deps (hardware, LLM, or fakes)
@@ -237,8 +237,9 @@ Data directories on macOS:
 # Logs
 ~/Library/Logs/hackrf-agent/
 
-# API key (macOS Keychain)
-# Stored via `keyring` library; service name: "hackrf-agent"
+# API key — read from the OPENROUTER_API_KEY environment variable.
+# A `.env` file in the current working directory is auto-loaded on
+# startup by python-dotenv (without overriding existing env vars).
 ```
 
 ---
@@ -247,9 +248,7 @@ Data directories on macOS:
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
-| `ANTHROPIC_API_KEY` | API key for Claude (Anthropic) | For Anthropic backend |
 | `OPENROUTER_API_KEY` | API key for OpenRouter | For OpenRouter backend |
-| `OLLAMA_HOST` | Ollama server URL (default: `http://localhost:11434`) | For Ollama backend |
 | `HACKRF_AGENT_CONFIG` | Override config file path (default: `~/.hackrf-agent/config.toml`) | No |
 | `HACKRF_AGENT_LOG_LEVEL` | Python log level (default: `INFO`) | No |
 
@@ -266,13 +265,13 @@ Data directories on macOS:
 | **End-to-end** | `pytest tests/e2e -q` | Full workflow tests with scripted LLM + fake driver + real audit DB. |
 | **All safe-for-CI** | `pytest tests/unit/ tests/integration/ tests/e2e/ -q -m "not hardware and not llm"` | Everything that doesn't need hardware or a live API key. |
 | **Hardware** | `pytest --hardware -m hardware -q` | Requires HackRF attached. RX-only. No TX. |
-| **LLM** | `pytest --llm -m llm -q` | Requires `ANTHROPIC_API_KEY`. Live round-trips against Claude. |
+| **LLM** | `pytest --llm -m llm -q` | Requires `OPENROUTER_API_KEY`. Live round-trips against Claude via OpenRouter. |
 
 ### Pytest Markers
 
 ```bash
 pytest --hardware                    # Enable hardware tests (HackRF required)
-pytest --llm                         # Enable live LLM tests (ANTHROPIC_API_KEY required)
+pytest --llm                         # Enable live LLM tests (OPENROUTER_API_KEY required)
 pytest -m "not hardware and not llm" # Skip hardware and LLM tests (default)
 ```
 
@@ -300,7 +299,7 @@ Three GitHub Actions workflows (in `.github/workflows/`):
 - **`tests.yml`** — every push and PR. Runs lint, typecheck, unit tests (Python 3.11+3.12),
   and integration+e2e tests (no markers). Fast; no secrets needed.
 - **`tests-llm.yml`** — nightly cron at 03:00 UTC + manual dispatch. Runs
-  `@pytest.mark.llm` tests with the org's `ANTHROPIC_API_KEY` secret.
+  `@pytest.mark.llm` tests with the org's `OPENROUTER_API_KEY` secret.
 - **`tests-hardware.yml`** — manual dispatch only. Runs on a self-hosted runner
   with the `hackrf-attached` label. Runs `@pytest.mark.hardware` tests with
   real HackRF attached. Never scheduled — TX could physically transmit if a test
@@ -366,6 +365,6 @@ Checklist:
 - **`docs/safety.md`** — FCC citations, band policy, risk tiers
 - **HackRF Wiki**: [github.com/greatscottgadgets/hackrf/wiki](https://github.com/greatscottgadgets/hackrf/wiki)
 - **pyhackrf on PyPI**: [pypi.org/project/pyhackrf/](https://pypi.org/project/pyhackrf/)
-- **Anthropic Tool Use Docs**: [docs.anthropic.com/en/docs/build-with-claude/tool-use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
+- **OpenRouter API Docs**: [openrouter.ai/docs](https://openrouter.ai/docs)
 - **V3SP3R Architecture**: [github.com/elder-plinius/V3SP3R](https://github.com/elder-plinius/V3SP3R) (included in this repo as `M0MA-V3SP3R/`)
 - **SQLite WAL Mode**: [sqlite.org/wal.html](https://sqlite.org/wal.html)
