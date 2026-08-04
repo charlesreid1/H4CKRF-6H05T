@@ -47,9 +47,9 @@ def chat(
     api_key = settings.get_api_key()
     if not api_key:
         _console.print(
-            "[red]No API key found.[/] "
-            "Set OPENROUTER_API_KEY in your environment "
-            "or copy .env.example to .env and fill it in."
+            "[red]OPENROUTER_API_KEY not set.[/] "
+            "Export it in your shell (e.g. `source ~/.openrouter_api_key`) "
+            "before running hackrf-agent."
         )
         raise typer.Exit(code=1)
     asyncio.run(_run_chat(settings, loaded, api_key, auto_approve_medium))
