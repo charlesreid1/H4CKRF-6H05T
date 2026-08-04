@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hackrf-agent"
+version = "0.1.0"
+description = "AI control plane for HackRF One — safe, auditable SDR operations via LLM tool-use"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Charles Reid"}
+]
+keywords = ["hackrf", "sdr", "ai", "llm", "tool-use", "rf"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Ham Radio",
+    "Topic :: Scientific/Engineering",
+]
+
+dependencies = [
+    "numpy>=1.26",
+    "typer>=0.12",
+    "rich>=13.7",
+    "keyring>=24.0",
+    "aiosqlite>=0.20",
+]
+
+[project.optional-dependencies]
+anthropic = [
+    "anthropic>=0.30",
+]
+hackrf = [
+    "pyhackrf>=0.2.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.9",
+    "hackrf-agent[anthropic]",
+    "hackrf-agent[hackrf]",
+]
+
+[project.scripts]
+hackrf-agent = "hackrf_agent.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/charlesreid/hackrf-agent"
+Repository = "https://github.com/charlesreid/hackrf-agent"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"hackrf_agent.data" = ["*.sql"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "hardware: tests that require a HackRF One attached via USB",
+    "llm: tests that require a live LLM API key (Anthropic)",
+    "slow: tests that take more than 5 seconds",
+]

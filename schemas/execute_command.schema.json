@@ -1,0 +1,42 @@
+{
+  "description": "Request that the host execute exactly one HackRF action. Every RF action passes through this single tool. The ``action`` field selects the operation; ``args`` carries the operation-specific parameters; ``justification`` and ``expected_effect`` MUST both be non-empty and describe *why* you are calling this action and *what* observable outcome you expect.",
+  "input_schema": {
+    "$defs": {
+      "CommandAction": {
+        "enum": [
+          "get_device_info",
+          "sweep_spectrum",
+          "capture_iq",
+          "transmit_iq",
+          "read_iq_summary",
+          "decode_ook",
+          "grant_list",
+          "audit_query"
+        ],
+        "type": "string"
+      }
+    },
+    "properties": {
+      "action": {
+        "$ref": "#/$defs/CommandAction"
+      },
+      "args": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "expected_effect": {
+        "type": "string"
+      },
+      "justification": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "action",
+      "justification",
+      "expected_effect"
+    ],
+    "type": "object"
+  },
+  "name": "execute_command"
+}
