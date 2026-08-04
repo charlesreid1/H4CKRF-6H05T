@@ -61,7 +61,7 @@ async def _run_chat(
     from hackrf_agent.ai.agent import (
         HackrfAgent,
     )
-    from hackrf_agent.ai.llm_client import AnthropicClient
+    from hackrf_agent.ai.llm_client import OpenRouterClient
     from hackrf_agent.hw.hackrf_driver import HackrfDriver
 
     settings.home_dir.mkdir(parents=True, exist_ok=True)
@@ -95,7 +95,7 @@ async def _run_chat(
                 approval=approval,
                 session_paths=session_paths,
             )
-            llm = AnthropicClient(model=loaded.model, api_key=api_key)
+            llm = OpenRouterClient(model=loaded.model, api_key=api_key)
             agent = HackrfAgent(
                 llm=llm,
                 executor=executor,

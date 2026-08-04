@@ -100,10 +100,10 @@ def set_api_key(
         help="API key value; if omitted, prompted interactively.",
     ),
 ) -> None:
-    """Store an Anthropic API key in the OS keychain."""
+    """Store an OpenRouter API key in the OS keychain."""
     settings = _settings_from_ctx(ctx)
     if key is None:
-        key = Prompt.ask("Paste Anthropic API key", password=True)
+        key = Prompt.ask("Paste OpenRouter API key", password=True)
     if not key.strip():
         _console.print("[red]No key provided; aborting.[/]")
         raise typer.Exit(code=2)

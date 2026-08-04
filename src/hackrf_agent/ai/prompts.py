@@ -185,28 +185,32 @@ def _strip_titles(node: Any) -> None:
 
 
 def _build_execute_command_tool_schema() -> dict[str, Any]:
-    """Generate the Anthropic tool-use schema from the ExecuteCommand model.
+    """Generate the OpenAI/OpenRouter function-calling schema from the ExecuteCommand model.
 
     Pydantic v2 returns a JSON-Schema-draft-07-ish dict from
-    ``.model_json_schema()``. We hoist the properties into an
-    ``input_schema`` block, drop the ``title`` fields (noisy), and set a
-    clear top-level description.
+    ``.model_json_schema()``. We drop the ``title`` fields (noisy), wrap
+    the schema in the OpenAI ``{type: function, function: {name,
+    description, parameters}}`` envelope, and set a clear top-level
+    description.
     """
     raw = ExecuteCommand.model_json_schema()
     # Strip pydantic's per-field titles (they show up as "Action" etc.)
     _strip_titles(raw)
     return {
-        "name": TOOL_NAME,
-        "description": (
-            "Request that the host execute exactly one HackRF action. "
-            "Every RF action passes through this single tool. The "
-            "``action`` field selects the operation; ``args`` carries the "
-            "operation-specific parameters; ``justification`` and "
-            "``expected_effect`` MUST both be non-empty and describe "
-            "*why* you are calling this action and *what* observable "
-            "outcome you expect."
-        ),
-        "input_schema": raw,
+        "type": "function",
+        "function": {
+            "name": TOOL_NAME,
+            "description": (
+                "Request that the host execute exactly one HackRF action. "
+                "Every RF action passes through this single tool. The "
+                "``action`` field selects the operation; ``args`` carries the "
+                "operation-specific parameters; ``justification`` and "
+                "``expected_effect`` MUST both be non-empty and describe "
+                "*why* you are calling this action and *what* observable "
+                "outcome you expect."
+            ),
+            "parameters": raw,
+        },
     }
 
 

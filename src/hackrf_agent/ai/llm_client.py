@@ -1,12 +1,14 @@
-"""LLM client protocol + Anthropic implementation + test doubles.
+"""LLM client protocol + OpenRouter implementation + test doubles.
 
-Thin wrapper around the ``anthropic`` SDK with a local rate limiter.
-Also exports ``FakeLLMClient`` and response-building helpers for tests.
+Thin wrapper around the ``openai`` SDK pointed at the OpenRouter API
+with a local rate limiter.  Also exports ``FakeLLMClient`` and
+response-building helpers for tests.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
@@ -14,7 +16,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-# ``anthropic`` is imported lazily inside AnthropicClient so tests that only
+# ``openai`` is imported lazily inside OpenRouterClient so tests that only
 # exercise FakeLLMClient do not require the package to be installed.
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-DEFAULT_MODEL: str = "claude-sonnet-5"
+DEFAULT_MODEL: str = "anthropic/claude-sonnet-5"
 DEFAULT_MAX_TOKENS: int = 4096
 RATE_LIMIT_WINDOW_S: float = 60.0
 RATE_LIMIT_MAX_REQUESTS: int = 30
@@ -60,8 +62,6 @@ class LLMClient(Protocol):
       - Be safe to call concurrently from an ``asyncio`` context, though
         callers won't in practice (the agent loop is sequential).
       - Never mutate ``messages`` or ``tools`` in place.
-      - Raise ``anthropic.APIError`` (or subclass) on API errors; the
-        loop translates these into agent events.
     """
 
     async def send(
@@ -75,17 +75,21 @@ class LLMClient(Protocol):
 
 
 # ---------------------------------------------------------------------------
-# AnthropicClient
+# OpenRouterClient
 # ---------------------------------------------------------------------------
 
 
-class AnthropicClient:
-    """Concrete LLMClient backed by the ``anthropic`` SDK.
+class OpenRouterClient:
+    """Concrete LLMClient backed by the ``openai`` SDK pointed at OpenRouter.
 
     Local rate limit: at most 30 requests per rolling 60-second window.
     On saturation ``send`` awaits until the window clears; it does NOT
     raise. Retries for 429/5xx are handled by the SDK's own
     ``max_retries=2`` default — do not layer a second loop.
+
+    Translates between the internal Anthropic-shaped ``LLMResponse``
+    envelope (kept for minimal agent-loop churn) and the OpenAI Chat
+    Completions wire format that OpenRouter exposes.
     """
 
     def __init__(
@@ -96,16 +100,23 @@ class AnthropicClient:
         max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> None:
         try:
-            import anthropic  # noqa: PLC0415
+            import openai  # noqa: PLC0415
         except ImportError as e:
             raise RuntimeError(
-                "anthropic SDK not installed; run `pip install hackrf-agent[anthropic]`"
+                "openai SDK not installed; run `pip install hackrf-agent[openrouter]`"
             ) from e
-        self._anthropic = anthropic
-        key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self._openai = openai
+        key = api_key or os.environ.get("OPENROUTER_API_KEY")
         if not key:
-            raise RuntimeError("no API key: pass api_key= or set ANTHROPIC_API_KEY")
-        self._client = anthropic.AsyncAnthropic(api_key=key)
+            raise RuntimeError("no API key: pass api_key= or set OPENROUTER_API_KEY")
+        self._client = openai.AsyncOpenAI(
+            api_key=key,
+            base_url="https://openrouter.ai/api/v1",
+            default_headers={
+                "HTTP-Referer": "https://github.com/charlesreid/hackrf-agent",
+                "X-Title": "hackrf-agent",
+            },
+        )
         self._model = model
         self._max_tokens = max_tokens
         self._timestamps: deque[float] = deque()
@@ -147,20 +158,125 @@ class AnthropicClient:
         max_tokens: int | None = None,
     ) -> LLMResponse:
         await self._wait_for_slot()
-        # The anthropic SDK has narrow TypedDict params; cast to Any to satisfy
-        # mypy while preserving the runtime behaviour (the SDK validates
-        # the shape at call time).
-        message = await self._client.messages.create(
+
+        # -- build OpenAI-format messages list ---------------------------------
+        openai_messages: list[dict[str, Any]] = []
+
+        # 1. Prepend a system message.
+        if isinstance(system, list):
+            system_text = "\n\n".join(
+                block["text"] for block in system if block.get("type") == "text"
+            )
+        else:
+            system_text = system
+        openai_messages.append({"role": "system", "content": system_text})
+
+        # 2. Translate conversation messages.
+        for msg in messages:
+            role = msg["role"]
+            content = msg["content"]
+
+            if role == "user":
+                if isinstance(content, str):
+                    openai_messages.append({"role": "user", "content": content})
+                elif isinstance(content, list):
+                    for block in content:
+                        if block.get("type") == "tool_result":
+                            openai_messages.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": block["tool_use_id"],
+                                    "content": block.get("content", ""),
+                                }
+                            )
+
+            elif role == "assistant":
+                if isinstance(content, list):
+                    text_parts: list[str] = []
+                    tool_calls: list[dict[str, Any]] = []
+                    for block in content:
+                        btype = block.get("type")
+                        if btype == "text":
+                            text_parts.append(block.get("text", ""))
+                        elif btype == "tool_use":
+                            tool_calls.append(
+                                {
+                                    "id": block["id"],
+                                    "type": "function",
+                                    "function": {
+                                        "name": block["name"],
+                                        "arguments": json.dumps(block.get("input", {})),
+                                    },
+                                }
+                            )
+                        # thinking blocks are dropped — OpenAI has no slot
+                    assistant_msg: dict[str, Any] = {"role": "assistant"}
+                    if text_parts:
+                        assistant_msg["content"] = "\n\n".join(text_parts)
+                    else:
+                        assistant_msg["content"] = None
+                    if tool_calls:
+                        assistant_msg["tool_calls"] = tool_calls
+                    openai_messages.append(assistant_msg)
+
+        # 3. Send to OpenRouter.
+        completion = await self._client.chat.completions.create(
             model=self._model,
             max_tokens=max_tokens or self._max_tokens,
-            system=system,  # type: ignore[arg-type]
-            messages=messages,  # type: ignore[arg-type]
-            tools=tools,  # type: ignore[arg-type]
+            messages=openai_messages,
+            tools=tools,
         )
+
+        # 4. Translate the OpenAI response back into an LLMResponse.
+        choice = completion.choices[0]
+        finish_reason = choice.finish_reason or "stop"
+
+        # Map finish_reason → internal stop_reason.
+        if finish_reason == "stop":
+            stop_reason = "end_turn"
+        elif finish_reason == "tool_calls":
+            stop_reason = "tool_use"
+        elif finish_reason == "length":
+            stop_reason = "max_tokens"
+        else:
+            stop_reason = finish_reason
+
+        # Check for a refusal field (some providers emit this).
+        refusal = getattr(choice.message, "refusal", None)
+        if refusal:
+            stop_reason = "refusal"
+
+        # Build internal content blocks.
+        content_blocks: list[Any] = []
+
+        text = choice.message.content or ""
+        if refusal:
+            text = refusal
+        if text:
+            content_blocks.append(_FakeContentBlock(type="text", text=text))
+
+        for tc in choice.message.tool_calls or []:
+            try:
+                args = (
+                    json.loads(tc.function.arguments)
+                    if tc.function.arguments
+                    else {}
+                )
+            except json.JSONDecodeError:
+                args = {"__raw__": tc.function.arguments}
+            content_blocks.append(
+                _FakeContentBlock(
+                    type="tool_use",
+                    id=tc.id,
+                    name=tc.function.name,
+                    input=args,
+                )
+            )
+
         return LLMResponse(
-            stop_reason=message.stop_reason or "end_turn",
-            content=list(message.content),
-            raw=message,
+            stop_reason=stop_reason,
+            content=content_blocks,
+            raw=completion,
         )
 
 
