@@ -126,21 +126,26 @@ pip install -e '.[dev]'
 The `[dev]` extra pulls in `pyhackrf` (which links against the `libhackrf` you
 installed in step 1) and the OpenAI SDK (for OpenRouter).
 
-**Ubuntu extra:** the `keyring` dependency uses SecretService for API-key
-storage. On a headless box or minimal desktop install:
-
-```bash
-sudo apt install gnome-keyring libsecret-1-0
-```
-
 ### 4. Store your OpenRouter API key
 
+Copy the example env file and drop your key in:
+
 ```bash
-hackrf-agent set-api-key
-# paste your key at the prompt (input is hidden)
+cp .env.example .env
+$EDITOR .env    # replace the placeholder with your real key
 ```
 
-Stored in the macOS Keychain or Linux SecretService — never on disk.
+`.env` is git-ignored. `hackrf-agent` auto-loads it from the current working
+directory on startup, so as long as you launch the CLI from the repo root your
+key is picked up.
+
+Prefer to skip the file? Just export the variable in your shell:
+
+```bash
+export OPENROUTER_API_KEY=sk-or-v1-...
+```
+
+An already-set `OPENROUTER_API_KEY` always wins over the `.env` file.
 
 ### 5. Run the diagnostic
 

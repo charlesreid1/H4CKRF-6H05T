@@ -89,8 +89,9 @@ Concrete implementation backed by the `openai` SDK pointed at OpenRouter. Key be
 
 - **Lazy import:** `openai` is imported inside `__init__`, so `FakeLLMClient`
   and response helpers are importable without the SDK installed.
-- **API key resolution:** Constructor arg → `OPENROUTER_API_KEY` env var. Never
-  reads from disk or keyring — that's Part 7's job.
+- **API key resolution:** Constructor arg → `OPENROUTER_API_KEY` env var. The
+  CLI's `SettingsService` (Part 7) loads a `.env` file into the environment on
+  startup, so this fallback picks up dotenv values transparently.
 - **Rate limiter:** At most 30 requests per rolling 60-second window. Enforced
   via `collections.deque[float]` of timestamps + `asyncio.Lock`. On saturation,
   `send()` awaits until a slot opens; it does NOT raise.
@@ -302,7 +303,7 @@ It assembles all Parts 2–6 into a working product:
 2. Constructs `CommandExecutor` (Part 5) — with `RiskAssessor`, `PermissionService`,
    `AuditService`, `ResultFormatter`, `HackrfDriver`, and `CliApprovalPort`.
 3. Constructs `OpenRouterClient` (Part 6) — with the API key from `SettingsService`
-   (keychain-backed) and model from `config.toml`.
+   (env-var-backed, with optional `.env` loading) and model from `config.toml`.
 4. Constructs `HackrfAgent` (Part 6) — injecting `llm`, `executor`, and
    `max_history_messages` from config.
 5. Calls `agent.chat(user_message)` in the `_repl` loop, consuming the

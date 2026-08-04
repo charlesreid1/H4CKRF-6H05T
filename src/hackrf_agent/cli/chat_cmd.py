@@ -46,7 +46,11 @@ def chat(
     loaded = settings.load()
     api_key = settings.get_api_key()
     if not api_key:
-        _console.print("[red]No API key found.[/] Run `hackrf-agent set-api-key`.")
+        _console.print(
+            "[red]No API key found.[/] "
+            "Set OPENROUTER_API_KEY in your environment "
+            "or copy .env.example to .env and fill it in."
+        )
         raise typer.Exit(code=1)
     asyncio.run(_run_chat(settings, loaded, api_key, auto_approve_medium))
 

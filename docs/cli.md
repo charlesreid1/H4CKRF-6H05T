@@ -11,8 +11,8 @@ Parts 2–6 into a shipping product.
 # First-run diagnostic
 hackrf-agent doctor
 
-# Store OpenRouter API key (macOS Keychain / Linux SecretService)
-hackrf-agent set-api-key
+# Store your OpenRouter API key in a git-ignored .env file
+cp .env.example .env && $EDITOR .env
 
 # Grant a TX window
 hackrf-agent grant tx 433.05-434.79M --for 30m
@@ -53,7 +53,7 @@ immediately.
   HIGH-risk commands still require typing `CONFIRM`.
 
 **Requirements:**
-- `OPENROUTER_API_KEY` stored in the OS keychain (via `set-api-key`)
+- `OPENROUTER_API_KEY` set in the environment (or in a `.env` file next to CWD)
 - HackRF One connected via USB (or `FakeDriver` for dry-run testing)
 
 ---
@@ -70,29 +70,11 @@ Runs four checks and prints a checklist:
 |---|---|
 | `home_dir` | `~/.hackrf-agent/` exists and is writable |
 | `db_schema` | SQLite schema is up to date (`ensure_schema` idempotent) |
-| `api_key` | OpenRouter API key is present in the OS keychain |
+| `api_key` | `OPENROUTER_API_KEY` env var is set (loaded from `.env` if present) |
 | `hackrf` | HackRF One enumerates via `hackrf_info` subprocess |
 
 Exit code 0 if all checks pass, 1 if any check fails. The `hackrf` check uses
 `hackrf_info` subprocess — `pyhackrf` is not required.
-
----
-
-### `set-api-key` — Store API Key
-
-```
-hackrf-agent set-api-key [--key <value>]
-```
-
-Stores the OpenRouter API key in the OS keychain:
-- **macOS:** Keychain (`keyring` → `security` CLI)
-- **Linux:** SecretService (requires `dbus`)
-
-If `--key` is omitted, prompts interactively with echo suppressed
-(`password=True`).
-
-**Options:**
-- `--key <value>` — Provide the key non-interactively (for scripts)
 
 ---
 
@@ -220,12 +202,16 @@ on missing or malformed content. Unknown keys are ignored.
 
 ### API Key Storage
 
-The OpenRouter API key is stored in the OS keychain, never on disk:
+The OpenRouter API key is read from the `OPENROUTER_API_KEY` environment
+variable.  On startup, `SettingsService` also loads a `.env` file from the
+current working directory (via [`python-dotenv`](https://pypi.org/project/python-dotenv/))
+without overriding variables already set — so an exported `OPENROUTER_API_KEY`
+always wins over the file.
 
-- **macOS:** Keychain (via `keyring`)
-- **Linux:** SecretService (requires `dbus`)
-
-Keychain service name: `"hackrf-agent"`, username: `"openrouter-api-key"`.
+Recommended setup: copy `.env.example` to `.env` at the repo root and fill in
+the key.  `.env` is in `.gitignore`.  For CI or shared machines, prefer
+exporting the variable directly (or your platform's secrets manager) instead
+of committing it.
 
 ---
 
@@ -349,8 +335,7 @@ hackrf-agent (main.py Typer app)
 ├── grant list                      → PermissionService.list_active
 ├── grant revoke <uuid>             → PermissionService.revoke
 ├── audit tail [--session] [--trace] → AuditService.query
-├── doctor                          → check home_dir, db, api_key, hackrf_info
-└── set-api-key [--key <val>]       → SettingsService.set_api_key
+└── doctor                          → check home_dir, db, api_key, hackrf_info
 ```
 
 ---

@@ -1,4 +1,4 @@
-"""``doctor`` — first-run diagnostic + ``set-api-key`` helper."""
+"""``doctor`` — first-run diagnostic."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ from dataclasses import dataclass
 
 import typer
 from rich.console import Console
-from rich.prompt import Prompt
 from rich.table import Table
 
 from hackrf_agent.cli.settings import SettingsService
@@ -51,13 +50,13 @@ async def _run_checks(settings: SettingsService) -> list[Check]:
 
     # 3. API key present.
     if settings.get_api_key():
-        checks.append(Check("api_key", True, "present in keychain"))
+        checks.append(Check("api_key", True, "OPENROUTER_API_KEY set"))
     else:
         checks.append(
             Check(
                 "api_key",
                 False,
-                "not set — run `hackrf-agent set-api-key`",
+                "OPENROUTER_API_KEY not set — copy .env.example to .env and fill it in",
             )
         )
 
@@ -90,25 +89,6 @@ def _render(checks: list[Check]) -> None:
         status = "[green]OK[/]" if c.ok else "[red]FAIL[/]"
         table.add_row(c.name, status, c.detail)
     _console.print(table)
-
-
-def set_api_key(
-    ctx: typer.Context = typer.Context,  # type: ignore[assignment]
-    key: str | None = typer.Option(
-        None,
-        "--key",
-        help="API key value; if omitted, prompted interactively.",
-    ),
-) -> None:
-    """Store an OpenRouter API key in the OS keychain."""
-    settings = _settings_from_ctx(ctx)
-    if key is None:
-        key = Prompt.ask("Paste OpenRouter API key", password=True)
-    if not key.strip():
-        _console.print("[red]No key provided; aborting.[/]")
-        raise typer.Exit(code=2)
-    settings.set_api_key(key)
-    _console.print("[green]API key stored in keychain.[/]")
 
 
 def _settings_from_ctx(ctx: typer.Context) -> SettingsService:

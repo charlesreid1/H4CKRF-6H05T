@@ -30,12 +30,8 @@ def test_chat_smoke(tmp_path):
     home.mkdir(parents=True, exist_ok=True)
     runner = CliRunner()
 
-    # Store API key into the test keychain backend first.
-    api_key = os.environ["OPENROUTER_API_KEY"]
-    from hackrf_agent.cli.settings import SettingsService
-
-    svc = SettingsService(home_dir=home)
-    svc.set_api_key(api_key)
+    # OPENROUTER_API_KEY is already in the environment (required by the
+    # module-level skipif) — SettingsService picks it up directly.
 
     result = runner.invoke(
         app,

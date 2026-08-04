@@ -153,12 +153,12 @@ hackrf-agent/
 │   ├── cli/                               # Terminal interface (Part 7 — COMPLETE)
 │   │   ├── main.py                         # Typer app; mounts all subcommands
 │   │   ├── parsing.py                      # Band, duration, gain parsers
-│   │   ├── settings.py                     # SettingsService (config.toml + keychain)
+│   │   ├── settings.py                     # SettingsService (config.toml + OPENROUTER_API_KEY env)
 │   │   ├── kill_switch.py                  # SIGINT → stop_event + TX revoke
 │   │   ├── approval.py                     # CliApprovalPort (MEDIUM Y/n, HIGH CONFIRM)
 │   │   ├── permissions_cmd.py              # grant tx / list / revoke
 │   │   ├── audit_cmd.py                    # audit tail
-│   │   ├── doctor_cmd.py                   # doctor + set-api-key
+│   │   ├── doctor_cmd.py                   # doctor
 │   │   ├── chat_cmd.py                     # chat REPL, event rendering
 │   │   └── __init__.py
 │   └── data/                              # Persistence (Part 3 — COMPLETE)
@@ -182,7 +182,7 @@ hackrf-agent/
 │   │   ├── test_result_formatter.py      # format helpers for each action
 │   │   ├── test_session.py               # SessionPaths + new_session
 │   │   ├── test_cli_parsing.py           # 23 tests — band/duration/gain parsers (Part 7)
-│   │   ├── test_cli_settings.py          # 13 tests — SettingsService, keychain mocks (Part 7)
+│   │   ├── test_cli_settings.py          # SettingsService: config.toml + env-var api key (Part 7)
 │   │   ├── test_cli_kill_switch.py       # 7 tests — SIGINT, double-tap, revoke (Part 7)
 │   │   └── test_cli_approval.py          # 7 tests — MEDIUM/HIGH prompts (Part 7)
 │   ├── integration/                      # External deps (hardware, LLM, or fakes)
@@ -237,8 +237,9 @@ Data directories on macOS:
 # Logs
 ~/Library/Logs/hackrf-agent/
 
-# API key (macOS Keychain)
-# Stored via `keyring` library; service name: "hackrf-agent"
+# API key — read from the OPENROUTER_API_KEY environment variable.
+# A `.env` file in the current working directory is auto-loaded on
+# startup by python-dotenv (without overriding existing env vars).
 ```
 
 ---
