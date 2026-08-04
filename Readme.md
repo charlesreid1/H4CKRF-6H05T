@@ -17,10 +17,10 @@ regulator) in your jurisdiction. Read
 
 ---
 
-## Quick-start
+## Quick Start
 
 Get from a fresh laptop to an interactive HackRF chat session. Covers macOS and
-Ubuntu; ~10 minutes if your HackRF is already flashed with recent firmware.
+Ubuntu.
 
 ### 0. What you need
 
@@ -185,7 +185,8 @@ You're in an interactive REPL. Try:
 
 RX-only commands run unattended. MEDIUM-risk commands prompt `[y/N]`; HIGH-risk
 commands require typing `CONFIRM`. **Ctrl-C** aborts the current operation
-and revokes any active TX grants — double-tap within 2 s for a hard exit.
+and revokes any active TX grants; pressing Ctrl-C a second time within 2 s
+stops the event loop and exits the process.
 
 Before ever transmitting, issue a scoped grant:
 

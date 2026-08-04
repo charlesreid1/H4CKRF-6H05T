@@ -16,7 +16,7 @@ from hackrf_agent.domain.permission_service import PermissionService
 
 logger = logging.getLogger(__name__)
 
-DOUBLE_TAP_WINDOW_S: float = 2.0
+DOUBLE_CTRLC_WINDOW_S: float = 2.0
 
 
 @dataclass
@@ -31,10 +31,10 @@ class KillSwitch:
       - First SIGINT: set stop_event, revoke all TX grants, log INFO.
         Callers observing stop_event raise KillSwitchTriggered on their
         next check.
-      - Second SIGINT within DOUBLE_TAP_WINDOW_S: raise
+      - Second SIGINT within DOUBLE_CTRLC_WINDOW_S: raise
         KeyboardInterrupt into the loop (via loop.stop()) so the process
         exits.
-      - Two SIGINTs more than DOUBLE_TAP_WINDOW_S apart: each acts as a
+      - Two SIGINTs more than DOUBLE_CTRLC_WINDOW_S apart: each acts as a
         first-SIGINT.
     """
 
@@ -62,7 +62,7 @@ class KillSwitch:
 
     def _on_sigint(self, loop: asyncio.AbstractEventLoop) -> None:
         now = time.monotonic()
-        if now - self._last_press_s < DOUBLE_TAP_WINDOW_S:
+        if now - self._last_press_s < DOUBLE_CTRLC_WINDOW_S:
             logger.warning("kill switch: double-Ctrl-C; hard-exiting")
             loop.stop()
             return

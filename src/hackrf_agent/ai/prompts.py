@@ -67,7 +67,7 @@ command into one of four tiers:
 - **MEDIUM** — Longer RX (sweeps with dwell_s > 2 s, captures with
   duration_s > 5 s), or a TX in an ISM band that is either covered by an
   active grant or uses tx_vga_gain_db ≤ 30 without a grant. Requires
-  one-tap operator approval.
+  operator approval (single `y` keypress).
 - **HIGH** — TX in an ISM band with tx_vga_gain_db > 30 and no grant, TX in
   amateur bands, or TX in any unclassified frequency. Requires explicit
   operator confirmation with a justification review.

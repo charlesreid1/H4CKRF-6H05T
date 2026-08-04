@@ -318,9 +318,9 @@ It assembles all Parts 2–6 into a working product:
    prompts are wrapped in `loop.run_in_executor(None, ...)` to keep the event
    loop responsive.
 7. `KillSwitch` (in `kill_switch.py`) wires `SIGINT` (Ctrl-C) to a shared
-   `asyncio.Event` + `PermissionService.revoke_all_tx()`. Single tap is
-   graceful (abort current operation, return to REPL); double-tap within
-   2 seconds is a hard exit.
+   `asyncio.Event` + `PermissionService.revoke_all_tx()`. A single Ctrl-C is
+   graceful (abort current operation, return to REPL); a second Ctrl-C within
+   2 seconds stops the event loop and exits the process.
 
 See **`docs/cli.md`** for the full CLI reference, including command syntax,
 approval flow, kill switch semantics, and configuration.

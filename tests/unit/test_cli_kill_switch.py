@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from hackrf_agent.cli.kill_switch import DOUBLE_TAP_WINDOW_S, KillSwitch
+from hackrf_agent.cli.kill_switch import DOUBLE_CTRLC_WINDOW_S, KillSwitch
 from hackrf_agent.data.db import ensure_schema
 from hackrf_agent.domain.permission_service import PermissionService
 
@@ -67,11 +67,11 @@ class TestKillSwitchFirstPress:
         assert len(active_after) == 0
 
 
-class TestKillSwitchDoubleTap:
+class TestKillSwitchDoubleCtrlC:
     """Tests for the double-Ctrl-C hard-exit behavior."""
 
     @pytest.mark.asyncio
-    async def test_double_tap_stops_loop(self) -> None:
+    async def test_double_ctrlc_stops_loop(self) -> None:
         loop = asyncio.get_running_loop()
         stop_event = asyncio.Event()
         perms = _make_mock_perms()
@@ -99,7 +99,7 @@ class TestKillSwitchDoubleTap:
             loop.stop = _original_stop  # type: ignore[method-assign]
 
     @pytest.mark.asyncio
-    async def test_double_tap_expired_window_treated_as_first(self, monkeypatch) -> None:
+    async def test_double_ctrlc_expired_window_treated_as_first(self, monkeypatch) -> None:
         loop = asyncio.get_running_loop()
         stop_event = asyncio.Event()
         perms = _make_mock_perms()
@@ -113,8 +113,8 @@ class TestKillSwitchDoubleTap:
         ks._on_sigint(loop)
         assert stop_event.is_set()
 
-        # Advance past the double-tap window.
-        t0 += DOUBLE_TAP_WINDOW_S + 0.1
+        # Advance past the double-Ctrl-C window.
+        t0 += DOUBLE_CTRLC_WINDOW_S + 0.1
         # Reset for the second "first press".
         stop_event.clear()
         ks._on_sigint(loop)
@@ -155,14 +155,14 @@ class TestKillSwitchInstallUninstall:
         perms = _make_mock_perms()
         ks = KillSwitch(stop_event=stop_event, permissions=perms)
 
-        # Freeze time to prevent double-tap detection on second call.
+        # Freeze time to prevent double-Ctrl-C detection on second call.
         t0 = 100.0
         monkeypatch.setattr("time.monotonic", lambda: t0)
         ks._on_sigint(loop)
         assert stop_event.is_set()
 
-        # Advance past the double-tap window so this is a fresh first-press.
-        t0 += DOUBLE_TAP_WINDOW_S + 0.1
+        # Advance past the double-Ctrl-C window so this is a fresh first-press.
+        t0 += DOUBLE_CTRLC_WINDOW_S + 0.1
         ks._on_sigint(loop)
         assert stop_event.is_set()  # still set
         # Let fire-and-forget tasks drain.
