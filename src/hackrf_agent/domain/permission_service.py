@@ -142,8 +142,7 @@ class PermissionService:
         now_epoch = _utcnow().timestamp()
         async with open_connection(self._db_path) as conn:
             cur = await conn.execute(
-                "UPDATE grants SET revoked_at = ? "
-                "WHERE id = ? AND revoked_at IS NULL;",
+                "UPDATE grants SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL;",
                 (now_epoch, str(grant_id)),
             )
             await conn.commit()

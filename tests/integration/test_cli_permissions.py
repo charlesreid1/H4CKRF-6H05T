@@ -27,10 +27,15 @@ class TestGrantTx:
         result = runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "grant", "tx", "433.05-434.79M",
-                "--for", "30m",
-                "--max-gain", "20",
+                "--home-dir",
+                str(home),
+                "grant",
+                "tx",
+                "433.05-434.79M",
+                "--for",
+                "30m",
+                "--max-gain",
+                "20",
             ],
         )
         assert result.exit_code == 0, result.stderr
@@ -40,9 +45,13 @@ class TestGrantTx:
         result = runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "grant", "tx", "garbage",
-                "--for", "30m",
+                "--home-dir",
+                str(home),
+                "grant",
+                "tx",
+                "garbage",
+                "--for",
+                "30m",
             ],
         )
         assert result.exit_code != 0
@@ -51,9 +60,13 @@ class TestGrantTx:
         result = runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "grant", "tx", "315M",
-                "--for", "1h30m",
+                "--home-dir",
+                str(home),
+                "grant",
+                "tx",
+                "315M",
+                "--for",
+                "1h30m",
             ],
         )
         assert result.exit_code != 0
@@ -62,10 +75,15 @@ class TestGrantTx:
         result = runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "grant", "tx", "433.05-434.79M",
-                "--for", "30m",
-                "--max-gain", "999",
+                "--home-dir",
+                str(home),
+                "grant",
+                "tx",
+                "433.05-434.79M",
+                "--for",
+                "30m",
+                "--max-gain",
+                "999",
             ],
         )
         assert result.exit_code != 0
@@ -76,7 +94,8 @@ class TestGrantList:
 
     def test_grant_list_empty(self, runner, home) -> None:
         result = runner.invoke(
-            app, ["--home-dir", str(home), "grant", "list"],
+            app,
+            ["--home-dir", str(home), "grant", "list"],
         )
         assert result.exit_code == 0
         assert "No active grants" in result.stdout
@@ -86,13 +105,18 @@ class TestGrantList:
         runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "grant", "tx", "433.05-434.79M",
-                "--for", "30m",
+                "--home-dir",
+                str(home),
+                "grant",
+                "tx",
+                "433.05-434.79M",
+                "--for",
+                "30m",
             ],
         )
         result = runner.invoke(
-            app, ["--home-dir", str(home), "grant", "list"],
+            app,
+            ["--home-dir", str(home), "grant", "list"],
         )
         assert result.exit_code == 0, result.stderr
         assert "433050000" in result.stdout
@@ -107,9 +131,13 @@ class TestGrantRevoke:
         grant_result = runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "grant", "tx", "433.05-434.79M",
-                "--for", "30m",
+                "--home-dir",
+                str(home),
+                "grant",
+                "tx",
+                "433.05-434.79M",
+                "--for",
+                "30m",
             ],
         )
         assert grant_result.exit_code == 0
@@ -131,7 +159,8 @@ class TestGrantRevoke:
 
         # List should be empty.
         list_result = runner.invoke(
-            app, ["--home-dir", str(home), "grant", "list"],
+            app,
+            ["--home-dir", str(home), "grant", "list"],
         )
         assert "No active grants" in list_result.stdout
 
@@ -146,8 +175,11 @@ class TestGrantRevoke:
         result = runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "grant", "revoke", "12345678-1234-1234-1234-123456789012",
+                "--home-dir",
+                str(home),
+                "grant",
+                "revoke",
+                "12345678-1234-1234-1234-123456789012",
             ],
         )
         assert result.exit_code == 0

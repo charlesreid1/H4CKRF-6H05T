@@ -51,9 +51,9 @@ def test_ism_433_tone_peak_at_expected_frequency() -> None:
     # Check that at least one peak is within one bin of expected.
     bin_hz = sample_rate_hz / fft_size
     peak_freqs = [p.freq_hz for p in peaks]
-    assert any(
-        abs(f - expected_peak_hz) <= bin_hz * 1.5 for f in peak_freqs
-    ), f"No peak near {expected_peak_hz} Hz (bin width={bin_hz:.1f} Hz); peaks at {peak_freqs}"
+    assert any(abs(f - expected_peak_hz) <= bin_hz * 1.5 for f in peak_freqs), (
+        f"No peak near {expected_peak_hz} Hz (bin width={bin_hz:.1f} Hz); peaks at {peak_freqs}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -75,8 +75,7 @@ def test_ism_315_noise_only_no_signal() -> None:
     # (a real signal would be much more prominent).
     peaks = find_peaks(spec, freqs, prominence_db=20.0, top_n=5)
     assert len(peaks) == 0, (
-        f"Expected no peaks above 20 dB prominence in noise-only fixture; "
-        f"found {len(peaks)} peaks"
+        f"Expected no peaks above 20 dB prominence in noise-only fixture; found {len(peaks)} peaks"
     )
 
     # Also verify noise floor is reasonable (not complete silence).

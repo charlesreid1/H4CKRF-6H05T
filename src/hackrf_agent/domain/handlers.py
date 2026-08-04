@@ -87,16 +87,12 @@ class HandlerContext:
 # ---------------------------------------------------------------------------
 
 
-async def _handle_get_device_info(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_get_device_info(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     info = await ctx.driver.get_device_info()
     return {"kind": "device_info", "info": info}
 
 
-async def _handle_sweep_spectrum(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_sweep_spectrum(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     start_hz = int(args["start_freq_hz"])
     stop_hz = int(args["end_freq_hz"])
     sample_rate_hz = int(args.get("sample_rate_hz", 2_000_000))
@@ -124,9 +120,7 @@ async def _handle_sweep_spectrum(
     }
 
 
-async def _handle_capture_iq(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_capture_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     center_hz = int(args["center_freq_hz"])
     sample_rate_hz = int(args.get("sample_rate_hz", 2_000_000))
     duration_s = float(args["duration_s"])
@@ -153,9 +147,7 @@ async def _handle_capture_iq(
     }
 
 
-async def _handle_transmit_iq(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_transmit_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     center_hz = int(args["center_freq_hz"])
     sample_rate_hz = int(args.get("sample_rate_hz", 2_000_000))
     txvga_gain_db = int(args["tx_vga_gain_db"])
@@ -163,9 +155,7 @@ async def _handle_transmit_iq(
     iq_path = Path(args["iq_path"])
     # Safety re-check: iq_path must be under session root.
     if not ctx.session_paths.is_within(iq_path):
-        raise ValueError(
-            f"iq_path {iq_path} escapes session root {ctx.session_paths.root}"
-        )
+        raise ValueError(f"iq_path {iq_path} escapes session root {ctx.session_paths.root}")
     if not iq_path.is_file():
         raise ValueError(f"iq_path {iq_path} does not exist or is not a file")
     t0 = _time.perf_counter()
@@ -187,14 +177,10 @@ async def _handle_transmit_iq(
     }
 
 
-async def _handle_read_iq_summary(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_read_iq_summary(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     iq_path = Path(args["iq_path"])
     if not ctx.session_paths.is_within(iq_path):
-        raise ValueError(
-            f"iq_path {iq_path} escapes session root {ctx.session_paths.root}"
-        )
+        raise ValueError(f"iq_path {iq_path} escapes session root {ctx.session_paths.root}")
     if not iq_path.is_file():
         raise ValueError(f"iq_path {iq_path} does not exist")
     center_hz = int(args["center_freq_hz"])
@@ -207,27 +193,19 @@ async def _handle_read_iq_summary(
     }
 
 
-async def _handle_decode_ook(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_decode_ook(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     iq_path = Path(args["iq_path"])
     if not ctx.session_paths.is_within(iq_path):
-        raise ValueError(
-            f"iq_path {iq_path} escapes session root {ctx.session_paths.root}"
-        )
+        raise ValueError(f"iq_path {iq_path} escapes session root {ctx.session_paths.root}")
     return {"kind": "decode_ook", "iq_path": iq_path}
 
 
-async def _handle_grant_list(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_grant_list(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     grants = await ctx.permissions.list_active()
     return {"kind": "grant_list", "grants": grants}
 
 
-async def _handle_audit_query(
-    ctx: HandlerContext, args: dict[str, Any]
-) -> dict[str, Any]:
+async def _handle_audit_query(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     session_id = args.get("session_id")
     limit = int(args.get("limit", 50))
     rows = await ctx.audit.query(session_id=session_id, limit=limit)

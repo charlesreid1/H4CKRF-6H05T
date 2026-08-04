@@ -24,9 +24,7 @@ _BAND_RANGE_RE: Final = re.compile(
     r"(?P<b>\d+(?:\.\d+)?)(?P<bu>[kKMG]?)\s*$"
 )
 
-_BAND_SINGLE_RE: Final = re.compile(
-    r"^\s*(?P<a>\d+(?:\.\d+)?)(?P<au>[kKMG]?)\s*$"
-)
+_BAND_SINGLE_RE: Final = re.compile(r"^\s*(?P<a>\d+(?:\.\d+)?)(?P<au>[kKMG]?)\s*$")
 
 
 def parse_band(spec: str) -> tuple[int, int]:
@@ -55,11 +53,9 @@ def parse_band(spec: str) -> tuple[int, int]:
         # "433.05-434.79M" → M applies to both (fractional).
         # "500-400M" → M applies to both (500 Hz is not a sensible band).
         # "902M-928000000" → 928000000 is large → raw Hz (mixed units OK).
-        if (not au and bu
-                and ("." in a_val or int(float(a_val)) < 1_000_000)):
+        if not au and bu and ("." in a_val or int(float(a_val)) < 1_000_000):
             au = bu
-        elif (not bu and au
-              and ("." in b_val or int(float(b_val)) < 1_000_000)):
+        elif not bu and au and ("." in b_val or int(float(b_val)) < 1_000_000):
             bu = au
         start = _to_hz(a_val, au)
         stop = _to_hz(b_val, bu)

@@ -45,7 +45,9 @@ def test_regenerator_is_deterministic(tmp_path: Path) -> None:
     # First run.
     r1 = subprocess.run(
         [sys.executable, str(script)],
-        capture_output=True, text=True, cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
     )
     assert r1.returncode == 0, f"first run failed: {r1.stderr}"
 
@@ -56,7 +58,9 @@ def test_regenerator_is_deterministic(tmp_path: Path) -> None:
     # Second run.
     r2 = subprocess.run(
         [sys.executable, str(script)],
-        capture_output=True, text=True, cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
     )
     assert r2.returncode == 0, f"second run failed: {r2.stderr}"
 
@@ -115,15 +119,22 @@ def test_no_drift_between_code_and_reference() -> None:
     script = Path(__file__).parent.parent.parent / "scripts" / "generate_execute_command_schema.py"
     r = subprocess.run(
         [sys.executable, str(script)],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert r.returncode == 0, f"regenerator failed: {r.stderr}"
 
     # Check git diff on generated files.
     r2 = subprocess.run(
-        ["git", "diff", "--exit-code", "docs/execute_command_schema.md",
-         "schemas/execute_command.schema.json"],
-        capture_output=True, text=True,
+        [
+            "git",
+            "diff",
+            "--exit-code",
+            "docs/execute_command_schema.md",
+            "schemas/execute_command.schema.json",
+        ],
+        capture_output=True,
+        text=True,
     )
     assert r2.returncode == 0, (
         f"Generated files have drifted from code. "

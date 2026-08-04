@@ -40,7 +40,8 @@ class TestMainHelp:
         """--home-dir is accepted and the SettingsService gets the right path."""
         home.mkdir(parents=True, exist_ok=True)
         result = runner.invoke(
-            app, ["--home-dir", str(home), "grant", "list"],
+            app,
+            ["--home-dir", str(home), "grant", "list"],
         )
         assert result.exit_code == 0
 

@@ -83,7 +83,11 @@ class TestFormatSweep:
             magnitude_db=mag, freqs_hz=freqs, start_hz=100_000_000, stop_hz=200_000_000
         )
         assert set(result.keys()) == {
-            "start_hz", "stop_hz", "num_bins", "noise_floor_dbfs", "peaks",
+            "start_hz",
+            "stop_hz",
+            "num_bins",
+            "noise_floor_dbfs",
+            "peaks",
         }
         assert result["num_bins"] == n
         assert isinstance(result["noise_floor_dbfs"], float)
@@ -175,7 +179,11 @@ class TestFormatTransmit:
             duration_s=1.5,
         )
         assert set(result.keys()) == {
-            "center_hz", "sample_rate_hz", "iq_path", "txvga_gain_db", "duration_s",
+            "center_hz",
+            "sample_rate_hz",
+            "iq_path",
+            "txvga_gain_db",
+            "duration_s",
         }
         assert result["duration_s"] == 1.5
         assert isinstance(result["iq_path"], str)

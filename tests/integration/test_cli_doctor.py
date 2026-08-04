@@ -24,6 +24,7 @@ class TestDoctor:
 
     def test_doctor_all_ok(self, runner, home, monkeypatch) -> None:
         """With hackrf_info mocked to succeed and api key set, all OK."""
+
         # Mock hackrf_info to succeed.
         async def _fake_run(argv, timeout_s=60, cwd=None):
             from hackrf_agent.hw.hackrf_subprocess import SubprocessResult
@@ -48,7 +49,8 @@ class TestDoctor:
         )
 
         result = runner.invoke(
-            app, ["--home-dir", str(home), "doctor"],
+            app,
+            ["--home-dir", str(home), "doctor"],
         )
         assert result.exit_code == 0, result.stderr
         assert "hackrf" in result.stdout
@@ -69,13 +71,15 @@ class TestDoctor:
         )
 
         result = runner.invoke(
-            app, ["--home-dir", str(home), "doctor"],
+            app,
+            ["--home-dir", str(home), "doctor"],
         )
         assert result.exit_code == 1
         assert "FAIL" in result.stdout
 
     def test_doctor_no_api_key(self, runner, home, monkeypatch) -> None:
         """No API key → FAIL on api_key check."""
+
         # Mock hackrf_info to succeed.
         async def _fake_run(argv, timeout_s=60, cwd=None):
             from hackrf_agent.hw.hackrf_subprocess import SubprocessResult
@@ -100,7 +104,8 @@ class TestDoctor:
         )
 
         result = runner.invoke(
-            app, ["--home-dir", str(home), "doctor"],
+            app,
+            ["--home-dir", str(home), "doctor"],
         )
         assert result.exit_code == 1
         assert "FAIL" in result.stdout
@@ -108,6 +113,7 @@ class TestDoctor:
 
     def test_doctor_readonly_home(self, runner, home, monkeypatch) -> None:
         """Read-only home dir → FAIL."""
+
         # Prevent mkdir.
         def _failing_mkdir(self, *a, **kw):
             raise OSError("Permission denied")
@@ -115,7 +121,8 @@ class TestDoctor:
         monkeypatch.setattr(type(home), "mkdir", _failing_mkdir)
 
         result = runner.invoke(
-            app, ["--home-dir", str(home), "doctor"],
+            app,
+            ["--home-dir", str(home), "doctor"],
         )
         assert result.exit_code == 1
         assert "FAIL" in result.stdout
@@ -142,8 +149,11 @@ class TestSetApiKey:
         result = runner.invoke(
             app,
             [
-                "--home-dir", str(home),
-                "set-api-key", "--key", "sk-real-key-value",
+                "--home-dir",
+                str(home),
+                "set-api-key",
+                "--key",
+                "sk-real-key-value",
             ],
         )
         assert result.exit_code == 0, result.stderr

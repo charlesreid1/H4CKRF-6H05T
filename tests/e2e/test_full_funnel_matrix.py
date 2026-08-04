@@ -31,24 +31,56 @@ from tests.support.fake_driver import FakeDriver
 MATRIX = [
     # (action, args, expected_tier, expected_event_count, driver_called)
     (CommandAction.GET_DEVICE_INFO, {}, RiskLevel.LOW, 4, True),
-    (CommandAction.SWEEP_SPECTRUM,
-     {"start_freq_hz": 433_000_000, "end_freq_hz": 434_000_000,
-      "sample_rate_hz": 2_000_000, "dwell_s": 0.1},
-     RiskLevel.LOW, 4, True),
-    (CommandAction.CAPTURE_IQ,
-     {"center_freq_hz": 433_925_000, "sample_rate_hz": 2_000_000, "duration_s": 1.0},
-     RiskLevel.LOW, 4, True),
-    (CommandAction.CAPTURE_IQ,
-     {"center_freq_hz": 433_925_000, "sample_rate_hz": 2_000_000, "duration_s": 10.0},
-     RiskLevel.MEDIUM, 6, True),
-    (CommandAction.TRANSMIT_IQ,
-     {"center_freq_hz": 1_090_000_000, "sample_rate_hz": 2_000_000,
-      "tx_vga_gain_db": 10, "iq_path": "/nonexistent.iq"},
-     RiskLevel.BLOCKED, 3, False),
-    (CommandAction.TRANSMIT_IQ,
-     {"center_freq_hz": 900_000_000, "sample_rate_hz": 2_000_000,
-      "tx_vga_gain_db": 10, "iq_path": "/nonexistent.iq"},
-     RiskLevel.HIGH, 6, False),
+    (
+        CommandAction.SWEEP_SPECTRUM,
+        {
+            "start_freq_hz": 433_000_000,
+            "end_freq_hz": 434_000_000,
+            "sample_rate_hz": 2_000_000,
+            "dwell_s": 0.1,
+        },
+        RiskLevel.LOW,
+        4,
+        True,
+    ),
+    (
+        CommandAction.CAPTURE_IQ,
+        {"center_freq_hz": 433_925_000, "sample_rate_hz": 2_000_000, "duration_s": 1.0},
+        RiskLevel.LOW,
+        4,
+        True,
+    ),
+    (
+        CommandAction.CAPTURE_IQ,
+        {"center_freq_hz": 433_925_000, "sample_rate_hz": 2_000_000, "duration_s": 10.0},
+        RiskLevel.MEDIUM,
+        6,
+        True,
+    ),
+    (
+        CommandAction.TRANSMIT_IQ,
+        {
+            "center_freq_hz": 1_090_000_000,
+            "sample_rate_hz": 2_000_000,
+            "tx_vga_gain_db": 10,
+            "iq_path": "/nonexistent.iq",
+        },
+        RiskLevel.BLOCKED,
+        3,
+        False,
+    ),
+    (
+        CommandAction.TRANSMIT_IQ,
+        {
+            "center_freq_hz": 900_000_000,
+            "sample_rate_hz": 2_000_000,
+            "tx_vga_gain_db": 10,
+            "iq_path": "/nonexistent.iq",
+        },
+        RiskLevel.HIGH,
+        6,
+        False,
+    ),
 ]
 
 
@@ -62,7 +94,8 @@ def _param_id(val):
 
 
 @pytest.mark.parametrize(
-    "action,args,tier,n_events,driver_called", MATRIX,
+    "action,args,tier,n_events,driver_called",
+    MATRIX,
     ids=lambda p: _param_id(p) if not isinstance(p, dict) else "",
 )
 async def test_funnel_row(tmp_path, action, args, tier, n_events, driver_called):
@@ -81,8 +114,10 @@ async def test_funnel_row(tmp_path, action, args, tier, n_events, driver_called)
             session_paths=new_session(tmp_path / "sessions"),
         )
         cmd = ExecuteCommand(
-            action=action, args=args,
-            justification="matrix", expected_effect="matrix",
+            action=action,
+            args=args,
+            justification="matrix",
+            expected_effect="matrix",
         )
         await executor.execute(cmd)
         # Give the audit writer a chance to drain.

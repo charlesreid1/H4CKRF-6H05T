@@ -77,9 +77,7 @@ async def _check_hackrf() -> Check:
         return Check("hackrf", False, f"hackrf_info missing on PATH: {e}")
     except HackrfError as e:
         return Check("hackrf", False, f"hackrf_info failed: {e}")
-    first_line = (
-        result.stdout.splitlines()[0] if result.stdout else "(no output)"
-    )
+    first_line = result.stdout.splitlines()[0] if result.stdout else "(no output)"
     return Check("hackrf", True, first_line)
 
 
@@ -96,8 +94,7 @@ def _render(checks: list[Check]) -> None:
 
 def set_api_key(
     ctx: typer.Context = typer.Context,  # type: ignore[assignment]
-    key: str
-    | None = typer.Option(
+    key: str | None = typer.Option(
         None,
         "--key",
         help="API key value; if omitted, prompted interactively.",

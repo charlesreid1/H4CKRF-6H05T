@@ -84,17 +84,14 @@ def _validate_center_freq(center_hz: int) -> None:
     """Raise ``InvalidHackrfArgError`` if *center_hz* is outside the HackRF tunable range."""
     if not (MIN_FREQ_HZ <= center_hz <= MAX_FREQ_HZ):
         raise InvalidHackrfArgError(
-            f"center_hz {center_hz} outside HackRF tunable range "
-            f"[{MIN_FREQ_HZ}, {MAX_FREQ_HZ}]"
+            f"center_hz {center_hz} outside HackRF tunable range [{MIN_FREQ_HZ}, {MAX_FREQ_HZ}]"
         )
 
 
 def _validate_sample_rate(rate_hz: int) -> None:
     """Raise ``InvalidHackrfArgError`` if *rate_hz* is not a valid HackRF sample rate."""
     if rate_hz not in VALID_SAMPLE_RATES_HZ:
-        raise InvalidHackrfArgError(
-            f"sample_rate {rate_hz} Hz not on grid {VALID_SAMPLE_RATES_HZ}"
-        )
+        raise InvalidHackrfArgError(f"sample_rate {rate_hz} Hz not on grid {VALID_SAMPLE_RATES_HZ}")
 
 
 def _validate_gain(name: str, value: int, grid: tuple[int, ...]) -> None:
@@ -204,13 +201,9 @@ class HackrfDriver:
                 None,
                 lambda: {
                     "serial": self._lib.pyhackrf_board_id_read(self._device),
-                    "firmware_version": self._lib.pyhackrf_version_string_read(
-                        self._device
-                    ),
+                    "firmware_version": self._lib.pyhackrf_version_string_read(self._device),
                     "board_revision": self._lib.pyhackrf_board_rev_read(self._device),
-                    "part_id": self._lib.pyhackrf_board_partid_serialno_read(
-                        self._device
-                    ),
+                    "part_id": self._lib.pyhackrf_board_partid_serialno_read(self._device),
                 },
             )
         except Exception as e:
@@ -319,9 +312,7 @@ class HackrfDriver:
             raise InvalidHackrfArgError(f"num_samples {num_samples} must be > 0")
 
         if out_path.exists() and out_path.stat().st_size > 0:
-            raise InvalidHackrfArgError(
-                f"refusing to clobber non-empty file: {out_path}"
-            )
+            raise InvalidHackrfArgError(f"refusing to clobber non-empty file: {out_path}")
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         iq_bytes = await self._rx_bytes(
@@ -534,9 +525,7 @@ class HackrfDriver:
             # pyhackrf v0.2.x — start_tx(device, callback, stopped_callback).
             await loop.run_in_executor(
                 None,
-                lambda: self._lib.pyhackrf_start_tx(
-                    self._device, tx_callback, on_stopped
-                ),
+                lambda: self._lib.pyhackrf_start_tx(self._device, tx_callback, on_stopped),
             )
             await done_event.wait()
         finally:

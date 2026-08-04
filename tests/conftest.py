@@ -41,7 +41,8 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item],
+    config: pytest.Config,
+    items: list[pytest.Item],
 ) -> None:
     """Skip hardware/llm-marked tests unless the corresponding flag is set."""
     run_hardware = config.getoption("--hardware")

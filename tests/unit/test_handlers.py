@@ -169,9 +169,7 @@ class TestDecodeOok:
         iq_path.parent.mkdir(parents=True, exist_ok=True)
         iq_path.write_bytes(b"\x00\x01" * 50)
 
-        result = await HANDLERS[CommandAction.DECODE_OOK](
-            ctx, {"iq_path": str(iq_path)}
-        )
+        result = await HANDLERS[CommandAction.DECODE_OOK](ctx, {"iq_path": str(iq_path)})
         assert result["kind"] == "decode_ook"
         # No driver calls.
         assert len(ctx.driver.calls) == 0

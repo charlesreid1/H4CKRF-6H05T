@@ -208,17 +208,19 @@ class TestMultipleToolUseBlocks:
             tool_use_id="toolu_a",
         )
         # Append a second tool_use block.
-        multi.content.append(_FakeContentBlock(
-            type="tool_use",
-            name="execute_command",
-            input={
-                "action": "grant_list",
-                "args": {},
-                "justification": "Second action.",
-                "expected_effect": "Return grants.",
-            },
-            id="toolu_b",
-        ))
+        multi.content.append(
+            _FakeContentBlock(
+                type="tool_use",
+                name="execute_command",
+                input={
+                    "action": "grant_list",
+                    "args": {},
+                    "justification": "Second action.",
+                    "expected_effect": "Return grants.",
+                },
+                id="toolu_b",
+            )
+        )
         # After the tool_result, the model sends end_turn.
         bench["llm"].responses = [
             multi,
@@ -250,8 +252,7 @@ class TestRefusal:
         ]
         events = await collect_events(bench["agent"], "do something bad")
 
-        assert any(e.type == "turn_ended" and e.stop_reason == "refusal"
-                   for e in events)
+        assert any(e.type == "turn_ended" and e.stop_reason == "refusal" for e in events)
         # No tool calls were made.
         assert not any(isinstance(e, ToolCallStarted) for e in events)
         assert len(bench["driver"].calls) == 0
@@ -306,11 +307,7 @@ class TestMalformedToolInput:
         assert errors[0].recoverable is True
         # The error should mention the validation issue.
         msg_lower = errors[0].message.lower()
-        assert (
-            "invalid" in msg_lower
-            or "validation" in msg_lower
-            or "value" in msg_lower
-        )
+        assert "invalid" in msg_lower or "validation" in msg_lower or "value" in msg_lower
 
         # Loop continues.
         assert events[-1].type == "turn_ended"
@@ -430,29 +427,37 @@ class TestPairSafety:
         llm: FakeLLMClient = bench["llm"]
 
         # Seed history: manually inject a tool_use → tool_result pair.
-        agent._messages.append({
-            "role": "assistant",
-            "content": [{
-                "type": "tool_use",
-                "id": "toolu_seed",
-                "name": "execute_command",
-                "input": {
-                    "action": "get_device_info",
-                    "args": {},
-                    "justification": "seed",
-                    "expected_effect": "seed",
-                },
-            }],
-        })
-        agent._messages.append({
-            "role": "user",
-            "content": [{
-                "type": "tool_result",
-                "tool_use_id": "toolu_seed",
-                "content": '{"success": true}',
-                "is_error": False,
-            }],
-        })
+        agent._messages.append(
+            {
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "toolu_seed",
+                        "name": "execute_command",
+                        "input": {
+                            "action": "get_device_info",
+                            "args": {},
+                            "justification": "seed",
+                            "expected_effect": "seed",
+                        },
+                    }
+                ],
+            }
+        )
+        agent._messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "toolu_seed",
+                        "content": '{"success": true}',
+                        "is_error": False,
+                    }
+                ],
+            }
+        )
 
         # Send enough messages to push history past the trim point.
         # We need more than MAX_HISTORY_MESSAGES so trimming kicks in.
@@ -470,8 +475,7 @@ class TestPairSafety:
                 content = first.get("content")
                 if isinstance(content, list):
                     is_tool_result_only = all(
-                        isinstance(b, dict) and b.get("type") == "tool_result"
-                        for b in content
+                        isinstance(b, dict) and b.get("type") == "tool_result" for b in content
                     )
                     assert not is_tool_result_only, (
                         "First message should not be an orphaned tool_result"
@@ -486,16 +490,18 @@ class TestRunawayProtection:
         # Queue 25 tool_use responses — the agent should stop at 20.
         responses = []
         for i in range(25):
-            responses.append(make_tool_use_response(
-                tool_name="execute_command",
-                tool_input={
-                    "action": "get_device_info",
-                    "args": {},
-                    "justification": f"Call {i}",
-                    "expected_effect": "Return info.",
-                },
-                tool_use_id=f"toolu_{i}",
-            ))
+            responses.append(
+                make_tool_use_response(
+                    tool_name="execute_command",
+                    tool_input={
+                        "action": "get_device_info",
+                        "args": {},
+                        "justification": f"Call {i}",
+                        "expected_effect": "Return info.",
+                    },
+                    tool_use_id=f"toolu_{i}",
+                )
+            )
 
         bench["llm"].responses = responses
         events = await collect_events(bench["agent"], "do many things")

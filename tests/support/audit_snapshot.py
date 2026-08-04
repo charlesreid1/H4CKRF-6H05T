@@ -22,12 +22,14 @@ def rows_to_snapshot(rows: list[AuditRow]) -> list[dict[str, Any]]:
     """
     snap: list[dict[str, Any]] = []
     for r in rows:
-        snap.append({
-            "event": r.event.value,
-            "action": r.action.value if r.action else None,
-            "risk_level": r.risk_level.value if r.risk_level else None,
-            "blocked_reason_present": r.blocked_reason is not None,
-        })
+        snap.append(
+            {
+                "event": r.event.value,
+                "action": r.action.value if r.action else None,
+                "risk_level": r.risk_level.value if r.risk_level else None,
+                "blocked_reason_present": r.blocked_reason is not None,
+            }
+        )
     return snap
 
 
@@ -44,7 +46,10 @@ def save_snapshot(path: Path, snapshot: list[dict[str, Any]]) -> None:
 
 
 def assert_snapshot_matches(
-    rows: list[AuditRow], snapshot_path: Path, *, update: bool = False,
+    rows: list[AuditRow],
+    snapshot_path: Path,
+    *,
+    update: bool = False,
 ) -> None:
     """Assert the row sequence matches the snapshot at ``snapshot_path``.
 

@@ -41,9 +41,7 @@ class TestKillSwitchFirstPress:
         assert stop_event.is_set()
 
     @pytest.mark.asyncio
-    async def test_revoke_tx_called_on_first_sigint(
-        self, tmp_path
-    ) -> None:
+    async def test_revoke_tx_called_on_first_sigint(self, tmp_path) -> None:
         db = tmp_path / "test.db"
         await ensure_schema(db)
         perms = PermissionService(db)
@@ -101,9 +99,7 @@ class TestKillSwitchDoubleTap:
             loop.stop = _original_stop  # type: ignore[method-assign]
 
     @pytest.mark.asyncio
-    async def test_double_tap_expired_window_treated_as_first(
-        self, monkeypatch
-    ) -> None:
+    async def test_double_tap_expired_window_treated_as_first(self, monkeypatch) -> None:
         loop = asyncio.get_running_loop()
         stop_event = asyncio.Event()
         perms = _make_mock_perms()

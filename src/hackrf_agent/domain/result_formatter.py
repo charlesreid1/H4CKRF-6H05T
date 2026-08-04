@@ -77,9 +77,7 @@ class ResultFormatter:
         DSP consolidation here. Cost is one extra read of a small file.
         """
         if not session_paths.is_within(iq_path):
-            raise ValueError(
-                f"iq_path {iq_path} escapes session root {session_paths.root}"
-            )
+            raise ValueError(f"iq_path {iq_path} escapes session root {session_paths.root}")
         raw = iq_path.read_bytes()
         iq = iq_to_complex64(raw)
         # Use a modest FFT size — enough for a summary, not the full capture.

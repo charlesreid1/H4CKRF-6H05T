@@ -149,6 +149,7 @@ class TestImportWithoutPyhackrf:
         with patch.dict(sys.modules, {"pyhackrf": None}):
             # Also need to make the import inside __aenter__ fail.
             import builtins
+
             original_import = builtins.__import__
 
             def _block_pyhackrf(name, *args, **kwargs):

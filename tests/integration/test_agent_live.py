@@ -65,18 +65,14 @@ async def test_live_get_device_info(tmp_path: Path) -> None:
         agent = HackrfAgent(llm=llm, executor=executor, permissions=perms)
 
         events = []
-        async for ev in agent.chat(
-            "Please read the device info and summarize it in one sentence."
-        ):
+        async for ev in agent.chat("Please read the device info and summarize it in one sentence."):
             events.append(ev)
 
         # Assert the loop terminated.
         assert any(e.type == "tool_call_completed" for e in events), (
             f"No tool_call_completed in events: {events}"
         )
-        assert any(e.type == "turn_ended" for e in events), (
-            f"No turn_ended in events: {events}"
-        )
+        assert any(e.type == "turn_ended" for e in events), f"No turn_ended in events: {events}"
         assert not any(e.type == "agent_error" for e in events), (
             f"AgentError found: {[e for e in events if e.type == 'agent_error']}"
         )

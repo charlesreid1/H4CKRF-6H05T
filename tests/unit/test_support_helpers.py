@@ -82,9 +82,11 @@ class TestScriptedLLMClient:
         import asyncio
 
         async def _run():
-            client = ScriptedLLMClient(script=[
-                {"type": "text", "text": "hi", "stop_reason": "end_turn"},
-            ])
+            client = ScriptedLLMClient(
+                script=[
+                    {"type": "text", "text": "hi", "stop_reason": "end_turn"},
+                ]
+            )
             resp = await client.send(system=[], messages=[], tools=[])
             assert isinstance(resp, LLMResponse)
             assert resp.stop_reason == "end_turn"
@@ -99,16 +101,18 @@ class TestScriptedLLMClient:
         import asyncio
 
         async def _run():
-            client = ScriptedLLMClient(script=[
-                {
-                    "type": "tool_use",
-                    "action": "get_device_info",
-                    "args": {},
-                    "justification": "Read info.",
-                    "expected_effect": "Return info.",
-                },
-                {"type": "text", "text": "done"},
-            ])
+            client = ScriptedLLMClient(
+                script=[
+                    {
+                        "type": "tool_use",
+                        "action": "get_device_info",
+                        "args": {},
+                        "justification": "Read info.",
+                        "expected_effect": "Return info.",
+                    },
+                    {"type": "text", "text": "done"},
+                ]
+            )
             r1 = await client.send(system=[], messages=[], tools=[])
             assert r1.stop_reason == "tool_use"
             tool_blocks = [b for b in r1.content if b.type == "tool_use"]
@@ -125,9 +129,11 @@ class TestScriptedLLMClient:
         import asyncio
 
         async def _run():
-            client = ScriptedLLMClient(script=[
-                {"type": "text", "text": "only one"},
-            ])
+            client = ScriptedLLMClient(
+                script=[
+                    {"type": "text", "text": "only one"},
+                ]
+            )
             await client.send(system=[], messages=[], tools=[])
             with pytest.raises(IndexError, match="script exhausted"):
                 await client.send(system=[], messages=[], tools=[])
@@ -139,12 +145,16 @@ class TestScriptedLLMClient:
         import asyncio
 
         async def _run():
-            client = ScriptedLLMClient(script=[
-                {"type": "text", "text": "a"},
-            ])
+            client = ScriptedLLMClient(
+                script=[
+                    {"type": "text", "text": "a"},
+                ]
+            )
             await client.send(
-                system="sys", messages=[{"role": "user", "content": "q"}],
-                tools=[{"name": "t"}], max_tokens=100,
+                system="sys",
+                messages=[{"role": "user", "content": "q"}],
+                tools=[{"name": "t"}],
+                max_tokens=100,
             )
             assert len(client.calls) == 1
             assert client.calls[0]["system"] == "sys"
@@ -158,9 +168,11 @@ class TestScriptedLLMClient:
         import asyncio
 
         async def _run():
-            client = ScriptedLLMClient(script=[
-                {"type": "unknown_type"},
-            ])
+            client = ScriptedLLMClient(
+                script=[
+                    {"type": "unknown_type"},
+                ]
+            )
             with pytest.raises(ValueError, match="unknown scripted entry type"):
                 await client.send(system=[], messages=[], tools=[])
 
@@ -171,14 +183,18 @@ class TestScriptedLLMClient:
         import asyncio
 
         async def _run():
-            client = ScriptedLLMClient(script=[{
-                "type": "tool_use",
-                "action": "grant_list",
-                "args": {},
-                "justification": "Check grants.",
-                "expected_effect": "Return grant list.",
-                "preamble": "Let me check the grants first.",
-            }])
+            client = ScriptedLLMClient(
+                script=[
+                    {
+                        "type": "tool_use",
+                        "action": "grant_list",
+                        "args": {},
+                        "justification": "Check grants.",
+                        "expected_effect": "Return grant list.",
+                        "preamble": "Let me check the grants first.",
+                    }
+                ]
+            )
             resp = await client.send(system=[], messages=[], tools=[])
             # Should have a text block (preamble) and a tool_use block.
             texts = [b for b in resp.content if b.type == "text"]
@@ -203,17 +219,28 @@ class TestAuditSnapshot:
 
         rows = [
             AuditRow(
-                id=1, trace_id=uuid4(), session_id="s1", timestamp=1234567890.0,
+                id=1,
+                trace_id=uuid4(),
+                session_id="s1",
+                timestamp=1234567890.0,
                 event=AuditEventType.COMMAND_RECEIVED,
-                action=CommandAction.SWEEP_SPECTRUM, risk_level=None,
-                payload_json='{"args": {}}', blocked_reason=None, duration_ms=None,
+                action=CommandAction.SWEEP_SPECTRUM,
+                risk_level=None,
+                payload_json='{"args": {}}',
+                blocked_reason=None,
+                duration_ms=None,
             ),
             AuditRow(
-                id=2, trace_id=uuid4(), session_id="s1", timestamp=1234567891.0,
+                id=2,
+                trace_id=uuid4(),
+                session_id="s1",
+                timestamp=1234567891.0,
                 event=AuditEventType.RISK_ASSESSED,
-                action=CommandAction.SWEEP_SPECTRUM, risk_level=RiskLevel.LOW,
+                action=CommandAction.SWEEP_SPECTRUM,
+                risk_level=RiskLevel.LOW,
                 payload_json='{"reason": "short RX sweep"}',
-                blocked_reason=None, duration_ms=None,
+                blocked_reason=None,
+                duration_ms=None,
             ),
         ]
         snap = rows_to_snapshot(rows)
@@ -250,10 +277,16 @@ class TestAuditSnapshot:
         path = tmp_path / "audit_snap.json"
         rows = [
             AuditRow(
-                id=1, trace_id=uuid4(), session_id="s1", timestamp=1000.0,
+                id=1,
+                trace_id=uuid4(),
+                session_id="s1",
+                timestamp=1000.0,
                 event=AuditEventType.EXECUTED,
-                action=CommandAction.GET_DEVICE_INFO, risk_level=RiskLevel.LOW,
-                payload_json=None, blocked_reason=None, duration_ms=42,
+                action=CommandAction.GET_DEVICE_INFO,
+                risk_level=RiskLevel.LOW,
+                payload_json=None,
+                blocked_reason=None,
+                duration_ms=42,
             ),
         ]
         # Create snapshot.
@@ -268,15 +301,30 @@ class TestAuditSnapshot:
 
         path = tmp_path / "mismatch.json"
         # Pre-create one snapshot.
-        save_snapshot(path, [{"event": "EXECUTED", "action": "get_device_info",
-                               "risk_level": "LOW", "blocked_reason_present": False}])
+        save_snapshot(
+            path,
+            [
+                {
+                    "event": "EXECUTED",
+                    "action": "get_device_info",
+                    "risk_level": "LOW",
+                    "blocked_reason_present": False,
+                }
+            ],
+        )
         # Build rows that don't match.
         rows = [
             AuditRow(
-                id=1, trace_id=uuid4(), session_id="s1", timestamp=1000.0,
+                id=1,
+                trace_id=uuid4(),
+                session_id="s1",
+                timestamp=1000.0,
                 event=AuditEventType.BLOCKED,
-                action=CommandAction.TRANSMIT_IQ, risk_level=RiskLevel.BLOCKED,
-                payload_json=None, blocked_reason="ADS-B", duration_ms=None,
+                action=CommandAction.TRANSMIT_IQ,
+                risk_level=RiskLevel.BLOCKED,
+                payload_json=None,
+                blocked_reason="ADS-B",
+                duration_ms=None,
             ),
         ]
         with pytest.raises(AssertionError, match="audit snapshot mismatch"):
@@ -289,14 +337,22 @@ class TestAuditSnapshot:
         monkeypatch.setenv("UPDATE_SNAPSHOTS", "1")
         path = tmp_path / "env_snap.json"
         # Pre-create a different snapshot.
-        save_snapshot(path, [{"event": "OLD", "action": None,
-                               "risk_level": None, "blocked_reason_present": False}])
+        save_snapshot(
+            path,
+            [{"event": "OLD", "action": None, "risk_level": None, "blocked_reason_present": False}],
+        )
         rows = [
             AuditRow(
-                id=1, trace_id=uuid4(), session_id="s1", timestamp=1000.0,
+                id=1,
+                trace_id=uuid4(),
+                session_id="s1",
+                timestamp=1000.0,
                 event=AuditEventType.EXECUTED,
-                action=CommandAction.GET_DEVICE_INFO, risk_level=RiskLevel.LOW,
-                payload_json=None, blocked_reason=None, duration_ms=42,
+                action=CommandAction.GET_DEVICE_INFO,
+                risk_level=RiskLevel.LOW,
+                payload_json=None,
+                blocked_reason=None,
+                duration_ms=42,
             ),
         ]
         # Should update, not raise.

@@ -33,8 +33,9 @@ def test_hardware_flag_registered() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="requires subprocess invocation; covered by "
-                         "manual `pytest -m hardware` smoke test")
+@pytest.mark.skip(
+    reason="requires subprocess invocation; covered by manual `pytest -m hardware` smoke test"
+)
 def test_hardware_marker_skipped_without_flag(pytester: pytest.Pytester) -> None:
     """A test marked @pytest.mark.hardware is skipped when --hardware is absent.
 

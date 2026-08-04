@@ -46,9 +46,7 @@ def chat(
     loaded = settings.load()
     api_key = settings.get_api_key()
     if not api_key:
-        _console.print(
-            "[red]No API key found.[/] Run `hackrf-agent set-api-key`."
-        )
+        _console.print("[red]No API key found.[/] Run `hackrf-agent set-api-key`.")
         raise typer.Exit(code=1)
     asyncio.run(_run_chat(settings, loaded, api_key, auto_approve_medium))
 
@@ -70,9 +68,7 @@ async def _run_chat(
     await ensure_schema(settings.db_path)
     session_paths = new_session(settings.sessions_dir)
     session_id = session_paths.session_id
-    _console.print(
-        f"[dim]session {session_id} — Ctrl-C to stop; twice to exit[/]"
-    )
+    _console.print(f"[dim]session {session_id} — Ctrl-C to stop; twice to exit[/]")
 
     stop_event = asyncio.Event()
     perms = PermissionService(settings.db_path)
@@ -81,13 +77,13 @@ async def _run_chat(
     kill.install_handler(loop)
 
     try:
-        async with AuditService(settings.db_path) as audit, \
-                   HackrfDriver(stop_event=stop_event) as driver:
+        async with (
+            AuditService(settings.db_path) as audit,
+            HackrfDriver(stop_event=stop_event) as driver,
+        ):
             approval = CliApprovalPort(
                 console=_console,
-                auto_approve_medium=(
-                    auto_approve_medium or loaded.auto_approve_medium
-                ),
+                auto_approve_medium=(auto_approve_medium or loaded.auto_approve_medium),
             )
             executor = CommandExecutor(
                 session_id=session_id,
@@ -124,7 +120,8 @@ async def _repl(agent: HackrfAgent, stop_event: asyncio.Event) -> None:
         # Prompt for user input on a thread so SIGINT interrupts cleanly.
         try:
             user_text = await loop.run_in_executor(
-                None, lambda: Prompt.ask("[bold cyan]you[/]", default=""),
+                None,
+                lambda: Prompt.ask("[bold cyan]you[/]", default=""),
             )
         except (EOFError, KeyboardInterrupt):
             _console.print("\n[dim]bye[/]")
@@ -138,10 +135,7 @@ async def _repl(agent: HackrfAgent, stop_event: asyncio.Event) -> None:
             if isinstance(ev, AssistantText):
                 _console.print(f"[bold magenta]agent[/] {ev.text}")
             elif isinstance(ev, ToolCallStarted):
-                _console.print(
-                    f"[dim]→ tool {ev.action} "
-                    f"(justification: {ev.justification})[/]"
-                )
+                _console.print(f"[dim]→ tool {ev.action} (justification: {ev.justification})[/]")
             elif isinstance(ev, ToolCallCompleted):
                 if ev.result and ev.result.success:
                     _console.print(f"[green]← ok[/] {ev.result.message}")

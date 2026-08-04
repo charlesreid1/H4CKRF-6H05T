@@ -244,7 +244,8 @@ class TestRateLimiter:
         assert sleep_calls[0] > 0
 
     async def test_no_block_when_old_timestamps_expire(
-        self, client: AnthropicClient,
+        self,
+        client: AnthropicClient,
     ) -> None:
         """30 timestamps but oldest > 60s old → returns immediately (no sleep)."""
         now = 1000.0

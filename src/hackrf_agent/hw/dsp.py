@@ -115,9 +115,7 @@ def fft_magnitude_db(
         Callers pair with a frequency axis from ``fft_freq_axis()``.
     """
     if fft_size & (fft_size - 1) != 0 or not (64 <= fft_size <= 65536):
-        raise ValueError(
-            f"fft_size must be a power of two in [64, 65536], got {fft_size}"
-        )
+        raise ValueError(f"fft_size must be a power of two in [64, 65536], got {fft_size}")
     if iq.size < fft_size:
         raise ValueError(f"need at least {fft_size} samples, got {iq.size}")
     if window not in _WINDOWS:
@@ -130,9 +128,7 @@ def fft_magnitude_db(
     spec = np.fft.fftshift(np.fft.fft(frame))
     mag = np.abs(spec).astype(np.float32) / fft_size
     # Guard against log(0) — clip to a numerical floor.
-    result: npt.NDArray[np.float32] = (
-        20.0 * np.log10(np.maximum(mag, 1e-12))
-    ).astype(np.float32)
+    result: npt.NDArray[np.float32] = (20.0 * np.log10(np.maximum(mag, 1e-12))).astype(np.float32)
     return result
 
 
@@ -203,9 +199,7 @@ def find_peaks(
         spectrum_db[1:-1] > spectrum_db[2:]
     )
 
-    candidate_idx = np.where(
-        is_local_max & (spectrum_db - floor >= prominence_db)
-    )[0]
+    candidate_idx = np.where(is_local_max & (spectrum_db - floor >= prominence_db))[0]
 
     # Sort candidates by descending power.
     candidate_idx = candidate_idx[np.argsort(-spectrum_db[candidate_idx])]

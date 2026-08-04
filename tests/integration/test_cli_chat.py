@@ -33,6 +33,7 @@ def test_chat_smoke(tmp_path):
     # Store API key into the test keychain backend first.
     api_key = os.environ["ANTHROPIC_API_KEY"]
     from hackrf_agent.cli.settings import SettingsService
+
     svc = SettingsService(home_dir=home)
     svc.set_api_key(api_key)
 
@@ -48,6 +49,4 @@ def test_chat_smoke(tmp_path):
     assert "→ tool" in output or "← ok" in output, (
         f"Expected tool call in output, got:\n{output[:500]}"
     )
-    assert "agent" in output, (
-        f"Expected agent reply in output, got:\n{output[:500]}"
-    )
+    assert "agent" in output, f"Expected agent reply in output, got:\n{output[:500]}"

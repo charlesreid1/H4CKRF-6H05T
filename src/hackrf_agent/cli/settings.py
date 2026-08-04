@@ -76,9 +76,7 @@ class SettingsService:
         except (tomllib.TOMLDecodeError, OSError) as e:
             import logging
 
-            logging.getLogger(__name__).warning(
-                "config.toml unreadable (%s); using defaults", e
-            )
+            logging.getLogger(__name__).warning("config.toml unreadable (%s); using defaults", e)
             return Settings(home_dir=self._home_dir)
         return Settings(
             home_dir=self._home_dir,

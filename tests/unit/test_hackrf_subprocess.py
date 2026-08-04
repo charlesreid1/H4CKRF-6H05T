@@ -144,10 +144,13 @@ class TestErrorPaths:
 
     async def test_file_not_found_raises_invalid_arg(self):
         """Missing executable raises InvalidHackrfArgError."""
-        with patch(
-            "asyncio.create_subprocess_exec",
-            side_effect=FileNotFoundError("no such file"),
-        ), pytest.raises(InvalidHackrfArgError, match="not found on PATH"):
+        with (
+            patch(
+                "asyncio.create_subprocess_exec",
+                side_effect=FileNotFoundError("no such file"),
+            ),
+            pytest.raises(InvalidHackrfArgError, match="not found on PATH"),
+        ):
             await run_hackrf_tool(["hackrf_info"])
 
     async def test_stderr_preserved_in_error_message(self):

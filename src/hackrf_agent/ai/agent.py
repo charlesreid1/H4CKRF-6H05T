@@ -96,9 +96,7 @@ class AgentError:
     recoverable: bool = False
 
 
-AgentEvent = (
-    AssistantText | ToolCallStarted | ToolCallCompleted | TurnEnded | AgentError
-)
+AgentEvent = AssistantText | ToolCallStarted | ToolCallCompleted | TurnEnded | AgentError
 
 # ---------------------------------------------------------------------------
 # HackrfAgent
@@ -194,10 +192,7 @@ class HackrfAgent:
                 return
             if response.stop_reason != "tool_use":
                 yield AgentError(
-                    message=(
-                        f"unexpected stop_reason {response.stop_reason!r}; "
-                        "aborting turn"
-                    ),
+                    message=(f"unexpected stop_reason {response.stop_reason!r}; aborting turn"),
                     recoverable=False,
                 )
                 return
@@ -213,9 +208,9 @@ class HackrfAgent:
                 return
             if len(tool_uses) > MAX_TOOL_CALLS_PER_RESPONSE:
                 logger.warning(
-                    "model returned %d tool_use blocks; executing first, "
-                    "dropping %d extras",
-                    len(tool_uses), len(tool_uses) - MAX_TOOL_CALLS_PER_RESPONSE,
+                    "model returned %d tool_use blocks; executing first, dropping %d extras",
+                    len(tool_uses),
+                    len(tool_uses) - MAX_TOOL_CALLS_PER_RESPONSE,
                 )
             chosen = tool_uses[0]
 
@@ -223,17 +218,13 @@ class HackrfAgent:
             # We only persist the first tool_use (matching what we
             # executed) so the tool_result on the next turn matches.
             self._append_assistant_turn(
-                [b for b in response.content if getattr(b, "type", None) == "text"] +
-                [chosen]
+                [b for b in response.content if getattr(b, "type", None) == "text"] + [chosen]
             )
 
             # 8. Dispatch to the executor. Wrong tool name is a bug,
             # not a bypass — refuse structurally.
             if chosen.name != TOOL_NAME:
-                error_msg = (
-                    f"model requested tool {chosen.name!r}; only "
-                    f"{TOOL_NAME!r} is exposed"
-                )
+                error_msg = f"model requested tool {chosen.name!r}; only {TOOL_NAME!r} is exposed"
                 self._messages.append(self._tool_error_message(chosen.id, error_msg))
                 yield AgentError(message=error_msg, recoverable=True)
                 tool_calls_this_turn += 1
@@ -270,8 +261,7 @@ class HackrfAgent:
             if tool_calls_this_turn >= self._max_tool_calls_per_turn:
                 yield AgentError(
                     message=(
-                        f"tool-call cap ({self._max_tool_calls_per_turn}) reached; "
-                        "ending turn"
+                        f"tool-call cap ({self._max_tool_calls_per_turn}) reached; ending turn"
                     ),
                     recoverable=False,
                 )
@@ -283,11 +273,13 @@ class HackrfAgent:
 
     def _build_top_level_system(self) -> list[dict[str, Any]]:
         """The stable system prompt, with prompt-cache marker on the last block."""
-        return [{
-            "type": "text",
-            "text": SYSTEM_PROMPT,
-            "cache_control": {"type": "ephemeral"},
-        }]
+        return [
+            {
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ]
 
     def _trim_history(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Return the last ``self._max_history`` messages, pair-safe.
@@ -298,7 +290,7 @@ class HackrfAgent:
         """
         if len(messages) <= self._max_history:
             return list(messages)
-        trimmed = messages[-self._max_history:]
+        trimmed = messages[-self._max_history :]
         # If the first message in the trimmed window is a tool_result-only
         # user turn, drop it (its assistant parent was cut off).
         while trimmed and self._is_tool_result_only_user(trimmed[0]):
@@ -312,9 +304,7 @@ class HackrfAgent:
         content = msg.get("content")
         if not isinstance(content, list):
             return False
-        return all(
-            isinstance(b, dict) and b.get("type") == "tool_result" for b in content
-        )
+        return all(isinstance(b, dict) and b.get("type") == "tool_result" for b in content)
 
     def _append_assistant_turn(self, content: list[Any]) -> None:
         """Append the assistant's response to history.
@@ -328,20 +318,24 @@ class HackrfAgent:
             if btype == "text":
                 serialized.append({"type": "text", "text": block.text or ""})
             elif btype == "tool_use":
-                serialized.append({
-                    "type": "tool_use",
-                    "id": block.id,
-                    "name": block.name,
-                    "input": dict(block.input or {}),
-                })
+                serialized.append(
+                    {
+                        "type": "tool_use",
+                        "id": block.id,
+                        "name": block.name,
+                        "input": dict(block.input or {}),
+                    }
+                )
             elif btype == "thinking":
                 # We never surface thinking to the user, but preserve
                 # the block if the model returns one (Opus 4.8 requires
                 # blocks to be echoed back unchanged in continuation).
-                serialized.append({
-                    "type": "thinking",
-                    "thinking": getattr(block, "thinking", ""),
-                })
+                serialized.append(
+                    {
+                        "type": "thinking",
+                        "thinking": getattr(block, "thinking", ""),
+                    }
+                )
             # Silently drop any unknown block types.
         if serialized:
             self._messages.append({"role": "assistant", "content": serialized})
@@ -361,12 +355,14 @@ class HackrfAgent:
         }
         return {
             "role": "user",
-            "content": [{
-                "type": "tool_result",
-                "tool_use_id": tool_use_id,
-                "content": json.dumps(body),
-                "is_error": not result.success,
-            }],
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tool_use_id,
+                    "content": json.dumps(body),
+                    "is_error": not result.success,
+                }
+            ],
         }
 
     def _tool_error_message(
@@ -377,12 +373,14 @@ class HackrfAgent:
         """Build a tool_result signalling an agent-side error to the model."""
         return {
             "role": "user",
-            "content": [{
-                "type": "tool_result",
-                "tool_use_id": tool_use_id,
-                "content": error_text,
-                "is_error": True,
-            }],
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tool_use_id,
+                    "content": error_text,
+                    "is_error": True,
+                }
+            ],
         }
 
     @staticmethod
@@ -402,4 +400,3 @@ class HackrfAgent:
             justification=raw.get("justification", "") or "",
             expected_effect=raw.get("expected_effect", "") or "",
         )
-

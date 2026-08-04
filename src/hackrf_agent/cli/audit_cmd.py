@@ -21,12 +21,8 @@ _console = Console()
 
 @audit_app.command("tail")
 def audit_tail(
-    session: str | None = typer.Option(
-        None, "--session", help="Filter by session id."
-    ),
-    trace: str | None = typer.Option(
-        None, "--trace", help="Filter by trace id (UUID)."
-    ),
+    session: str | None = typer.Option(None, "--session", help="Filter by session id."),
+    trace: str | None = typer.Option(None, "--trace", help="Filter by trace id (UUID)."),
     limit: int = typer.Option(50, "--limit", help="Max rows to display."),
     ctx: typer.Context = typer.Context,  # type: ignore[assignment]
 ) -> None:
@@ -52,7 +48,9 @@ async def _audit_tail(
     await ensure_schema(settings.db_path)
     async with AuditService(settings.db_path) as audit:
         rows = await audit.query(
-            session_id=session_id, trace_id=trace_id, limit=limit,
+            session_id=session_id,
+            trace_id=trace_id,
+            limit=limit,
         )
     if not rows:
         _console.print("[dim]No audit rows match.[/]")
@@ -66,9 +64,7 @@ async def _audit_tail(
     table.add_column("trace", style="dim")
     for r in rows:
         table.add_row(
-            datetime.fromtimestamp(r.timestamp)
-            .astimezone()
-            .isoformat(timespec="seconds"),
+            datetime.fromtimestamp(r.timestamp).astimezone().isoformat(timespec="seconds"),
             r.event.value,
             r.action.value if r.action else "",
             r.risk_level.value if r.risk_level else "",

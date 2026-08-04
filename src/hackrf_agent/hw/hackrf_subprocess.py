@@ -24,12 +24,14 @@ from hackrf_agent.hw.exceptions import (
 # executor picks the tool by name, the driver builds the argv.
 # ---------------------------------------------------------------------------
 
-_ALLOWED_TOOLS: frozenset[str] = frozenset({
-    "hackrf_info",
-    "hackrf_sweep",
-    "hackrf_transfer",
-    "hackrf_spiflash",
-})
+_ALLOWED_TOOLS: frozenset[str] = frozenset(
+    {
+        "hackrf_info",
+        "hackrf_sweep",
+        "hackrf_transfer",
+        "hackrf_spiflash",
+    }
+)
 
 # ---------------------------------------------------------------------------
 # Result dataclass
@@ -63,9 +65,7 @@ def _validate_argv(argv: tuple[str, ...]) -> None:
         raise InvalidHackrfArgError("argv contains non-string element")
     tool = argv[0]
     if tool not in _ALLOWED_TOOLS:
-        raise InvalidHackrfArgError(
-            f"tool {tool!r} not in allowlist {sorted(_ALLOWED_TOOLS)}"
-        )
+        raise InvalidHackrfArgError(f"tool {tool!r} not in allowlist {sorted(_ALLOWED_TOOLS)}")
     # Reject control characters that could interact badly with terminal
     # emulation or tool-specific parsers, even without shell=True.
     for a in argv[1:]:
@@ -119,9 +119,7 @@ async def run_hackrf_tool(
         ) from e
 
     try:
-        stdout_b, stderr_b = await asyncio.wait_for(
-            proc.communicate(), timeout=timeout_s
-        )
+        stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
     except TimeoutError as e:
         proc.terminate()
         try:
@@ -129,9 +127,7 @@ async def run_hackrf_tool(
         except TimeoutError:
             proc.kill()
             await proc.wait()
-        raise HackrfTimeoutError(
-            f"{argv[0]!r} did not exit within {timeout_s}s"
-        ) from e
+        raise HackrfTimeoutError(f"{argv[0]!r} did not exit within {timeout_s}s") from e
 
     duration = loop.time() - start
 
@@ -145,8 +141,7 @@ async def run_hackrf_tool(
 
     if result.returncode != 0:
         raise HackrfError(
-            f"{argv[0]} exited with code {result.returncode}: "
-            f"{result.stderr.strip()[:400]}"
+            f"{argv[0]} exited with code {result.returncode}: {result.stderr.strip()[:400]}"
         )
 
     return result

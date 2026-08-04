@@ -24,14 +24,12 @@ _console = Console()
 
 @grant_app.command("tx")
 def grant_tx(
-    band: str = typer.Argument(
-        ..., help="Band spec, e.g. '433.05-434.79M' or '315M'."
-    ),
-    for_: str = typer.Option(
-        ..., "--for", help="Grant duration, e.g. '30m', '2h', '90s'."
-    ),
+    band: str = typer.Argument(..., help="Band spec, e.g. '433.05-434.79M' or '315M'."),
+    for_: str = typer.Option(..., "--for", help="Grant duration, e.g. '30m', '2h', '90s'."),
     max_gain: int = typer.Option(
-        20, "--max-gain", help="Maximum TX VGA gain (dB, 0-47).",
+        20,
+        "--max-gain",
+        help="Maximum TX VGA gain (dB, 0-47).",
     ),
     ctx: typer.Context = typer.Context,  # type: ignore[assignment]
 ) -> None:
@@ -100,9 +98,7 @@ async def _grant_list(settings: SettingsService) -> None:
 
 @grant_app.command("revoke")
 def grant_revoke(
-    grant_id: str = typer.Argument(
-        ..., help="Grant UUID from `grant list`."
-    ),
+    grant_id: str = typer.Argument(..., help="Grant UUID from `grant list`."),
     ctx: typer.Context = typer.Context,  # type: ignore[assignment]
 ) -> None:
     """Revoke a specific grant by id."""
@@ -123,9 +119,7 @@ async def _grant_revoke(settings: SettingsService, grant_id: UUID) -> None:
     if ok:
         _console.print(f"[yellow]Revoked[/] {grant_id}")
     else:
-        _console.print(
-            f"[dim]Grant {grant_id} not found or already revoked.[/]"
-        )
+        _console.print(f"[dim]Grant {grant_id} not found or already revoked.[/]")
 
 
 def _settings_from_ctx(ctx: typer.Context) -> SettingsService:

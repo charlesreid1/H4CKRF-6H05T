@@ -471,9 +471,7 @@ class TestTransmitIqWithGrants:
 
     def test_expired_grant_ism_medium(self, assessor: RiskAssessor) -> None:
         """Expired grant → ISM rule applies; 433.5 MHz with gain 20 ≤ 30 → MEDIUM."""
-        expired = active_grant(
-            433_000_000, 434_000_000, max_gain_db=30, expired=True
-        )
+        expired = active_grant(433_000_000, 434_000_000, max_gain_db=30, expired=True)
         result = assessor.assess(
             make_command(
                 CommandAction.TRANSMIT_IQ,

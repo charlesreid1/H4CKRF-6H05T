@@ -328,16 +328,12 @@ class TestEndToEnd:
 
         # 3. MEDIUM approved: long capture.
         approval.answer = True
-        r3 = await exec.execute(
-            make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=10.0)
-        )
+        r3 = await exec.execute(make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=10.0))
         assert r3.success is True
 
         # 4. MEDIUM denied: long capture.
         approval.answer = False
-        r4 = await exec.execute(
-            make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=10.0)
-        )
+        r4 = await exec.execute(make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=10.0))
         assert r4.success is False
         assert r4.error == "approval_denied"
 

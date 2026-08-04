@@ -29,8 +29,7 @@ def test_synthetic_tone_recovery_end_to_end():
     t = np.arange(n) / rate_hz
     signal = 0.5 * np.exp(2j * np.pi * tone_offset_hz * t)
     noise = 0.01 * (
-        np.random.default_rng(0).normal(size=n)
-        + 1j * np.random.default_rng(1).normal(size=n)
+        np.random.default_rng(0).normal(size=n) + 1j * np.random.default_rng(1).normal(size=n)
     )
     iq_complex = (signal + noise).astype(np.complex64)
 
@@ -65,8 +64,7 @@ def test_stronger_tone_at_different_offset():
     t = np.arange(n) / rate_hz
     signal = 0.7 * np.exp(2j * np.pi * tone_offset_hz * t)
     noise = 0.005 * (
-        np.random.default_rng(10).normal(size=n)
-        + 1j * np.random.default_rng(11).normal(size=n)
+        np.random.default_rng(10).normal(size=n) + 1j * np.random.default_rng(11).normal(size=n)
     )
     iq_complex = (signal + noise).astype(np.complex64)
 

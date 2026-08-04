@@ -79,42 +79,48 @@ class CommandExecutor:
         t0 = time.perf_counter()
 
         # 1. COMMAND_RECEIVED
-        await self._audit.log(make_event(
-            trace_id=trace_id,
-            session_id=self._session_id,
-            event=AuditEventType.COMMAND_RECEIVED,
-            action=command.action,
-            payload={
-                "args": command.args,
-                "justification": command.justification,
-                "expected_effect": command.expected_effect,
-            },
-        ))
+        await self._audit.log(
+            make_event(
+                trace_id=trace_id,
+                session_id=self._session_id,
+                event=AuditEventType.COMMAND_RECEIVED,
+                action=command.action,
+                payload={
+                    "args": command.args,
+                    "justification": command.justification,
+                    "expected_effect": command.expected_effect,
+                },
+            )
+        )
 
         # 2. RISK_ASSESSED
         active_grants = await self._permissions.list_active()
         risk = self._risk.assess(command, active_grants)
-        await self._audit.log(make_event(
-            trace_id=trace_id,
-            session_id=self._session_id,
-            event=AuditEventType.RISK_ASSESSED,
-            action=command.action,
-            risk_level=risk.level,
-            payload={"reason": risk.reason},
-            blocked_reason=risk.blocked_reason,
-        ))
+        await self._audit.log(
+            make_event(
+                trace_id=trace_id,
+                session_id=self._session_id,
+                event=AuditEventType.RISK_ASSESSED,
+                action=command.action,
+                risk_level=risk.level,
+                payload={"reason": risk.reason},
+                blocked_reason=risk.blocked_reason,
+            )
+        )
 
         # 3. BLOCKED short-circuit
         if risk.level == RiskLevel.BLOCKED:
-            await self._audit.log(make_event(
-                trace_id=trace_id,
-                session_id=self._session_id,
-                event=AuditEventType.BLOCKED,
-                action=command.action,
-                risk_level=RiskLevel.BLOCKED,
-                blocked_reason=risk.blocked_reason,
-                duration_ms=int((time.perf_counter() - t0) * 1000),
-            ))
+            await self._audit.log(
+                make_event(
+                    trace_id=trace_id,
+                    session_id=self._session_id,
+                    event=AuditEventType.BLOCKED,
+                    action=command.action,
+                    risk_level=RiskLevel.BLOCKED,
+                    blocked_reason=risk.blocked_reason,
+                    duration_ms=int((time.perf_counter() - t0) * 1000),
+                )
+            )
             return CommandResult(
                 success=False,
                 action=command.action,
@@ -124,63 +130,74 @@ class CommandExecutor:
 
         # 4. Approval (only if required)
         if risk.requires_confirmation:
-            await self._audit.log(make_event(
-                trace_id=trace_id,
-                session_id=self._session_id,
-                event=AuditEventType.APPROVAL_REQUESTED,
-                action=command.action,
-                risk_level=risk.level,
-            ))
-            approved = await self._approval.request(command, risk)
-            if not approved:
-                await self._audit.log(make_event(
+            await self._audit.log(
+                make_event(
                     trace_id=trace_id,
                     session_id=self._session_id,
-                    event=AuditEventType.APPROVAL_DENIED,
+                    event=AuditEventType.APPROVAL_REQUESTED,
                     action=command.action,
                     risk_level=risk.level,
-                    duration_ms=int((time.perf_counter() - t0) * 1000),
-                ))
+                )
+            )
+            approved = await self._approval.request(command, risk)
+            if not approved:
+                await self._audit.log(
+                    make_event(
+                        trace_id=trace_id,
+                        session_id=self._session_id,
+                        event=AuditEventType.APPROVAL_DENIED,
+                        action=command.action,
+                        risk_level=risk.level,
+                        duration_ms=int((time.perf_counter() - t0) * 1000),
+                    )
+                )
                 return CommandResult(
                     success=False,
                     action=command.action,
                     message="User denied approval.",
                     error="approval_denied",
                 )
-            await self._audit.log(make_event(
-                trace_id=trace_id,
-                session_id=self._session_id,
-                event=AuditEventType.APPROVAL_GRANTED,
-                action=command.action,
-                risk_level=risk.level,
-            ))
+            await self._audit.log(
+                make_event(
+                    trace_id=trace_id,
+                    session_id=self._session_id,
+                    event=AuditEventType.APPROVAL_GRANTED,
+                    action=command.action,
+                    risk_level=risk.level,
+                )
+            )
 
         # 5. EXECUTED + dispatch
         handler = HANDLERS.get(command.action)
         if handler is None:
             # Should be unreachable — the risk assessor blocks unknown actions.
-            await self._audit.log(make_event(
-                trace_id=trace_id,
-                session_id=self._session_id,
-                event=AuditEventType.RESULT,
-                action=command.action,
-                risk_level=risk.level,
-                blocked_reason="no handler",
-                duration_ms=int((time.perf_counter() - t0) * 1000),
-            ))
+            await self._audit.log(
+                make_event(
+                    trace_id=trace_id,
+                    session_id=self._session_id,
+                    event=AuditEventType.RESULT,
+                    action=command.action,
+                    risk_level=risk.level,
+                    blocked_reason="no handler",
+                    duration_ms=int((time.perf_counter() - t0) * 1000),
+                )
+            )
             return CommandResult(
-                success=False, action=command.action,
+                success=False,
+                action=command.action,
                 message="Internal error: no handler registered for this action.",
                 error="no_handler",
             )
 
-        await self._audit.log(make_event(
-            trace_id=trace_id,
-            session_id=self._session_id,
-            event=AuditEventType.EXECUTED,
-            action=command.action,
-            risk_level=risk.level,
-        ))
+        await self._audit.log(
+            make_event(
+                trace_id=trace_id,
+                session_id=self._session_id,
+                event=AuditEventType.EXECUTED,
+                action=command.action,
+                risk_level=risk.level,
+            )
+        )
 
         try:
             raw = await handler(self._handler_ctx, command.args)
@@ -203,15 +220,17 @@ class CommandExecutor:
         duration_ms = int((time.perf_counter() - t0) * 1000)
 
         # 6. RESULT
-        await self._audit.log(make_event(
-            trace_id=trace_id,
-            session_id=self._session_id,
-            event=AuditEventType.RESULT,
-            action=command.action,
-            risk_level=risk.level,
-            payload={"success": success, "data": data, "error": error},
-            duration_ms=duration_ms,
-        ))
+        await self._audit.log(
+            make_event(
+                trace_id=trace_id,
+                session_id=self._session_id,
+                event=AuditEventType.RESULT,
+                action=command.action,
+                risk_level=risk.level,
+                payload={"success": success, "data": data, "error": error},
+                duration_ms=duration_ms,
+            )
+        )
 
         return CommandResult(
             success=success,

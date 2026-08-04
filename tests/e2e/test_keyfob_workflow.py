@@ -35,7 +35,9 @@ def _sweep_result_with_peak_at(freq_hz: float, sample_rate: int = 2_000_000):
     """Build a synthetic sweep result with a single strong peak."""
     fft_size = 4096
     freqs = np.linspace(
-        freq_hz - sample_rate / 2, freq_hz + sample_rate / 2, fft_size,
+        freq_hz - sample_rate / 2,
+        freq_hz + sample_rate / 2,
+        fft_size,
     ).astype(np.float64)
     spec = np.full(fft_size, -90.0, dtype=np.float32)  # noise floor
     peak_bin = fft_size // 2
@@ -46,7 +48,9 @@ def _sweep_result_with_peak_at(freq_hz: float, sample_rate: int = 2_000_000):
 def _sweep_result_noise_only(center_hz: float, sample_rate: int = 2_000_000):
     fft_size = 4096
     freqs = np.linspace(
-        center_hz - sample_rate / 2, center_hz + sample_rate / 2, fft_size,
+        center_hz - sample_rate / 2,
+        center_hz + sample_rate / 2,
+        fft_size,
     ).astype(np.float64)
     spec = np.full(fft_size, -90.0, dtype=np.float32)
     return spec, freqs
@@ -77,28 +81,51 @@ async def test_keyfob_workflow(tmp_path):
     driver.sweep_spectrum = sweep_router
 
     approval = FakeApprovalPort(answer=True)
-    llm = ScriptedLLMClient(script=[
-        # Turn 1: sweep ISM 315
-        {"type": "tool_use", "action": "sweep_spectrum",
-         "args": {"start_freq_hz": 314_000_000, "end_freq_hz": 316_000_000,
-                  "sample_rate_hz": 2_000_000, "dwell_s": 0.1},
-         "justification": "Scan US ISM 315 first; keyfobs typically 315 or 433.",
-         "expected_effect": "Return peak bins over 314-316 MHz."},
-        # Turn 2: sweep ISM 433
-        {"type": "tool_use", "action": "sweep_spectrum",
-         "args": {"start_freq_hz": 433_000_000, "end_freq_hz": 434_000_000,
-                  "sample_rate_hz": 2_000_000, "dwell_s": 0.1},
-         "justification": "315 was noise floor only; try 433.",
-         "expected_effect": "Return peak bins over 433-434 MHz."},
-        # Turn 3: capture at 433.925 for 6 s (MEDIUM — > 5 s)
-        {"type": "tool_use", "action": "capture_iq",
-         "args": {"center_freq_hz": 433_925_000, "sample_rate_hz": 2_000_000,
-                  "duration_s": 6.0, "lna_gain_db": 16},
-         "justification": "Peak at 433.925 MHz; capture 6 s to try to demod rolling code.",
-         "expected_effect": "Save 12M-sample IQ; return summary."},
-        # Turn 4: wrap up
-        {"type": "text", "text": "Found the keyfob at 433.925 MHz. Capture saved."},
-    ])
+    llm = ScriptedLLMClient(
+        script=[
+            # Turn 1: sweep ISM 315
+            {
+                "type": "tool_use",
+                "action": "sweep_spectrum",
+                "args": {
+                    "start_freq_hz": 314_000_000,
+                    "end_freq_hz": 316_000_000,
+                    "sample_rate_hz": 2_000_000,
+                    "dwell_s": 0.1,
+                },
+                "justification": "Scan US ISM 315 first; keyfobs typically 315 or 433.",
+                "expected_effect": "Return peak bins over 314-316 MHz.",
+            },
+            # Turn 2: sweep ISM 433
+            {
+                "type": "tool_use",
+                "action": "sweep_spectrum",
+                "args": {
+                    "start_freq_hz": 433_000_000,
+                    "end_freq_hz": 434_000_000,
+                    "sample_rate_hz": 2_000_000,
+                    "dwell_s": 0.1,
+                },
+                "justification": "315 was noise floor only; try 433.",
+                "expected_effect": "Return peak bins over 433-434 MHz.",
+            },
+            # Turn 3: capture at 433.925 for 6 s (MEDIUM — > 5 s)
+            {
+                "type": "tool_use",
+                "action": "capture_iq",
+                "args": {
+                    "center_freq_hz": 433_925_000,
+                    "sample_rate_hz": 2_000_000,
+                    "duration_s": 6.0,
+                    "lna_gain_db": 16,
+                },
+                "justification": "Peak at 433.925 MHz; capture 6 s to try to demod rolling code.",
+                "expected_effect": "Save 12M-sample IQ; return summary.",
+            },
+            # Turn 4: wrap up
+            {"type": "text", "text": "Found the keyfob at 433.925 MHz. Capture saved."},
+        ]
+    )
     async with AuditService(db) as audit:
         executor = CommandExecutor(
             session_id="keyfob-e2e",
@@ -111,15 +138,18 @@ async def test_keyfob_workflow(tmp_path):
             session_paths=session_paths,
         )
         agent = HackrfAgent(
-            llm=llm, executor=executor,
+            llm=llm,
+            executor=executor,
         )
         events = [ev async for ev in agent.chat("Find my car's keyfob frequency.")]
 
         # ---- Structural assertions ----
-        sweep_events = [e for e in events if isinstance(e, ToolCallStarted)
-                        and e.action == "sweep_spectrum"]
-        capture_events = [e for e in events if isinstance(e, ToolCallStarted)
-                          and e.action == "capture_iq"]
+        sweep_events = [
+            e for e in events if isinstance(e, ToolCallStarted) and e.action == "sweep_spectrum"
+        ]
+        capture_events = [
+            e for e in events if isinstance(e, ToolCallStarted) and e.action == "capture_iq"
+        ]
         assert len(sweep_events) == 2
         assert len(capture_events) == 1
 

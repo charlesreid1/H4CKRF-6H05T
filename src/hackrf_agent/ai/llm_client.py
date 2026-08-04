@@ -99,15 +99,12 @@ class AnthropicClient:
             import anthropic  # noqa: PLC0415
         except ImportError as e:
             raise RuntimeError(
-                "anthropic SDK not installed; run "
-                "`pip install hackrf-agent[anthropic]`"
+                "anthropic SDK not installed; run `pip install hackrf-agent[anthropic]`"
             ) from e
         self._anthropic = anthropic
         key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not key:
-            raise RuntimeError(
-                "no API key: pass api_key= or set ANTHROPIC_API_KEY"
-            )
+            raise RuntimeError("no API key: pass api_key= or set ANTHROPIC_API_KEY")
         self._client = anthropic.AsyncAnthropic(api_key=key)
         self._model = model
         self._max_tokens = max_tokens
@@ -195,12 +192,14 @@ class FakeLLMClient:
         tools: list[dict[str, Any]],
         max_tokens: int | None = None,
     ) -> LLMResponse:
-        self.calls.append({
-            "system": system,
-            "messages": [dict(m) for m in messages],
-            "tools": list(tools),
-            "max_tokens": max_tokens,
-        })
+        self.calls.append(
+            {
+                "system": system,
+                "messages": [dict(m) for m in messages],
+                "tools": list(tools),
+                "max_tokens": max_tokens,
+            }
+        )
         if not self.responses:
             raise IndexError("FakeLLMClient: no more queued responses")
         return self.responses.pop(0)
@@ -245,10 +244,12 @@ def make_tool_use_response(
     content: list[Any] = []
     if preamble:
         content.append(_FakeContentBlock(type="text", text=preamble))
-    content.append(_FakeContentBlock(
-        type="tool_use",
-        name=tool_name,
-        input=tool_input,
-        id=tool_use_id,
-    ))
+    content.append(
+        _FakeContentBlock(
+            type="tool_use",
+            name=tool_name,
+            input=tool_input,
+            id=tool_use_id,
+        )
+    )
     return LLMResponse(stop_reason="tool_use", content=content, raw=None)

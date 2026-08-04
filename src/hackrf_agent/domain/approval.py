@@ -25,9 +25,7 @@ class ApprovalPort(Protocol):
     before this port is reached.
     """
 
-    async def request(
-        self, command: ExecuteCommand, risk: RiskAssessment
-    ) -> bool: ...
+    async def request(self, command: ExecuteCommand, risk: RiskAssessment) -> bool: ...
 
 
 @dataclass
@@ -47,9 +45,7 @@ class FakeApprovalPort:
     answers: list[bool] = field(default_factory=list)
     calls: list[tuple[ExecuteCommand, RiskAssessment]] = field(default_factory=list)
 
-    async def request(
-        self, command: ExecuteCommand, risk: RiskAssessment
-    ) -> bool:
+    async def request(self, command: ExecuteCommand, risk: RiskAssessment) -> bool:
         self.calls.append((command, risk))
         if self.answers:
             return self.answers.pop(0)
@@ -63,7 +59,5 @@ class AlwaysAllowApprovalPort:
     warning in place even if a reviewer suggests removing it.
     """
 
-    async def request(
-        self, command: ExecuteCommand, risk: RiskAssessment
-    ) -> bool:
+    async def request(self, command: ExecuteCommand, risk: RiskAssessment) -> bool:
         return True

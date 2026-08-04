@@ -42,9 +42,7 @@ class TestCliApprovalPortMedium:
     """Tests for MEDIUM-risk approval."""
 
     @pytest.mark.asyncio
-    async def test_auto_approve_medium_skips_prompt(
-        self, quiet_console, monkeypatch
-    ) -> None:
+    async def test_auto_approve_medium_skips_prompt(self, quiet_console, monkeypatch) -> None:
         port = CliApprovalPort(console=quiet_console, auto_approve_medium=True)
         # Confirm.ask should NOT be called.
         ask_was_called = False
@@ -60,18 +58,14 @@ class TestCliApprovalPortMedium:
         assert not ask_was_called
 
     @pytest.mark.asyncio
-    async def test_medium_user_approves(
-        self, quiet_console, monkeypatch
-    ) -> None:
+    async def test_medium_user_approves(self, quiet_console, monkeypatch) -> None:
         port = CliApprovalPort(console=quiet_console)
         monkeypatch.setattr("rich.prompt.Confirm.ask", lambda *a, **kw: True)
         result = await port.request(make_cmd(), make_risk(RiskLevel.MEDIUM))
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_medium_user_denies(
-        self, quiet_console, monkeypatch
-    ) -> None:
+    async def test_medium_user_denies(self, quiet_console, monkeypatch) -> None:
         port = CliApprovalPort(console=quiet_console)
         monkeypatch.setattr("rich.prompt.Confirm.ask", lambda *a, **kw: False)
         result = await port.request(make_cmd(), make_risk(RiskLevel.MEDIUM))
@@ -82,36 +76,28 @@ class TestCliApprovalPortHigh:
     """Tests for HIGH-risk approval."""
 
     @pytest.mark.asyncio
-    async def test_high_confirm_exact(
-        self, quiet_console, monkeypatch
-    ) -> None:
+    async def test_high_confirm_exact(self, quiet_console, monkeypatch) -> None:
         port = CliApprovalPort(console=quiet_console)
         monkeypatch.setattr("rich.prompt.Prompt.ask", lambda *a, **kw: "CONFIRM")
         result = await port.request(make_cmd(), make_risk(RiskLevel.HIGH))
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_high_confirm_lowercase_denied(
-        self, quiet_console, monkeypatch
-    ) -> None:
+    async def test_high_confirm_lowercase_denied(self, quiet_console, monkeypatch) -> None:
         port = CliApprovalPort(console=quiet_console)
         monkeypatch.setattr("rich.prompt.Prompt.ask", lambda *a, **kw: "confirm")
         result = await port.request(make_cmd(), make_risk(RiskLevel.HIGH))
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_high_other_string_denied(
-        self, quiet_console, monkeypatch
-    ) -> None:
+    async def test_high_other_string_denied(self, quiet_console, monkeypatch) -> None:
         port = CliApprovalPort(console=quiet_console)
         monkeypatch.setattr("rich.prompt.Prompt.ask", lambda *a, **kw: "y")
         result = await port.request(make_cmd(), make_risk(RiskLevel.HIGH))
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_high_auto_approve_does_not_skip_prompt(
-        self, quiet_console, monkeypatch
-    ) -> None:
+    async def test_high_auto_approve_does_not_skip_prompt(self, quiet_console, monkeypatch) -> None:
         """auto_approve_medium=True does NOT extend to HIGH-risk commands."""
         port = CliApprovalPort(console=quiet_console, auto_approve_medium=True)
         prompt_was_called = False

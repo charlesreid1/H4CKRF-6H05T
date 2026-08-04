@@ -76,6 +76,7 @@ class TestEnsureSchemaVersionGuard:
 
         # Manually create a DB with a bumped version number.
         import sqlite3
+
         conn = sqlite3.connect(str(db))
         conn.execute("CREATE TABLE IF NOT EXISTS dummy(x);")
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION + 1};")

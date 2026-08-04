@@ -26,18 +26,24 @@ async def test_audit_and_permissions_share_db(tmp_path):
 
         # Log a few lifecycle events.
         trace = uuid4()
-        await audit.log(make_event(
-            trace_id=trace, session_id="s1",
-            event=AuditEventType.COMMAND_RECEIVED,
-            action=CommandAction.TRANSMIT_IQ,
-            payload={"grant_id": str(grant.id)},
-        ))
-        await audit.log(make_event(
-            trace_id=trace, session_id="s1",
-            event=AuditEventType.RISK_ASSESSED,
-            action=CommandAction.TRANSMIT_IQ,
-            risk_level=RiskLevel.MEDIUM,
-        ))
+        await audit.log(
+            make_event(
+                trace_id=trace,
+                session_id="s1",
+                event=AuditEventType.COMMAND_RECEIVED,
+                action=CommandAction.TRANSMIT_IQ,
+                payload={"grant_id": str(grant.id)},
+            )
+        )
+        await audit.log(
+            make_event(
+                trace_id=trace,
+                session_id="s1",
+                event=AuditEventType.RISK_ASSESSED,
+                action=CommandAction.TRANSMIT_IQ,
+                risk_level=RiskLevel.MEDIUM,
+            )
+        )
         # Context exit drains the writer.
 
     # Smoke-check: re-open and verify.

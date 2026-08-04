@@ -36,11 +36,14 @@ async def audit(tmp_path):
 class TestBasicWriteRead:
     async def test_log_one_event_returns_in_query(self, audit):
         trace = uuid4()
-        await audit.log(make_event(
-            trace_id=trace, session_id="s1",
-            event=AuditEventType.COMMAND_RECEIVED,
-            action=CommandAction.GET_DEVICE_INFO,
-        ))
+        await audit.log(
+            make_event(
+                trace_id=trace,
+                session_id="s1",
+                event=AuditEventType.COMMAND_RECEIVED,
+                action=CommandAction.GET_DEVICE_INFO,
+            )
+        )
         # Must drain before querying — stop() drains.
         await audit.stop()
         # Re-open for reading.
@@ -53,11 +56,14 @@ class TestBasicWriteRead:
     async def test_log_five_events_ids_sequential(self, audit):
         traces = [uuid4() for _ in range(5)]
         for trace in traces:
-            await audit.log(make_event(
-                trace_id=trace, session_id="s1",
-                event=AuditEventType.COMMAND_RECEIVED,
-                action=CommandAction.GET_DEVICE_INFO,
-            ))
+            await audit.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s1",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                    action=CommandAction.GET_DEVICE_INFO,
+                )
+            )
         await audit.stop()
         async with AuditService(audit._db_path) as svc:
             rows = await svc.query(limit=10)
@@ -77,11 +83,14 @@ class TestConcurrentWrites:
 
         async def producer(pid: int):
             for _ in range(events_per):
-                await audit.log(make_event(
-                    trace_id=uuid4(), session_id=f"s-{pid}",
-                    event=AuditEventType.COMMAND_RECEIVED,
-                    action=CommandAction.GET_DEVICE_INFO,
-                ))
+                await audit.log(
+                    make_event(
+                        trace_id=uuid4(),
+                        session_id=f"s-{pid}",
+                        event=AuditEventType.COMMAND_RECEIVED,
+                        action=CommandAction.GET_DEVICE_INFO,
+                    )
+                )
 
         tasks = [asyncio.create_task(producer(p)) for p in range(num_producers)]
         await asyncio.gather(*tasks)
@@ -108,37 +117,52 @@ class TestQueryFilters:
         trace_a = uuid4()
         trace_b = uuid4()
         async with AuditService(db) as svc:
-            await svc.log(make_event(
-                trace_id=trace_a, session_id="s1",
-                event=AuditEventType.COMMAND_RECEIVED,
-                action=CommandAction.SWEEP_SPECTRUM,
-                risk_level=None,
-            ))
-            await svc.log(make_event(
-                trace_id=trace_a, session_id="s1",
-                event=AuditEventType.RISK_ASSESSED,
-                action=CommandAction.SWEEP_SPECTRUM,
-                risk_level=RiskLevel.LOW,
-            ))
-            await svc.log(make_event(
-                trace_id=trace_b, session_id="s2",
-                event=AuditEventType.COMMAND_RECEIVED,
-                action=CommandAction.TRANSMIT_IQ,
-                risk_level=None,
-            ))
-            await svc.log(make_event(
-                trace_id=trace_b, session_id="s2",
-                event=AuditEventType.BLOCKED,
-                action=CommandAction.TRANSMIT_IQ,
-                risk_level=RiskLevel.BLOCKED,
-                blocked_reason="ADS-B restricted",
-            ))
-            await svc.log(make_event(
-                trace_id=trace_b, session_id="s2",
-                event=AuditEventType.RESULT,
-                action=CommandAction.TRANSMIT_IQ,
-                risk_level=RiskLevel.BLOCKED,
-            ))
+            await svc.log(
+                make_event(
+                    trace_id=trace_a,
+                    session_id="s1",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                    action=CommandAction.SWEEP_SPECTRUM,
+                    risk_level=None,
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace_a,
+                    session_id="s1",
+                    event=AuditEventType.RISK_ASSESSED,
+                    action=CommandAction.SWEEP_SPECTRUM,
+                    risk_level=RiskLevel.LOW,
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace_b,
+                    session_id="s2",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                    action=CommandAction.TRANSMIT_IQ,
+                    risk_level=None,
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace_b,
+                    session_id="s2",
+                    event=AuditEventType.BLOCKED,
+                    action=CommandAction.TRANSMIT_IQ,
+                    risk_level=RiskLevel.BLOCKED,
+                    blocked_reason="ADS-B restricted",
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace_b,
+                    session_id="s2",
+                    event=AuditEventType.RESULT,
+                    action=CommandAction.TRANSMIT_IQ,
+                    risk_level=RiskLevel.BLOCKED,
+                )
+            )
         return db, trace_a, trace_b
 
     async def test_filter_by_session(self, populated):
@@ -188,10 +212,13 @@ class TestLifecycle:
         svc = AuditService(db)
         trace = uuid4()
         with pytest.raises(RuntimeError, match="before start"):
-            await svc.log(make_event(
-                trace_id=trace, session_id="s1",
-                event=AuditEventType.COMMAND_RECEIVED,
-            ))
+            await svc.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s1",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                )
+            )
 
     async def test_async_context_drains_on_exit(self, tmp_path):
         """Events enqueued just before context exit land in the DB."""
@@ -199,27 +226,42 @@ class TestLifecycle:
         await ensure_schema(db)
         trace = uuid4()
         async with AuditService(db) as svc:
-            await svc.log(make_event(
-                trace_id=trace, session_id="s1",
-                event=AuditEventType.COMMAND_RECEIVED,
-            ))
-            await svc.log(make_event(
-                trace_id=trace, session_id="s1",
-                event=AuditEventType.RISK_ASSESSED,
-                risk_level=RiskLevel.LOW,
-            ))
-            await svc.log(make_event(
-                trace_id=trace, session_id="s1",
-                event=AuditEventType.EXECUTED,
-            ))
-            await svc.log(make_event(
-                trace_id=trace, session_id="s1",
-                event=AuditEventType.RESULT,
-            ))
-            await svc.log(make_event(
-                trace_id=trace, session_id="s1",
-                event=AuditEventType.RESULT,  # intentional duplicate — allowed
-            ))
+            await svc.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s1",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s1",
+                    event=AuditEventType.RISK_ASSESSED,
+                    risk_level=RiskLevel.LOW,
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s1",
+                    event=AuditEventType.EXECUTED,
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s1",
+                    event=AuditEventType.RESULT,
+                )
+            )
+            await svc.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s1",
+                    event=AuditEventType.RESULT,  # intentional duplicate — allowed
+                )
+            )
 
         # After context exit, all 5 should be persisted.
         async with AuditService(db) as svc:
@@ -235,12 +277,15 @@ class TestLifecycle:
 class TestHelpers:
     async def test_make_event_payload_roundtrip(self, audit):
         trace = uuid4()
-        await audit.log(make_event(
-            trace_id=trace, session_id="s1",
-            event=AuditEventType.COMMAND_RECEIVED,
-            action=CommandAction.CAPTURE_IQ,
-            payload={"freq_hz": 433_920_000, "samples": 1_000_000},
-        ))
+        await audit.log(
+            make_event(
+                trace_id=trace,
+                session_id="s1",
+                event=AuditEventType.COMMAND_RECEIVED,
+                action=CommandAction.CAPTURE_IQ,
+                payload={"freq_hz": 433_920_000, "samples": 1_000_000},
+            )
+        )
         await audit.stop()
         async with AuditService(audit._db_path) as svc:
             rows = await svc.query(trace_id=trace)

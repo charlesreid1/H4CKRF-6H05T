@@ -30,9 +30,7 @@ def home(tmp_path):
     return tmp_path / "home"
 
 
-async def _seed(
-    db_path, session_id: str = "s1", count: int = 3
-) -> None:
+async def _seed(db_path, session_id: str = "s1", count: int = 3) -> None:
     """Insert *count* audit rows via AuditService."""
     async with AuditService(db_path) as audit:
         for _ in range(count):
@@ -53,7 +51,8 @@ class TestAuditTail:
 
     def test_empty_db(self, runner, home) -> None:
         result = runner.invoke(
-            app, ["--home-dir", str(home), "audit", "tail"],
+            app,
+            ["--home-dir", str(home), "audit", "tail"],
         )
         assert result.exit_code == 0
         assert "No audit rows match" in result.stdout
@@ -66,7 +65,8 @@ class TestAuditTail:
         asyncio.run(_seed(db, session_id="s1", count=3))
 
         result = runner.invoke(
-            app, ["--home-dir", str(home), "audit", "tail"],
+            app,
+            ["--home-dir", str(home), "audit", "tail"],
         )
         assert result.exit_code == 0, result.stderr
         assert "COMMAND_RECEIVED" in result.stdout

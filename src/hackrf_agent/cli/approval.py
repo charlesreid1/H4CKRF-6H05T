@@ -35,7 +35,9 @@ class CliApprovalPort:
     auto_approve_medium: bool = False
 
     async def request(
-        self, command: ExecuteCommand, risk: RiskAssessment,
+        self,
+        command: ExecuteCommand,
+        risk: RiskAssessment,
     ) -> bool:
         loop = asyncio.get_running_loop()
 
@@ -50,7 +52,8 @@ class CliApprovalPort:
         # responsive to SIGINT + audit writer.
         if risk.level == RiskLevel.MEDIUM:
             return await loop.run_in_executor(
-                None, lambda: Confirm.ask("[bold]Approve?[/]", default=False),
+                None,
+                lambda: Confirm.ask("[bold]Approve?[/]", default=False),
             )
         if risk.level == RiskLevel.HIGH:
             typed = await loop.run_in_executor(
@@ -67,7 +70,9 @@ class CliApprovalPort:
     # ------------------------------------------------------------------
 
     def _render_pending(
-        self, command: ExecuteCommand, risk: RiskAssessment,
+        self,
+        command: ExecuteCommand,
+        risk: RiskAssessment,
     ) -> None:
         color = {
             RiskLevel.LOW: "green",

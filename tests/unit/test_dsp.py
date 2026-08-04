@@ -221,13 +221,9 @@ class TestFindPeaks:
         rate_hz = 2_000_000
         n = 65536
         t = np.arange(n) / rate_hz
-        signal = (
-            0.5 * np.exp(2j * np.pi * 200_000 * t)
-            + 0.5 * np.exp(2j * np.pi * (-300_000) * t)
-        )
+        signal = 0.5 * np.exp(2j * np.pi * 200_000 * t) + 0.5 * np.exp(2j * np.pi * (-300_000) * t)
         noise = 0.005 * (
-            np.random.default_rng(0).normal(size=n)
-            + 1j * np.random.default_rng(1).normal(size=n)
+            np.random.default_rng(0).normal(size=n) + 1j * np.random.default_rng(1).normal(size=n)
         )
         iq = (signal + noise).astype(np.complex64)
 
@@ -250,13 +246,9 @@ class TestFindPeaks:
         n = 65536
         t = np.arange(n) / rate_hz
         # One strong, one weak tone.
-        signal = (
-            0.8 * np.exp(2j * np.pi * 200_000 * t)
-            + 0.2 * np.exp(2j * np.pi * (-300_000) * t)
-        )
+        signal = 0.8 * np.exp(2j * np.pi * 200_000 * t) + 0.2 * np.exp(2j * np.pi * (-300_000) * t)
         noise = 0.005 * (
-            np.random.default_rng(2).normal(size=n)
-            + 1j * np.random.default_rng(3).normal(size=n)
+            np.random.default_rng(2).normal(size=n) + 1j * np.random.default_rng(3).normal(size=n)
         )
         iq = (signal + noise).astype(np.complex64)
 
@@ -301,8 +293,7 @@ class TestFindPeaks:
         for i in range(len(peaks)):
             for j in range(i + 1, len(peaks)):
                 assert abs(peaks[i].bin_index - peaks[j].bin_index) >= 3, (
-                    f"peaks {i} and {j} too close: "
-                    f"bins {peaks[i].bin_index}, {peaks[j].bin_index}"
+                    f"peaks {i} and {j} too close: bins {peaks[i].bin_index}, {peaks[j].bin_index}"
                 )
 
     def test_mismatched_shape_raises(self):

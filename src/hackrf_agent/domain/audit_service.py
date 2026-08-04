@@ -77,9 +77,7 @@ class AuditService:
         """Spawn the background writer coroutine.  Idempotent."""
         if self._started:
             return
-        self._writer_task = asyncio.create_task(
-            self._writer_loop(), name="audit-writer"
-        )
+        self._writer_task = asyncio.create_task(self._writer_loop(), name="audit-writer")
         self._started = True
 
     async def stop(self) -> None:

@@ -42,16 +42,16 @@ class ScriptedLLMClient:
         tools: list[dict[str, Any]],
         max_tokens: int | None = None,
     ) -> LLMResponse:
-        self.calls.append({
-            "system": system,
-            "messages": [dict(m) for m in messages],
-            "tools": list(tools),
-            "max_tokens": max_tokens,
-        })
+        self.calls.append(
+            {
+                "system": system,
+                "messages": [dict(m) for m in messages],
+                "tools": list(tools),
+                "max_tokens": max_tokens,
+            }
+        )
         if self._index >= len(self.script):
-            raise IndexError(
-                f"ScriptedLLMClient: script exhausted after {self._index} turns"
-            )
+            raise IndexError(f"ScriptedLLMClient: script exhausted after {self._index} turns")
         entry = self.script[self._index]
         self._index += 1
         return self._entry_to_response(entry, self._index)
