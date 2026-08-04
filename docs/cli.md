@@ -8,11 +8,11 @@ Parts 2–6 into a shipping product.
 ## Quick Start
 
 ```bash
+# Export your OpenRouter API key (or `source` a dotfile that does)
+export OPENROUTER_API_KEY=sk-or-v1-...
+
 # First-run diagnostic
 hackrf-agent doctor
-
-# Store your OpenRouter API key in a git-ignored .env file
-cp .env.example .env && $EDITOR .env
 
 # Grant a TX window
 hackrf-agent grant tx 433.05-434.79M --for 30m
@@ -53,7 +53,7 @@ immediately.
   HIGH-risk commands still require typing `CONFIRM`.
 
 **Requirements:**
-- `OPENROUTER_API_KEY` set in the environment (or in a `.env` file next to CWD)
+- `OPENROUTER_API_KEY` exported in the shell environment
 - HackRF One connected via USB (or `FakeDriver` for dry-run testing)
 
 ---
@@ -70,7 +70,7 @@ Runs four checks and prints a checklist:
 |---|---|
 | `home_dir` | `~/.hackrf-agent/` exists and is writable |
 | `db_schema` | SQLite schema is up to date (`ensure_schema` idempotent) |
-| `api_key` | `OPENROUTER_API_KEY` env var is set (loaded from `.env` if present) |
+| `api_key` | `OPENROUTER_API_KEY` env var is set in the shell environment |
 | `hackrf` | HackRF One enumerates via `hackrf_info` subprocess |
 
 Exit code 0 if all checks pass, 1 if any check fails. The `hackrf` check uses
@@ -203,15 +203,13 @@ on missing or malformed content. Unknown keys are ignored.
 ### API Key Storage
 
 The OpenRouter API key is read from the `OPENROUTER_API_KEY` environment
-variable.  On startup, `SettingsService` also loads a `.env` file from the
-current working directory (via [`python-dotenv`](https://pypi.org/project/python-dotenv/))
-without overriding variables already set — so an exported `OPENROUTER_API_KEY`
-always wins over the file.
+variable — full stop. `SettingsService` does not read any file. The user is
+responsible for exporting the variable in their shell before invoking the CLI
+(directly, from their shell rc, or by `source`-ing a git-ignored dotfile like
+`~/.openrouter_api_key`).
 
-Recommended setup: copy `.env.example` to `.env` at the repo root and fill in
-the key.  `.env` is in `.gitignore`.  For CI or shared machines, prefer
-exporting the variable directly (or your platform's secrets manager) instead
-of committing it.
+For CI or shared machines, use the platform's secrets manager to inject the
+variable into the process environment.
 
 ---
 

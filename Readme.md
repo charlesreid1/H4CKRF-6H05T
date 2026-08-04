@@ -126,26 +126,28 @@ pip install -e '.[dev]'
 The `[dev]` extra pulls in `pyhackrf` (which links against the `libhackrf` you
 installed in step 1) and the OpenAI SDK (for OpenRouter).
 
-### 4. Store your OpenRouter API key
+### 4. Export your OpenRouter API key
 
-Copy the example env file and drop your key in:
-
-```bash
-cp .env.example .env
-$EDITOR .env    # replace the placeholder with your real key
-```
-
-`.env` is git-ignored. `hackrf-agent` auto-loads it from the current working
-directory on startup, so as long as you launch the CLI from the repo root your
-key is picked up.
-
-Prefer to skip the file? Just export the variable in your shell:
+`hackrf-agent` reads `OPENROUTER_API_KEY` from the environment — nothing else.
+Export it in your shell before launching the CLI:
 
 ```bash
 export OPENROUTER_API_KEY=sk-or-v1-...
 ```
 
-An already-set `OPENROUTER_API_KEY` always wins over the `.env` file.
+Or keep the key in a git-ignored dotfile and `source` it per session:
+
+```bash
+# ~/.openrouter_api_key
+export OPENROUTER_API_KEY=sk-or-v1-...
+```
+
+```bash
+source ~/.openrouter_api_key
+```
+
+There is no `.env` auto-load — if the variable isn't in your shell environment,
+`hackrf-agent doctor` and `hackrf-agent chat` will refuse to start.
 
 #### Changing the model
 
