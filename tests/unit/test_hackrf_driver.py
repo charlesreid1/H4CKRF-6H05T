@@ -141,25 +141,23 @@ class TestImportWithoutPyhackrf:
 
     @pytest.mark.asyncio
     async def test_enter_without_pyhackrf_raises_not_found(self):
-        """Entering context without pyhackrf installed raises HackrfNotFoundError."""
-        # Simulate pyhackrf not being installed.
+        """Entering context without python-hackrf installed raises HackrfNotFoundError."""
         stop = asyncio.Event()
         drv = HackrfDriver(stop_event=stop)
 
-        with patch.dict(sys.modules, {"pyhackrf": None}):
-            # Also need to make the import inside __aenter__ fail.
+        with patch.dict(sys.modules, {"python_hackrf": None, "python_hackrf.pyhackrf": None}):
             import builtins
 
             original_import = builtins.__import__
 
-            def _block_pyhackrf(name, *args, **kwargs):
-                if name == "pyhackrf" or name.startswith("pyhackrf."):
-                    raise ImportError("No module named 'pyhackrf'")
+            def _block_python_hackrf(name, *args, **kwargs):
+                if name == "python_hackrf" or name.startswith("python_hackrf"):
+                    raise ImportError("No module named 'python_hackrf'")
                 return original_import(name, *args, **kwargs)
 
             with (
-                patch("builtins.__import__", side_effect=_block_pyhackrf),
-                pytest.raises(HackrfNotFoundError, match="pyhackrf not installed"),
+                patch("builtins.__import__", side_effect=_block_python_hackrf),
+                pytest.raises(HackrfNotFoundError, match="python-hackrf not installed"),
             ):
                 await drv.__aenter__()
 
