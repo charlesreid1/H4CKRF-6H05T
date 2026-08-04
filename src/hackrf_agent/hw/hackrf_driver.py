@@ -10,8 +10,9 @@ Usage::
 Not thread-safe. One instance per open device. Second concurrent
 ``__aenter__`` raises ``HackrfBusyError``.
 
-The pyhackrf API validated against: **pyhackrf 0.2.x** (exact version
-TBD — verify with ``pip show pyhackrf`` and update comments below).
+Backed by **python-hackrf 1.5.x** (``from python_hackrf import pyhackrf``).
+Module-level ``pyhackrf_init``/``pyhackrf_exit``/``pyhackrf_open`` open a
+``PyHackrfDevice`` whose per-device operations are instance methods.
 """
 
 from __future__ import annotations
@@ -127,7 +128,7 @@ class HackrfDriver:
     ) -> None:
         self._stop_event = stop_event
         self._buffer_bytes = buffer_bytes
-        self._device: Any = None  # pyhackrf device handle (Any: optional dep)
+        self._device: Any = None  # PyHackrfDevice handle (Any: optional dep)
         self._lib: Any = None  # imported lazily in __aenter__ (Any: optional dep)
 
     # ------------------------------------------------------------------
@@ -135,42 +136,39 @@ class HackrfDriver:
     # ------------------------------------------------------------------
 
     async def __aenter__(self) -> HackrfDriver:
-        # Lazy import so tests without pyhackrf installed can still import
-        # the module for symbol inspection.
         try:
-            import pyhackrf  # noqa: PLC0415  # pyright: ignore[reportMissingImports]
+            from python_hackrf import pyhackrf  # noqa: PLC0415  # pyright: ignore[reportMissingImports]
         except ImportError as e:
             raise HackrfNotFoundError(
-                "pyhackrf not installed; run `pip install hackrf-agent[hackrf]`"
+                "python-hackrf not installed; run `pip install hackrf-agent[hackrf]`"
             ) from e
 
         self._lib = pyhackrf
 
         try:
-            # pyhackrf v0.2.x — module-level init/open.  Verify after install.
             self._lib.pyhackrf_init()
-            self._device = self._lib.pyhackrf_open()
-        except Exception as e:
-            # pyhackrf raises its own exception types; classify by message.
-            msg = str(e).lower()
-            if "not found" in msg or "no device" in msg:
-                raise HackrfNotFoundError(str(e)) from e
-            if "busy" in msg or "claim" in msg:
-                raise HackrfBusyError(str(e)) from e
+            device = self._lib.pyhackrf_open()
+        except self._lib.PYHACKRF_ERROR_NOT_FOUND as e:
+            raise HackrfNotFoundError(str(e)) from e
+        except self._lib.PYHACKRF_ERROR_BUSY as e:
+            raise HackrfBusyError(str(e)) from e
+        except self._lib.PYHACKRF_ERR as e:
             raise HackrfError(f"pyhackrf_open failed: {e}") from e
 
+        if device is None:
+            raise HackrfNotFoundError("pyhackrf_open returned None (no device attached)")
+
+        self._device = device
         return self
 
     async def __aexit__(self, *exc: object) -> None:
         if self._device is not None:
             try:
-                # pyhackrf v0.2.x
-                self._lib.pyhackrf_close(self._device)
+                self._device.pyhackrf_close()
             finally:
                 self._device = None
         if self._lib is not None:
             try:
-                # pyhackrf v0.2.x
                 self._lib.pyhackrf_exit()
             finally:
                 self._lib = None
@@ -196,24 +194,30 @@ class HackrfDriver:
 
         loop = asyncio.get_running_loop()
         try:
-            # pyhackrf v0.2.x board-info accessors — verify after install.
-            info: dict[str, object] = await loop.run_in_executor(
-                None,
-                lambda: {
-                    "serial": self._lib.pyhackrf_board_id_read(self._device),
-                    "firmware_version": self._lib.pyhackrf_version_string_read(self._device),
-                    "board_revision": self._lib.pyhackrf_board_rev_read(self._device),
-                    "part_id": self._lib.pyhackrf_board_partid_serialno_read(self._device),
-                },
-            )
+            info = await loop.run_in_executor(None, self._read_board_info)
         except Exception as e:
             raise HackrfError(f"reading board info failed: {e}") from e
 
+        return info
+
+    def _read_board_info(self) -> DeviceInfo:
+        """Read and normalize the device's board-info tuple returns."""
+        # board_id_read -> (int, str);  we want the human-readable string.
+        _board_id_int, board_id_name = self._device.pyhackrf_board_id_read()
+        # board_rev_read -> (int, str)
+        _rev_int, board_rev_name = self._device.pyhackrf_board_rev_read()
+        firmware = self._device.pyhackrf_version_string_read()
+        # board_partid_serialno_read -> ((int, int), (int, int, int, int))
+        part_id_pair, serialno_words = self._device.pyhackrf_board_partid_serialno_read()
+
+        part_id_str = " ".join(f"0x{w:08x}" for w in part_id_pair)
+        serial_str = "".join(f"{w:08x}" for w in serialno_words)
+
         return DeviceInfo(
-            serial=str(info["serial"]),
-            firmware_version=str(info["firmware_version"]),
-            board_revision=str(info["board_revision"]),
-            part_id=str(info["part_id"]),
+            serial=serial_str,
+            firmware_version=str(firmware),
+            board_revision=str(board_rev_name),
+            part_id=part_id_str,
         )
 
     # ------------------------------------------------------------------
@@ -387,29 +391,30 @@ class HackrfDriver:
     ) -> bytes:
         """Start RX, accumulate *num_samples* int8 I/Q pairs, stop RX.
 
-        The RX callback runs on libhackrf's USB thread. It pushes chunks
-        into a plain ``queue.Queue`` (thread-safe). This coroutine drains
-        the queue via ``run_in_executor`` and stitches chunks together.
+        The RX callback runs on libhackrf's USB thread. It copies each
+        buffer into a plain ``queue.Queue`` (thread-safe). This coroutine
+        drains the queue via ``run_in_executor`` and stitches chunks.
         """
         assert self._device is not None
         loop = asyncio.get_running_loop()
         target_bytes = num_samples * 2
         chunks: queue.Queue[bytes | None] = queue.Queue()
-        received: list[bytes] = []
-        received_len = 0
 
-        def rx_callback(transfer: Any) -> int:
-            # ONLY do buffer copy. No numpy, no lock contention.
+        def rx_callback(
+            device: Any,
+            buffer: np.ndarray,  # dtype=int8
+            _buffer_length: int,
+            valid_length: int,
+        ) -> int:
+            # ONLY do buffer copy. No FFT, no lock contention.
             if self._stop_event.is_set():
                 chunks.put(None)  # sentinel; drain-side will stop
                 return -1  # tell libhackrf to stop pumping
-            # pyhackrf v0.2.x — transfer.buffer_as_bytes() returns the raw
-            # USB transfer buffer as bytes.  Verify after install.
-            buf = bytes(transfer.buffer_as_bytes())
-            chunks.put(buf)
+            # Copy `valid_length` int8 samples to an owned bytes object.
+            chunks.put(buffer[:valid_length].tobytes())
             return 0
 
-        # Configure device.
+        # Configure device, register callback.
         await loop.run_in_executor(
             None,
             self._configure_rx,
@@ -419,13 +424,12 @@ class HackrfDriver:
             vga_gain_db,
             rf_amp_db,
         )
+        await loop.run_in_executor(None, self._device.set_rx_callback, rx_callback)
 
+        received: list[bytes] = []
+        received_len = 0
         try:
-            # pyhackrf v0.2.x — start_rx(device, callback).
-            await loop.run_in_executor(
-                None,
-                lambda: self._lib.pyhackrf_start_rx(self._device, rx_callback),
-            )
+            await loop.run_in_executor(None, self._device.pyhackrf_start_rx)
 
             # Drain until we have enough bytes or kill switch fires.
             while received_len < target_bytes:
@@ -435,15 +439,13 @@ class HackrfDriver:
                 received.append(chunk)
                 received_len += len(chunk)
         finally:
-            # pyhackrf v0.2.x
-            await loop.run_in_executor(
-                None,
-                lambda: self._lib.pyhackrf_stop_rx(self._device),
-            )
+            try:
+                await loop.run_in_executor(None, self._device.pyhackrf_stop_rx)
+            except Exception:  # noqa: BLE001 — best-effort stop on already-stopped device
+                pass
 
         # Concatenate and trim to exact requested length.
-        raw = b"".join(received)[:target_bytes]
-        return raw
+        return b"".join(received)[:target_bytes]
 
     # ------------------------------------------------------------------
     # Private — RX device configuration
@@ -459,16 +461,16 @@ class HackrfDriver:
     ) -> None:
         """Configure the HackRF for RX — runs on an executor thread."""
         # Order matches libhackrf's expected setup sequence.
-        # pyhackrf v0.2.x — verify function names after install.
-        self._lib.pyhackrf_set_sample_rate(self._device, sample_rate_hz)
-        self._lib.pyhackrf_set_baseband_filter_bandwidth(
-            self._device,
+        # NOTE: pyhackrf_set_sample_rate() also resets the baseband filter
+        # bandwidth to 0.75 * sample_rate, so set the filter AFTER the rate.
+        self._device.pyhackrf_set_sample_rate(sample_rate_hz)
+        self._device.pyhackrf_set_baseband_filter_bandwidth(
             self._lib.pyhackrf_compute_baseband_filter_bw(sample_rate_hz),
         )
-        self._lib.pyhackrf_set_freq(self._device, center_hz)
-        self._lib.pyhackrf_set_amp_enable(self._device, 1 if rf_amp_db else 0)
-        self._lib.pyhackrf_set_lna_gain(self._device, lna_gain_db)
-        self._lib.pyhackrf_set_vga_gain(self._device, vga_gain_db)
+        self._device.pyhackrf_set_freq(center_hz)
+        self._device.pyhackrf_set_amp_enable(bool(rf_amp_db))
+        self._device.pyhackrf_set_lna_gain(lna_gain_db)
+        self._device.pyhackrf_set_vga_gain(vga_gain_db)
 
     # ------------------------------------------------------------------
     # Private — TX from file
@@ -486,28 +488,39 @@ class HackrfDriver:
         """Mirror of ``_rx_bytes`` for TX.
 
         Reads chunks from *iq_path* and feeds them to libhackrf's TX
-        callback.  Blocks until EOF or kill switch.
+        callback. Blocks until EOF (signalled via the tx-flush callback)
+        or the kill switch fires.
         """
         assert self._device is not None
         loop = asyncio.get_running_loop()
 
         # Open file on a thread.
         file_handle = await loop.run_in_executor(None, lambda: iq_path.open("rb"))
+        done_event = asyncio.Event()
+
+        def tx_callback(
+            device: Any,
+            buffer: np.ndarray,  # dtype=int8, mutated in place
+            buffer_length: int,
+            _valid_length: int,
+        ) -> int:
+            if self._stop_event.is_set():
+                return -1
+            chunk = file_handle.read(buffer_length)
+            if not chunk:
+                return -1  # EOF; libhackrf stops
+            n = len(chunk)
+            buffer[:n] = np.frombuffer(chunk, dtype=np.int8)
+            # If chunk was short, zero-fill the remainder so we don't emit
+            # stale IQ from a previous buffer.
+            if n < buffer_length:
+                buffer[n:buffer_length] = 0
+            return 0
+
+        def tx_flush_callback(_device: Any, _success: int) -> None:
+            loop.call_soon_threadsafe(done_event.set)
+
         try:
-
-            def tx_callback(transfer: Any) -> int:
-                if self._stop_event.is_set():
-                    return -1
-                # pyhackrf v0.2.x — transfer.buffer_length tells us how
-                # many bytes libhackrf can accept this invocation.
-                needed = transfer.buffer_length
-                chunk = file_handle.read(needed)
-                if not chunk:
-                    return -1  # EOF; libhackrf stops
-                # pyhackrf v0.2.x — write_buffer_bytes fills the transfer.
-                transfer.write_buffer_bytes(chunk)
-                return 0
-
             await loop.run_in_executor(
                 None,
                 self._configure_tx,
@@ -516,25 +529,17 @@ class HackrfDriver:
                 txvga_gain_db,
                 rf_amp_db,
             )
-
-            done_event = asyncio.Event()
-
-            def on_stopped() -> None:
-                loop.call_soon_threadsafe(done_event.set)
-
-            # pyhackrf v0.2.x — start_tx(device, callback, stopped_callback).
-            await loop.run_in_executor(
-                None,
-                lambda: self._lib.pyhackrf_start_tx(self._device, tx_callback, on_stopped),
-            )
+            await loop.run_in_executor(None, self._device.set_tx_callback, tx_callback)
+            await loop.run_in_executor(None, self._device.set_tx_flush_callback, tx_flush_callback)
+            await loop.run_in_executor(None, self._device.pyhackrf_enable_tx_flush)
+            await loop.run_in_executor(None, self._device.pyhackrf_start_tx)
             await done_event.wait()
         finally:
             file_handle.close()
-            # pyhackrf v0.2.x
-            await loop.run_in_executor(
-                None,
-                lambda: self._lib.pyhackrf_stop_tx(self._device),
-            )
+            try:
+                await loop.run_in_executor(None, self._device.pyhackrf_stop_tx)
+            except Exception:  # noqa: BLE001 — best-effort stop
+                pass
 
         if self._stop_event.is_set():
             raise KillSwitchTriggered("stop_event set during TX")
@@ -551,12 +556,10 @@ class HackrfDriver:
         rf_amp_db: int,
     ) -> None:
         """Configure the HackRF for TX — runs on an executor thread."""
-        # pyhackrf v0.2.x — verify function names after install.
-        self._lib.pyhackrf_set_sample_rate(self._device, sample_rate_hz)
-        self._lib.pyhackrf_set_baseband_filter_bandwidth(
-            self._device,
+        self._device.pyhackrf_set_sample_rate(sample_rate_hz)
+        self._device.pyhackrf_set_baseband_filter_bandwidth(
             self._lib.pyhackrf_compute_baseband_filter_bw(sample_rate_hz),
         )
-        self._lib.pyhackrf_set_freq(self._device, center_hz)
-        self._lib.pyhackrf_set_amp_enable(self._device, 1 if rf_amp_db else 0)
-        self._lib.pyhackrf_set_txvga_gain(self._device, txvga_gain_db)
+        self._device.pyhackrf_set_freq(center_hz)
+        self._device.pyhackrf_set_amp_enable(bool(rf_amp_db))
+        self._device.pyhackrf_set_txvga_gain(txvga_gain_db)
