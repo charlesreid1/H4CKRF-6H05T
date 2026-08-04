@@ -11,7 +11,7 @@ Parts 2–6 into a shipping product.
 # First-run diagnostic
 hackrf-agent doctor
 
-# Store Anthropic API key (macOS Keychain / Linux SecretService)
+# Store OpenRouter API key (macOS Keychain / Linux SecretService)
 hackrf-agent set-api-key
 
 # Grant a TX window
@@ -53,7 +53,7 @@ immediately.
   HIGH-risk commands still require typing `CONFIRM`.
 
 **Requirements:**
-- `ANTHROPIC_API_KEY` stored in the OS keychain (via `set-api-key`)
+- `OPENROUTER_API_KEY` stored in the OS keychain (via `set-api-key`)
 - HackRF One connected via USB (or `FakeDriver` for dry-run testing)
 
 ---
@@ -70,7 +70,7 @@ Runs four checks and prints a checklist:
 |---|---|
 | `home_dir` | `~/.hackrf-agent/` exists and is writable |
 | `db_schema` | SQLite schema is up to date (`ensure_schema` idempotent) |
-| `api_key` | Anthropic API key is present in the OS keychain |
+| `api_key` | OpenRouter API key is present in the OS keychain |
 | `hackrf` | HackRF One enumerates via `hackrf_info` subprocess |
 
 Exit code 0 if all checks pass, 1 if any check fails. The `hackrf` check uses
@@ -84,7 +84,7 @@ Exit code 0 if all checks pass, 1 if any check fails. The `hackrf` check uses
 hackrf-agent set-api-key [--key <value>]
 ```
 
-Stores the Anthropic API key in the OS keychain:
+Stores the OpenRouter API key in the OS keychain:
 - **macOS:** Keychain (`keyring` → `security` CLI)
 - **Linux:** SecretService (requires `dbus`)
 
@@ -204,14 +204,14 @@ hackrf-agent --home-dir /tmp/test-agent grant list
 Located at `~/.hackrf-agent/config.toml`. Non-secret settings:
 
 ```toml
-model = "claude-sonnet-5"
+model = "anthropic/claude-sonnet-5"
 max_history_messages = 24
 auto_approve_medium = false
 ```
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `model` | string | `"claude-sonnet-5"` | Anthropic model ID |
+| `model` | string | `"anthropic/claude-sonnet-5"` | OpenRouter model ID |
 | `max_history_messages` | integer | 24 | Max messages in conversation history |
 | `auto_approve_medium` | boolean | false | Skip Y/n prompt for MEDIUM-risk commands |
 
@@ -220,12 +220,12 @@ on missing or malformed content. Unknown keys are ignored.
 
 ### API Key Storage
 
-The Anthropic API key is stored in the OS keychain, never on disk:
+The OpenRouter API key is stored in the OS keychain, never on disk:
 
 - **macOS:** Keychain (via `keyring`)
 - **Linux:** SecretService (requires `dbus`)
 
-Keychain service name: `"hackrf-agent"`, username: `"anthropic-api-key"`.
+Keychain service name: `"hackrf-agent"`, username: `"openrouter-api-key"`.
 
 ---
 
@@ -335,7 +335,7 @@ hackrf-agent (main.py Typer app)
 │                   ├── async with AuditService, HackrfDriver:
 │                   │     CliApprovalPort ← console
 │                   │     CommandExecutor ← everything above
-│                   │     AnthropicClient ← model, api_key
+│                   │     OpenRouterClient ← model, api_key
 │                   │     HackrfAgent    ← llm, executor
 │                   │     _repl:
 │                   │        while True:
