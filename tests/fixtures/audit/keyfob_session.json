@@ -1,0 +1,20 @@
+[
+  {
+    "action": "sweep_spectrum",
+    "blocked_reason_present": false,
+    "event": "COMMAND_RECEIVED",
+    "risk_level": null
+  },
+  {
+    "action": "sweep_spectrum",
+    "blocked_reason_present": false,
+    "event": "RISK_ASSESSED",
+    "risk_level": "LOW"
+  },
+  {
+    "action": "sweep_spectrum",
+    "blocked_reason_present": false,
+    "event": "EXECUTED",
+    "risk_level": "LOW"
+  }
+]
