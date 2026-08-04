@@ -7,6 +7,7 @@ from hackrf_agent.cli.settings import (
     Settings,
     SettingsService,
 )
+from hackrf_agent.ai.llm_client import DEFAULT_MODEL
 
 
 class TestSettingsServiceLoad:
@@ -15,7 +16,7 @@ class TestSettingsServiceLoad:
     def test_fresh_dir_returns_defaults(self, tmp_path) -> None:
         svc = SettingsService(home_dir=tmp_path)
         s = svc.load()
-        assert s.model == "anthropic/claude-sonnet-5"
+        assert s.model == DEFAULT_MODEL
         assert s.max_history_messages == 24
         assert s.auto_approve_medium is False
         assert s.home_dir == tmp_path
@@ -39,12 +40,12 @@ class TestSettingsServiceLoad:
         cfg.write_text("not = valid = toml")
         svc = SettingsService(home_dir=tmp_path)
         s = svc.load()
-        assert s.model == "anthropic/claude-sonnet-5"
+        assert s.model == DEFAULT_MODEL
 
     def test_missing_file_returns_defaults(self, tmp_path) -> None:
         svc = SettingsService(home_dir=tmp_path / "nonexistent")
         s = svc.load()
-        assert s.model == "anthropic/claude-sonnet-5"
+        assert s.model == DEFAULT_MODEL
 
 
 class TestSettingsServiceApiKey:

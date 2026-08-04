@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-DEFAULT_MODEL: str = "anthropic/claude-sonnet-5"
+DEFAULT_MODEL: str = "deepseek/deepseek-v4-pro"
 DEFAULT_MAX_TOKENS: int = 4096
 RATE_LIMIT_WINDOW_S: float = 60.0
 RATE_LIMIT_MAX_REQUESTS: int = 30

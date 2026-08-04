@@ -147,6 +147,19 @@ export OPENROUTER_API_KEY=sk-or-v1-...
 
 An already-set `OPENROUTER_API_KEY` always wins over the `.env` file.
 
+#### Changing the model
+
+The default model is `deepseek/deepseek-v4-pro` (defined once in
+`src/hackrf_agent/ai/llm_client.py` as `DEFAULT_MODEL`). To use a different
+OpenRouter model, create or edit `~/.hackrf-agent/config.toml`:
+
+```toml
+model = "anthropic/claude-sonnet-5"
+```
+
+This is read by the CLI on startup and passed to `OpenRouterClient`. In code,
+you can also pass `model="..."` directly to the `OpenRouterClient` constructor.
+
 ### 5. Run the diagnostic
 
 ```bash

@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from hackrf_agent.ai.llm_client import (
+    DEFAULT_MODEL,
     RATE_LIMIT_MAX_REQUESTS,
     RATE_LIMIT_WINDOW_S,
     FakeLLMClient,
@@ -175,13 +176,13 @@ class TestOpenRouterClientConstruction:
         # This test verifies we don't open a network connection on construction.
         with patch.dict(os.environ, {}, clear=True):
             client = OpenRouterClient(api_key="sk-fake")
-            assert client.model == "anthropic/claude-sonnet-5"
+            assert client.model == DEFAULT_MODEL
 
     def test_api_key_from_env_var(self) -> None:
         """OpenRouterClient falls back to OPENROUTER_API_KEY env var."""
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-from-env"}, clear=True):
             client = OpenRouterClient()
-            assert client.model == "anthropic/claude-sonnet-5"
+            assert client.model == DEFAULT_MODEL
 
     def test_custom_model(self) -> None:
         """OpenRouterClient accepts a custom model string."""

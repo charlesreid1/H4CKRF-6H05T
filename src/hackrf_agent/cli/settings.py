@@ -17,6 +17,8 @@ from typing import Final
 
 from dotenv import load_dotenv
 
+from hackrf_agent.ai.llm_client import DEFAULT_MODEL
+
 ENV_API_KEY: Final[str] = "OPENROUTER_API_KEY"
 
 DEFAULT_HOME: Final[Path] = Path.home() / ".hackrf-agent"
@@ -32,7 +34,7 @@ class Settings:
     """
 
     home_dir: Path
-    model: str = "anthropic/claude-sonnet-5"
+    model: str = DEFAULT_MODEL
     max_history_messages: int = 24
     auto_approve_medium: bool = False
 
@@ -94,7 +96,7 @@ class SettingsService:
             return Settings(home_dir=self._home_dir)
         return Settings(
             home_dir=self._home_dir,
-            model=str(raw.get("model", "anthropic/claude-sonnet-5")),
+            model=str(raw.get("model", DEFAULT_MODEL)),
             max_history_messages=int(raw.get("max_history_messages", 24)),
             auto_approve_medium=bool(raw.get("auto_approve_medium", False)),
         )
