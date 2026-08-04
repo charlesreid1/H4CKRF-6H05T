@@ -42,7 +42,7 @@ class TestSettingsServiceLoad:
     def test_fresh_dir_returns_defaults(self, tmp_path) -> None:
         svc = SettingsService(home_dir=tmp_path)
         s = svc.load()
-        assert s.model == "claude-sonnet-5"
+        assert s.model == "anthropic/claude-sonnet-5"
         assert s.max_history_messages == 24
         assert s.auto_approve_medium is False
         assert s.home_dir == tmp_path
@@ -51,13 +51,13 @@ class TestSettingsServiceLoad:
         svc = SettingsService(home_dir=tmp_path)
         orig = Settings(
             home_dir=tmp_path,
-            model="claude-opus-4-8",
+            model="anthropic/claude-opus-4-8",
             max_history_messages=48,
             auto_approve_medium=True,
         )
         svc.save(orig)
         loaded = svc.load()
-        assert loaded.model == "claude-opus-4-8"
+        assert loaded.model == "anthropic/claude-opus-4-8"
         assert loaded.max_history_messages == 48
         assert loaded.auto_approve_medium is True
 
@@ -66,12 +66,12 @@ class TestSettingsServiceLoad:
         cfg.write_text("not = valid = toml")
         svc = SettingsService(home_dir=tmp_path)
         s = svc.load()
-        assert s.model == "claude-sonnet-5"
+        assert s.model == "anthropic/claude-sonnet-5"
 
     def test_missing_file_returns_defaults(self, tmp_path) -> None:
         svc = SettingsService(home_dir=tmp_path / "nonexistent")
         s = svc.load()
-        assert s.model == "claude-sonnet-5"
+        assert s.model == "anthropic/claude-sonnet-5"
 
 
 class TestSettingsServiceKeychain:

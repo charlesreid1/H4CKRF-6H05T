@@ -103,10 +103,10 @@ def test_json_schema_is_valid_and_matches() -> None:
     assert isinstance(parsed, dict)
 
     # Top-level keys match the tool schema.
-    assert parsed["name"] == EXECUTE_COMMAND_TOOL_SCHEMA["name"]
-    assert parsed["description"] == EXECUTE_COMMAND_TOOL_SCHEMA["description"]
-    assert "input_schema" in parsed
-    assert parsed["input_schema"]["type"] == "object"
+    assert parsed["function"]["name"] == EXECUTE_COMMAND_TOOL_SCHEMA["function"]["name"]
+    assert parsed["function"]["description"] == EXECUTE_COMMAND_TOOL_SCHEMA["function"]["description"]
+    assert "parameters" in parsed["function"]
+    assert parsed["function"]["parameters"]["type"] == "object"
 
 
 # ---------------------------------------------------------------------------
