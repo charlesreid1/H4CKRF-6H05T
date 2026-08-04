@@ -237,9 +237,9 @@ Data directories on macOS:
 # Logs
 ~/Library/Logs/hackrf-agent/
 
-# API key — read from the OPENROUTER_API_KEY environment variable.
-# A `.env` file in the current working directory is auto-loaded on
-# startup by python-dotenv (without overriding existing env vars).
+# API key — read from the OPENROUTER_API_KEY environment variable ONLY.
+# The user must export it in their shell before invoking the CLI (either
+# directly, from their shell rc, or via `source ~/.openrouter_api_key`).
 ```
 
 ---

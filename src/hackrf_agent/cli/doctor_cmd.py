@@ -56,7 +56,7 @@ async def _run_checks(settings: SettingsService) -> list[Check]:
             Check(
                 "api_key",
                 False,
-                "OPENROUTER_API_KEY not set — copy .env.example to .env and fill it in",
+                "OPENROUTER_API_KEY not set — export it in your shell before running",
             )
         )
 

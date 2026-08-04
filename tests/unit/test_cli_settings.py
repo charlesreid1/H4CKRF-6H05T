@@ -76,27 +76,17 @@ class TestSettingsServiceApiKey:
         svc = SettingsService(home_dir=tmp_path)
         assert svc.get_api_key() is None
 
-    def test_dotenv_file_loaded_from_cwd(self, tmp_path, monkeypatch) -> None:
-        """A .env file in CWD populates the env var when it isn't already set."""
+    def test_dotenv_file_in_cwd_is_ignored(self, tmp_path, monkeypatch) -> None:
+        """A .env file in CWD must NOT be auto-loaded — the user is
+        responsible for exporting OPENROUTER_API_KEY in their shell.
+        """
         monkeypatch.delenv(ENV_API_KEY, raising=False)
         cwd = tmp_path / "proj"
         cwd.mkdir()
         (cwd / ".env").write_text(f"{ENV_API_KEY}=sk-from-dotenv\n")
         monkeypatch.chdir(cwd)
         svc = SettingsService(home_dir=tmp_path / "home")
-        assert svc.get_api_key() == "sk-from-dotenv"
-
-    def test_env_var_wins_over_dotenv(self, tmp_path, monkeypatch) -> None:
-        """An already-set env var is not overridden by .env — protects
-        against a stale .env silently shadowing an intentional override.
-        """
-        cwd = tmp_path / "proj"
-        cwd.mkdir()
-        (cwd / ".env").write_text(f"{ENV_API_KEY}=sk-from-dotenv\n")
-        monkeypatch.chdir(cwd)
-        monkeypatch.setenv(ENV_API_KEY, "sk-from-real-env")
-        svc = SettingsService(home_dir=tmp_path / "home")
-        assert svc.get_api_key() == "sk-from-real-env"
+        assert svc.get_api_key() is None
 
 
 class TestSettingsServicePaths:
