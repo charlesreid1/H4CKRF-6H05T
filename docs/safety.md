@@ -158,6 +158,112 @@ forces HIGH tier.
 
 ---
 
+## Plain-English Risk Tiers
+
+What each tier means for you, the operator:
+
+- **LOW** — "Reads only." Sweep the spectrum; check device info; list grants;
+  query the audit log. The agent will just do it — no prompt, no pause. These
+  actions do not transmit and do not write outside the session directory.
+
+- **MEDIUM** — "Longer captures, TX in known-safe hobby bands within an active
+  grant." You'll be asked once. Type `Y` or `n` at the prompt. If you're unsure,
+  type `n` — the agent will propose an alternative.
+
+- **HIGH** — "TX in bands where you haven't issued a grant, or at higher power."
+  You'll be asked to type the literal word `CONFIRM`. This is intentional — it
+  prevents muscle-memory approval. Do not autocomplete. Read the justification
+  and expected effect before typing.
+
+- **BLOCKED** — "Protected bands." The agent cannot do this. If it tries, the
+  gate refuses and audits the attempt. No prompt — just a refusal. If the agent
+  keeps proposing blocked actions, it may be prompt-injected; end the session.
+
+---
+
+## The Grant Model
+
+Grants are scoped, time-limited permissions you issue explicitly. They tell the
+risk gate "I pre-authorize TX in this band at up to this gain for this long."
+
+```bash
+hackrf-agent grant tx 433.05-434.79M --for 30m --max-gain 30
+```
+
+What a grant **does:**
+- Lets the agent proceed with TX in the granted band at the granted gain without
+  per-command approval (reclassifies from MEDIUM/HIGH to LOW within scope).
+- Has a hard TTL — after expiry, transmissions revert to their un-granted tier.
+- Can be revoked at any time with `hackrf-agent grant revoke <id>`.
+
+What a grant **does NOT do:**
+- Does **not** authorize you legally to transmit. You are responsible for your
+  own FCC (or local) compliance.
+- Does **not** override BLOCKED bands. A grant on 1090 MHz is impossible — the
+  frequency policy refuses it before the grant is created.
+- Does **not** survive a kill-switch event. Ctrl-C revokes all TX grants.
+
+---
+
+## The Kill Switch
+
+Ctrl-C is the kill switch. It has two levels:
+
+1. **Single Ctrl-C** — graceful abort of the current command. Sets the driver's
+   `stop_event`, cancels the current asyncio task, and **revokes all TX grants**.
+   The agent remains running; you can issue new grants and continue.
+
+2. **Double Ctrl-C** (within 2 seconds) — hard exit. The process terminates
+   immediately. TX may continue for a few milliseconds while the hardware buffer
+   drains; unplug HackRF if this is unacceptable.
+
+The kill-switch logic lives in `src/hackrf_agent/cli/kill_switch.py`. After any
+Ctrl-C event, TX is frozen until you explicitly re-issue a grant with
+`hackrf-agent grant tx ...`.
+
+---
+
+## What This Software Does NOT Protect Against
+
+- **Prompt injection.** A compromised or adversarial prompt can propose bad
+  commands. The risk gate still refuses BLOCKED actions, but a malicious prompt
+  could exhaust your API budget by proposing thousands of LOW actions, or could
+  social-engineer you into approving a HIGH TX. Read the `justification` field
+  before approving. If it doesn't match what you asked, deny.
+
+- **Prompt-level guidance is a hint; only the risk gate is enforcement.** The
+  system prompt tells the model to be cooperative, but the model is a statistical
+  text generator. The Python code in `risk_assessor.py` and `frequency_policy.py`
+  is the only thing that can actually refuse a command.
+
+- **Editing `frequency_policy.py` weakens the gate.** If you add a band to
+  `ISM_BANDS` or remove it from `BLOCKED_BANDS`, the gate will allow what you
+  told it to allow. You own that decision. Review any diff to
+  `frequency_policy.py` as if it were a firewall rule change — because it is.
+
+- **Hardware failure.** If the HackRF's PA (power amplifier) fails in a way that
+  causes spurious emissions, the software gate cannot detect or prevent it. The
+  gate operates at the command level, not the RF level.
+
+---
+
+## Incident Response
+
+If TX went out on a frequency it shouldn't have:
+
+1. **Unplug HackRF immediately.** Physical air-gap is the fastest stop.
+2. **Reconstruct the session:**
+   ```bash
+   hackrf-agent audit tail --trace <trace_id>
+   ```
+   This shows every event for that command: what was requested, what the risk
+   assessment was, whether approval was granted, and the result.
+3. **File an issue** with the audit dump attached. Include the full `audit tail`
+   output for the session. Redact your API key if it appears (it shouldn't — the
+   audit log does not store credentials).
+
+---
+
 ## References
 
 - **FCC Part 15** (Radio Frequency Devices): [ecfr.gov — 47 CFR Part 15](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15)

@@ -291,23 +291,37 @@ caching.
 
 ---
 
-## Part 7 Integration Points
+## Part 7 Integration Points (COMPLETE)
 
-Part 7's CLI (`hackrf-agent chat`) will:
+Part 7's CLI (`hackrf-agent chat`) is implemented in `src/hackrf_agent/cli/chat_cmd.py`.
+It assembles all Parts 2–6 into a working product:
 
-1. Construct `HackrfDriver` (Part 4) — with a real HackRF or a `FakeDriver` for
-   dry-run mode.
-2. Construct `CommandExecutor` (Part 5) — with `RiskAssessor`, `PermissionService`,
+1. Constructs `HackrfDriver` (Part 4) — with a real HackRF via lazy import inside
+   `_run_chat()`. The `--help` output works without `pyhackrf` installed.
+2. Constructs `CommandExecutor` (Part 5) — with `RiskAssessor`, `PermissionService`,
    `AuditService`, `ResultFormatter`, `HackrfDriver`, and `CliApprovalPort`.
-3. Construct `AnthropicClient` (Part 6) — with the API key from `keyring` or
-   the `ANTHROPIC_API_KEY` env var.
-4. Construct `HackrfAgent` (Part 6) — injecting the executor, permissions, and
-   LLM client.
-5. Call `agent.chat(user_message)` in a loop, consuming the `AgentEvent` stream
-   and rendering each event with `rich`.
-6. Provide a `CliApprovalPort` that prompts the user for MEDIUM/HIGH-risk
-   approvals using `rich` prompts.
-7. Wire up `SIGINT` (Ctrl-C) as a kill switch that calls `PermissionService.revoke_all_tx()`.
+3. Constructs `AnthropicClient` (Part 6) — with the API key from `SettingsService`
+   (keychain-backed) and model from `config.toml`.
+4. Constructs `HackrfAgent` (Part 6) — injecting `llm`, `executor`, and
+   `max_history_messages` from config.
+5. Calls `agent.chat(user_message)` in the `_repl` loop, consuming the
+   `AgentEvent` stream and rendering each event with `rich`:
+   - `AssistantText` → magenta `[agent]` prefix
+   - `ToolCallStarted` → dim `→ tool` with justification
+   - `ToolCallCompleted` → green `← ok` or red `← fail`
+   - `TurnEnded` → yellow `(model refused)` for refusals
+   - `AgentError` → red `! error`
+6. Provides `CliApprovalPort` (in `approval.py`) — MEDIUM commands get a Y/n
+   prompt, HIGH commands require typing the literal string `CONFIRM`. All
+   prompts are wrapped in `loop.run_in_executor(None, ...)` to keep the event
+   loop responsive.
+7. `KillSwitch` (in `kill_switch.py`) wires `SIGINT` (Ctrl-C) to a shared
+   `asyncio.Event` + `PermissionService.revoke_all_tx()`. Single tap is
+   graceful (abort current operation, return to REPL); double-tap within
+   2 seconds is a hard exit.
+
+See **`docs/cli.md`** for the full CLI reference, including command syntax,
+approval flow, kill switch semantics, and configuration.
 
 ---
 
