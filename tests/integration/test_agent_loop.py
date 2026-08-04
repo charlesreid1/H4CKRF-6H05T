@@ -5,10 +5,8 @@ The audit DB is touched, hence "integration".
 """
 
 import logging
-from dataclasses import dataclass, field
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from hackrf_agent.ai.agent import (
@@ -30,50 +28,11 @@ from hackrf_agent.data.db import ensure_schema
 from hackrf_agent.domain.approval import FakeApprovalPort
 from hackrf_agent.domain.audit_service import AuditService
 from hackrf_agent.domain.executor import CommandExecutor
-from hackrf_agent.domain.models import (
-    DeviceInfo,
-)
 from hackrf_agent.domain.permission_service import PermissionService
 from hackrf_agent.domain.result_formatter import ResultFormatter
 from hackrf_agent.domain.risk_assessor import RiskAssessor
 from hackrf_agent.domain.session import new_session
-
-# ---------------------------------------------------------------------------
-# FakeDriver (duplicated from test_executor.py — the plan says that's fine)
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class FakeDriver:
-    device_info: DeviceInfo = field(
-        default_factory=lambda: DeviceInfo("s", "fw", "r1", "pid")
-    )
-    calls: list[tuple[str, dict]] = field(default_factory=list)
-    sweep_result: tuple = field(
-        default_factory=lambda: (
-            np.zeros(4096, dtype=np.float32),
-            np.arange(4096, dtype=np.float64),
-        )
-    )
-    capture_bytes: bytes = b"\x00\x00" * 1024
-
-    async def get_device_info(self):
-        self.calls.append(("get_device_info", {}))
-        return self.device_info
-
-    async def sweep_spectrum(self, **kw):
-        self.calls.append(("sweep_spectrum", kw))
-        return self.sweep_result
-
-    async def capture_iq(self, *, out_path, **kw):
-        self.calls.append(("capture_iq", {"out_path": out_path, **kw}))
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_bytes(self.capture_bytes)
-        return out_path
-
-    async def transmit_iq(self, **kw):
-        self.calls.append(("transmit_iq", kw))
-
+from tests.support.fake_driver import FakeDriver
 
 # ---------------------------------------------------------------------------
 # Bench fixture
