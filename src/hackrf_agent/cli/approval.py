@@ -25,7 +25,7 @@ class CliApprovalPort:
 
     MEDIUM commands: single Y/n via ``Confirm.ask``.
     HIGH commands: user must type the literal string ``CONFIRM`` (typo-safe
-      double-tap equivalent).
+      second-confirmation equivalent).
 
     ``auto_approve_medium=True`` skips the MEDIUM prompt and returns True.
     HIGH is NEVER auto-approved regardless of the flag.

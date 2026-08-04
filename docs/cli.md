@@ -287,8 +287,9 @@ behavior.
 - **One keystroke.** The operator must never guess how to stop transmitting.
 - **Graceful first, fatal second.** A single Ctrl-C aborts the current operation
   cleanly (driver raises `KillSwitchTriggered`, agent turn ends, REPL returns).
-  A double-tap within 2 seconds hard-exits for panic situations.
-- **TX grants revoked on first tap.** Even if the operator walks away mid-sweep,
+  A second Ctrl-C within 2 seconds stops the event loop and exits the process
+  for panic situations.
+- **TX grants revoked on first Ctrl-C.** Even if the operator walks away mid-sweep,
   the next Ctrl-C revokes all TX authorizations. Any subsequent TX attempt
   requires re-granting.
 

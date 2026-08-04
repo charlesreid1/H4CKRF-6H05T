@@ -183,7 +183,7 @@ hackrf-agent/
 │   │   ├── test_session.py               # SessionPaths + new_session
 │   │   ├── test_cli_parsing.py           # 23 tests — band/duration/gain parsers (Part 7)
 │   │   ├── test_cli_settings.py          # SettingsService: config.toml + env-var api key (Part 7)
-│   │   ├── test_cli_kill_switch.py       # 7 tests — SIGINT, double-tap, revoke (Part 7)
+│   │   ├── test_cli_kill_switch.py       # 7 tests — SIGINT, double-Ctrl-C, revoke (Part 7)
 │   │   └── test_cli_approval.py          # 7 tests — MEDIUM/HIGH prompts (Part 7)
 │   ├── integration/                      # External deps (hardware, LLM, or fakes)
 │   │   ├── test_agent_loop.py            # 23 tests — full agent loop with FakeLLMClient

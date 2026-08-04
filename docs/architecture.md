@@ -68,7 +68,7 @@ Every `ExecuteCommand` is classified by the `RiskAssessor` into one of four tier
 | Tier | Meaning | Examples |
 |------|---------|----------|
 | **LOW** | Read-only, no TX, bounded duration. Executed immediately. | `get_device_info`, `sweep_spectrum` (dwell ≤ 2 s), `capture_iq` (duration ≤ 5 s), `grant_list`, `audit_query`, `read_iq_summary`, `decode_ook` |
-| **MEDIUM** | Longer capture, higher gain, disk writes, TX in known-safe hobby bands within an active grant. Requires one-tap operator approval. | `capture_iq` > 5 s, `sweep_spectrum` dwell > 2 s, `transmit_iq` in ISM band with gain ≤ 30 dB |
+| **MEDIUM** | Longer capture, higher gain, disk writes, TX in known-safe hobby bands within an active grant. Requires operator approval (single `y` keypress). | `capture_iq` > 5 s, `sweep_spectrum` dwell > 2 s, `transmit_iq` in ISM band with gain ≤ 30 dB |
 | **HIGH** | TX anywhere non-trivial, high gain, unclassified band, amateur band. Requires explicit operator confirmation (type `CONFIRM`). | `transmit_iq` with gain > 30 dB in ISM, TX in amateur bands, TX in unclassified frequencies |
 | **BLOCKED** | Protected bands, illegal ranges. Refused by the host — the LLM cannot override. | ADS-B 1090 MHz, GPS L1/L2, aviation voice 118–137 MHz, maritime distress 156.8 MHz, cellular downlink |
 
