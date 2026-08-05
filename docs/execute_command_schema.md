@@ -44,29 +44,17 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Purpose.** RX capture into an .iq file under the session directory.
 
-**Args.** center_freq_hz (int, optional — explicit tuner center), target_freq_hz (int, optional — frequency of interest; tuner is offset by ~sample_rate/4 so the DC/LO spike lands in a different bin), sample_rate_hz (int, default 2000000), duration_s (float, required), lna_gain_db (int, default 16), vga_gain_db (int, default 20), rf_amp_db (int, default 0).
-
-Exactly one of ``center_freq_hz`` or ``target_freq_hz`` must be provided.
-
-**Why two fields?** The HackRF (like every direct-conversion SDR) has a DC spike at whatever frequency it is tuned to — its local oscillator leaks into the receive path and shows up as a large fake peak sitting exactly at the tuned center frequency. If you tune ``center = 433.92 MHz`` to look at a 433.92 MHz signal, the DC spike lands *on top of* the thing you're trying to see. The spike also moves with retuning: it's an artifact of the radio, not of the environment.
-
-``target_freq_hz`` solves this. Instead of tuning the radio to your frequency of interest, the agent tunes it to ``target + sample_rate/4`` — the DC spike lands a quarter of the RX bandwidth away, safely in a different bin, while your target frequency stays inside the passband. The response tells you both the ``target_hz`` you asked for and the ``center_hz`` the tuner actually used.
-
-Use ``center_freq_hz`` when you want raw tuner control (e.g. wideband surveying where the exact center doesn't matter, or when you're intentionally capturing the DC spike itself).
+**Args.** center_freq_hz (int, optional — explicit tuner center), target_freq_hz (int, optional — frequency of interest; tuner is offset by ~sample_rate/4 so the DC/LO spike lands in a different bin), sample_rate_hz (int, default 2000000), duration_s (float, required), lna_gain_db (int, default 16), vga_gain_db (int, default 20), rf_amp_db (int, default 0). Exactly one of center_freq_hz or target_freq_hz must be provided. The HackRF's local oscillator leaks a DC spike at the tuned center frequency, so tuning center=F to look at F puts a fake peak on top of the real signal. target_freq_hz avoids this by offsetting the tuner; use center_freq_hz only for raw tuner control.
 
 **Default risk tier.** LOW under 5s; MEDIUM above
 
-**Example envelopes.**
-
-```json
-{"action": "capture_iq", "args": {"center_freq_hz": 433925000, "duration_s": 5.0}, "justification": "...", "expected_effect": "..."}
-```
+**Example envelope.**
 
 ```json
 {"action": "capture_iq", "args": {"target_freq_hz": 433925000, "sample_rate_hz": 8000000, "duration_s": 2.0}, "justification": "...", "expected_effect": "..."}
 ```
 
-**Notes.** Output file lives under session.iq_dir; path is synthesized by the executor, not the LLM. The response includes both ``center_hz`` (the frequency the tuner was actually set to) and ``target_hz`` (the requested target, null when ``center_freq_hz`` was used).
+**Notes.** Output file lives under session.iq_dir; path is synthesized by the executor, not the LLM. Response includes both center_hz (what the tuner was set to) and target_hz (the requested target, null when center_freq_hz was used).
 
 ## `transmit_iq`
 
