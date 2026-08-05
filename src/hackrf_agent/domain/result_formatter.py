@@ -49,16 +49,25 @@ class ResultFormatter:
         freqs_hz: npt.NDArray[np.float64],
         start_hz: int,
         stop_hz: int,
+        sample_rate_hz: int = 2_000_000,
+        fft_size: int = 4096,
         top_n: int = 5,
     ) -> dict[str, Any]:
         peaks = find_peaks(magnitude_db, freqs_hz, top_n=top_n)
         noise = estimate_noise_floor(magnitude_db)
+        annotated = _annotate_artifacts(
+            [self._peak_to_dict(p) for p in peaks],
+            start_hz,
+            stop_hz,
+            sample_rate_hz,
+            fft_size,
+        )
         return {
             "start_hz": int(start_hz),
             "stop_hz": int(stop_hz),
             "num_bins": int(magnitude_db.size),
             "noise_floor_dbfs": float(noise),
-            "peaks": [self._peak_to_dict(p) for p in peaks],
+            "peaks": annotated,
         }
 
     def format_capture(
@@ -203,3 +212,49 @@ class ResultFormatter:
             "prominence_db": float(p.prominence_db),
             "bin_index": int(p.bin_index),
         }
+
+
+# ---------------------------------------------------------------------------
+# DC/LO artifact helpers (module-level — no self needed)
+# ---------------------------------------------------------------------------
+
+
+def _hop_centers(start_hz: int, stop_hz: int, sample_rate_hz: int) -> list[float]:
+    centers: list[float] = []
+    step = float(sample_rate_hz)
+    c = start_hz + step / 2.0
+    while c - step / 2.0 < stop_hz:
+        centers.append(c)
+        c += step
+    return centers
+
+
+def _annotate_artifacts(
+    peaks: list[dict[str, Any]],
+    start_hz: int,
+    stop_hz: int,
+    sample_rate_hz: int,
+    fft_size: int,
+) -> list[dict[str, Any]]:
+    bin_width_hz = sample_rate_hz / max(1, fft_size)
+    tolerance_hz = max(2.0 * bin_width_hz, 5_000.0)
+    centers = _hop_centers(start_hz, stop_hz, sample_rate_hz)
+    out: list[dict[str, Any]] = []
+    for p in peaks:
+        f = float(p["freq_hz"])
+        near = next(
+            (c for c in centers if abs(f - c) <= tolerance_hz),
+            None,
+        )
+        annotated = dict(p)
+        if near is not None:
+            annotated["is_artifact"] = True
+            annotated["artifact_reason"] = (
+                f"within {tolerance_hz:.0f} Hz of hop center "
+                f"{near/1e6:.3f} MHz — likely DC/LO leakage"
+            )
+        else:
+            annotated["is_artifact"] = False
+            annotated["artifact_reason"] = None
+        out.append(annotated)
+    return out

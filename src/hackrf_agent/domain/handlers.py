@@ -121,15 +121,26 @@ async def _handle_sweep_spectrum(ctx: HandlerContext, args: dict[str, Any]) -> d
         "freqs_hz": freqs,
         "start_hz": parsed.start_freq_hz,
         "stop_hz": parsed.end_freq_hz,
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "fft_size": parsed.fft_size,
     }
 
 
 async def _handle_capture_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
     parsed = CaptureIqArgs(**args)
+    if parsed.center_freq_hz is not None:
+        effective_center_hz = parsed.center_freq_hz
+    else:
+        assert parsed.target_freq_hz is not None  # validator guarantees this
+        # Offset the tuner by sample_rate/4 so DC lands a quarter of the
+        # RX bandwidth away from the target. This keeps target inside the
+        # passband while pushing the LO spike into a different bin.
+        offset_hz = parsed.sample_rate_hz // 4
+        effective_center_hz = parsed.target_freq_hz + offset_hz
     num_samples = int(parsed.sample_rate_hz * parsed.duration_s)
     out_path = ctx.session_paths.new_iq_path("capture")
     written = await ctx.driver.capture_iq(
-        center_hz=parsed.center_freq_hz,
+        center_hz=effective_center_hz,
         sample_rate_hz=parsed.sample_rate_hz,
         num_samples=num_samples,
         lna_gain_db=parsed.lna_gain_db,
@@ -140,7 +151,8 @@ async def _handle_capture_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[
     return {
         "kind": "capture",
         "iq_path": written,
-        "center_hz": parsed.center_freq_hz,
+        "center_hz": effective_center_hz,
+        "target_hz": parsed.target_freq_hz,  # None if caller used center_freq_hz
         "sample_rate_hz": parsed.sample_rate_hz,
         "num_samples": num_samples,
     }
