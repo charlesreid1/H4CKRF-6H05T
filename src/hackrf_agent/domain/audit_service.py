@@ -122,10 +122,12 @@ class AuditService:
         event: AuditEventType | None = None,
         limit: int = 100,
     ) -> list[AuditRow]:
-        """Read from a fresh connection.  Filters combine with AND.
+        """Read from a fresh connection. Filters combine with AND.
 
-        Rows are ordered by ``id ASC`` (write order).  At most *limit*
-        rows are returned.
+        Returns at most *limit* rows: the *most recent* rows matching the
+        filters, ordered oldest→newest within that window. (Previously this
+        returned the *oldest* N rows, which surprised callers asking for
+        'the last N'.)
         """
         clauses: list[str] = []
         params: list[object] = []
@@ -149,12 +151,16 @@ class AuditService:
         sql = (
             "SELECT id, trace_id, session_id, timestamp, event, action, "
             "risk_level, payload_json, blocked_reason, duration_ms "
-            f"FROM audit {where} ORDER BY id ASC LIMIT ?;"
+            f"FROM audit {where} ORDER BY id DESC LIMIT ?;"
         )
 
         async with open_connection(self._db_path) as conn:  # noqa: SIM117
             async with conn.execute(sql, params) as cur:
                 rows = await cur.fetchall()
+
+        # We selected the newest N (DESC) so LIMIT actually clips to the tail
+        # of the log. Reverse to hand the caller a chronological slice.
+        rows = list(reversed(rows))
 
         return [self._row_to_audit(r) for r in rows]
 
