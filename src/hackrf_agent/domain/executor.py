@@ -255,6 +255,8 @@ class CommandExecutor:
                 freqs_hz=raw["freqs_hz"],
                 start_hz=raw["start_hz"],
                 stop_hz=raw["stop_hz"],
+                sample_rate_hz=raw.get("sample_rate_hz", 2_000_000),
+                fft_size=raw.get("fft_size", 4096),
             )
         if kind == "capture":
             return f.format_capture(

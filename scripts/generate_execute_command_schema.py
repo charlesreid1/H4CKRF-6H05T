@@ -51,16 +51,28 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
     CommandAction.CAPTURE_IQ: {
         "purpose": "RX capture into an .iq file under the session directory.",
         "args_doc": (
-            "center_freq_hz (int), sample_rate_hz (int, default 2000000), "
+            "center_freq_hz (int, optional — explicit tuner center), "
+            "target_freq_hz (int, optional — frequency of interest; tuner is "
+            "offset by ~sample_rate/4 so the DC/LO spike lands in a different "
+            "bin), sample_rate_hz (int, default 2000000), "
             "duration_s (float, required), lna_gain_db (int, default 16), "
-            "vga_gain_db (int, default 20), rf_amp_db (int, default 0)."
+            "vga_gain_db (int, default 20), rf_amp_db (int, default 0). "
+            "Exactly one of center_freq_hz or target_freq_hz must be provided. "
+            "The HackRF's local oscillator leaks a DC spike at the tuned "
+            "center frequency, so tuning center=F to look at F puts a fake "
+            "peak on top of the real signal. target_freq_hz avoids this by "
+            "offsetting the tuner; use center_freq_hz only for raw tuner "
+            "control."
         ),
         "example": '{"action": "capture_iq", "args": '
-                   '{"center_freq_hz": 433925000, "duration_s": 5.0}, '
+                   '{"target_freq_hz": 433925000, "sample_rate_hz": 8000000, '
+                   '"duration_s": 2.0}, '
                    '"justification": "...", "expected_effect": "..."}',
         "default_tier": "LOW under 5s; MEDIUM above",
         "notes": "Output file lives under session.iq_dir; path is synthesized "
-                 "by the executor, not the LLM.",
+                 "by the executor, not the LLM. Response includes both "
+                 "center_hz (what the tuner was set to) and target_hz (the "
+                 "requested target, null when center_freq_hz was used).",
     },
     CommandAction.TRANSMIT_IQ: {
         "purpose": "TX from an existing .iq file. Requires an active grant.",

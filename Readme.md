@@ -200,6 +200,23 @@ hackrf-agent grant tx 433.05-434.79M --for 30m --max-gain 20
 
 ---
 
+## Use from an MCP host
+
+`hackrf-agent-mcp` exposes the same safety-gated command surface as an MCP
+server. Any MCP-aware host — Claude Desktop, Claude Code, Cursor, OpenCode,
+`mcp-cli`, custom clients — can drive the radio through its tool, resource,
+and elicitation surface.
+
+```bash
+hackrf-agent-mcp
+```
+
+Configure your host to spawn it on stdio. See
+**[docs/mcp.md](docs/mcp.md)** for host config snippets, the full tool list,
+how approval works over MCP elicitation, resource URIs, and safety caveats.
+
+---
+
 ## Documentation
 
 - **[docs/architecture.md](docs/architecture.md)** — how the pieces fit together.
@@ -211,6 +228,9 @@ hackrf-agent grant tx 433.05-434.79M --for 30m --max-gain 20
 - **[docs/execute_command_schema.md](docs/execute_command_schema.md)** — the
   LLM's one tool. One section per `CommandAction` with purpose, args, example,
   and risk tier. Auto-generated from the code.
+- **[docs/mcp.md](docs/mcp.md)** — use HackRF from any MCP-aware host (Claude
+  Desktop, Claude Code, Cursor, OpenCode, `mcp-cli`, …). Tool list, host config
+  snippets, approval flow, resources, and safety caveats.
 - **[docs/development.md](docs/development.md)** — contributor guide. Setup,
   test tiers, "add a new CommandAction" checklist, CI runners, release process.
 - **[docs/cli.md](docs/cli.md)** — user-facing command reference.

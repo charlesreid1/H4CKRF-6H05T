@@ -301,3 +301,39 @@ class TestHelpers:
     def test_new_trace_ids_are_distinct(self):
         ids = {new_trace_id() for _ in range(50)}
         assert len(ids) == 50
+
+
+# ---------------------------------------------------------------------------
+# Query ordering — limit returns most recent, not oldest
+# ---------------------------------------------------------------------------
+
+
+class TestQueryOrdering:
+    async def test_query_returns_last_n_not_first_n(self, tmp_path):
+        """limit=3 with 10 events should return events 8,9,10 (most recent)."""
+        from hackrf_agent.domain.audit_service import AuditService, make_event
+        from hackrf_agent.data.db import ensure_schema
+
+        db = tmp_path / "agent.db"
+        await ensure_schema(db)
+
+        async with AuditService(db) as svc:
+            for i in range(10):
+                await svc.log(
+                    make_event(
+                        trace_id=uuid4(),
+                        session_id="s1",
+                        event=AuditEventType.COMMAND_RECEIVED,
+                        action=CommandAction.GET_DEVICE_INFO,
+                    )
+                )
+        # Context exit drains — all 10 events persisted.
+
+        async with AuditService(db) as svc:
+            rows = await svc.query(limit=3)
+
+        assert len(rows) == 3
+        # IDs are 1-indexed; the 3 most recent of 10 are 8, 9, 10.
+        assert [r.id for r in rows] == [8, 9, 10]
+        # Chronological: oldest→newest within the window.
+        assert rows[0].id < rows[-1].id

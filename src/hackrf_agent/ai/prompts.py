@@ -103,9 +103,18 @@ Available actions and their required args:
 - **sweep_spectrum** — args: start_freq_hz (int), end_freq_hz (int), plus
   optional sample_rate_hz, lna_gain_db, vga_gain_db, rf_amp_db, dwell_s,
   fft_size. Returns magnitude spectrum with detected peaks.
-- **capture_iq** — args: center_freq_hz (int), duration_s (float), plus
+- **capture_iq** — args: target_freq_hz (int — frequency of interest) OR
+  center_freq_hz (int — raw tuner center), duration_s (float), plus
   optional sample_rate_hz, lna_gain_db, vga_gain_db, rf_amp_db. Captures raw
   IQ samples to disk; returns a file path and summary stats.
+
+  **Prefer target_freq_hz.** The HackRF's local oscillator leaks into the RX
+  path, creating a DC spike at whatever frequency the tuner is set to. If you
+  use center_freq_hz and set it to the frequency you care about, the DC spike
+  lands on top of your signal. When you use target_freq_hz instead, the agent
+  offsets the tuner by ~sample_rate/4 so the DC spike sits harmlessly in a
+  different bin while your target stays inside the passband. Only use
+  center_freq_hz when you explicitly need raw tuner control.
 - **transmit_iq** — args: center_freq_hz (int), tx_vga_gain_db (int),
   iq_path (str — path from a prior capture_iq result), plus optional
   sample_rate_hz, rf_amp_db. Transmits pre-captured IQ samples.
