@@ -60,11 +60,13 @@ class _FakeElicitResult:
 
 @pytest.fixture
 def mock_session() -> AsyncMock:
-    """Return a mock ServerSession whose elicit() returns accept=True."""
+    """Return a mock ServerSession whose elicit() returns accept.
+
+    MEDIUM elicitations carry no form fields — accept alone means approve.
+    HIGH-specific tests override the return_value.
+    """
     session = AsyncMock()
-    session.elicit.return_value = _FakeElicitResult(
-        action="accept", content={"approve": True}
-    )
+    session.elicit.return_value = _FakeElicitResult(action="accept", content={})
     return session
 
 
@@ -87,34 +89,20 @@ class TestMcpApprovalPortElicitation:
         assert await port.request(cmd, risk) is True
         mock_session.elicit.assert_called_once()
 
-    async def test_high_approved_with_confirm(self, mock_session: AsyncMock) -> None:
-        mock_session.elicit.return_value = _FakeElicitResult(
-            action="accept", content={"approve": True, "confirm": "CONFIRM"}
-        )
+    async def test_high_approved_on_accept(self, mock_session: AsyncMock) -> None:
+        # HIGH uses the same accept-is-approval flow as MEDIUM.
         _current_session.set(mock_session)
         port = McpApprovalPort()
         cmd = _make_command()
         risk = _make_high_risk()
         assert await port.request(cmd, risk) is True
 
-    async def test_high_denied_with_wrong_confirm(self, mock_session: AsyncMock) -> None:
-        mock_session.elicit.return_value = _FakeElicitResult(
-            action="accept", content={"approve": True, "confirm": "not-confirm"}
-        )
+    async def test_high_denied_on_decline(self, mock_session: AsyncMock) -> None:
+        mock_session.elicit.return_value = _FakeElicitResult(action="decline", content={})
         _current_session.set(mock_session)
         port = McpApprovalPort()
         cmd = _make_command()
         risk = _make_high_risk()
-        assert await port.request(cmd, risk) is False
-
-    async def test_denied_when_approve_false(self, mock_session: AsyncMock) -> None:
-        mock_session.elicit.return_value = _FakeElicitResult(
-            action="accept", content={"approve": False}
-        )
-        _current_session.set(mock_session)
-        port = McpApprovalPort()
-        cmd = _make_command()
-        risk = _make_medium_risk()
         assert await port.request(cmd, risk) is False
 
     async def test_denied_when_action_is_decline(self, mock_session: AsyncMock) -> None:
@@ -162,9 +150,7 @@ class TestMcpApprovalPortElicitation:
         mock_session.elicit.assert_not_called()
 
     async def test_auto_approve_does_not_skip_high(self, mock_session: AsyncMock) -> None:
-        mock_session.elicit.return_value = _FakeElicitResult(
-            action="accept", content={"approve": True, "confirm": "CONFIRM"}
-        )
+        # HIGH must still elicit even when MEDIUM is auto-approved.
         _current_session.set(mock_session)
         port = McpApprovalPort(auto_approve_medium=True)
         cmd = _make_command()
@@ -197,21 +183,25 @@ class TestElicitationMessage:
         assert "test" in msg  # justification
 
     def test_elicitation_schema_for_medium(self) -> None:
+        # No form fields — accept alone means approve. Host renders a
+        # plain Allow/Deny prompt.
         risk = RiskAssessment(
             level=RiskLevel.MEDIUM,
             reason="test",
             requires_confirmation=True,
         )
         schema = McpApprovalPort._elicitation_schema(risk)
-        assert "approve" in schema["required"]
-        assert "confirm" not in schema["required"]
+        assert schema["properties"] == {}
+        assert "required" not in schema
 
     def test_elicitation_schema_for_high(self) -> None:
+        # HIGH uses the same empty schema as MEDIUM; the tier is signaled
+        # via the message text, not the form shape.
         risk = RiskAssessment(
             level=RiskLevel.HIGH,
             reason="test",
             requires_confirmation=True,
         )
         schema = McpApprovalPort._elicitation_schema(risk)
-        assert "approve" in schema["required"]
-        assert "confirm" in schema["required"]
+        assert schema["properties"] == {}
+        assert "required" not in schema

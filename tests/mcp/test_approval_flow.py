@@ -118,31 +118,6 @@ async def _make_deps(
 
 
 # ---------------------------------------------------------------------------
-# Elicitation callback helpers
-# ---------------------------------------------------------------------------
-
-
-def _make_callback(action: str, content: dict) -> callable:
-    """Return an elicitation callback that always replies with the given result."""
-    async def _cb(context, params) -> ElicitResult:
-        return ElicitResult(action=action, content=content)
-    return _cb
-
-
-def _make_approve_callback(confirm: str | None = None) -> callable:
-    """Return a callback that approves the command."""
-    content = {"approve": True}
-    if confirm is not None:
-        content["confirm"] = confirm
-    return _make_callback("accept", content)
-
-
-def _make_deny_callback() -> callable:
-    """Return a callback that denies the command."""
-    return _make_callback("accept", {"approve": False})
-
-
-# ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
@@ -161,9 +136,8 @@ class TestMediumApprovalFlow:
 
             async def _cb(context, params) -> ElicitResult:
                 elicitation_called.append(params)
-                return ElicitResult(
-                    action="accept", content={"approve": True}
-                )
+                # MEDIUM: accept alone is the approval; no form fields.
+                return ElicitResult(action="accept", content={})
 
             async def _test(session: ClientSession) -> None:
                 # dwell_s=5.0 → MEDIUM risk (long sweep)
@@ -198,9 +172,9 @@ class TestMediumApprovalFlow:
         deps = await _make_deps(db_path, session_paths, fake_driver)
         try:
             async def _cb(context, params) -> ElicitResult:
-                return ElicitResult(
-                    action="accept", content={"approve": False}
-                )
+                # Under the new schema MEDIUM has no fields — the operator
+                # denies by clicking Deny, which surfaces as decline.
+                return ElicitResult(action="decline", content={})
 
             async def _test(session: ClientSession) -> None:
                 result = await session.call_tool(
@@ -264,7 +238,7 @@ class TestMediumApprovalFlow:
 
             async def _cb(context, params) -> ElicitResult:
                 elicitation_called.append(1)
-                return ElicitResult(action="accept", content={"approve": True})
+                return ElicitResult(action="accept", content={})
 
             async def _test(session: ClientSession) -> None:
                 result = await session.call_tool(
@@ -288,15 +262,13 @@ class TestMediumApprovalFlow:
 
 
 class TestHighApprovalFlow:
-    """HIGH-risk commands require CONFIRM string."""
+    """HIGH-risk commands use the same accept/decline flow as MEDIUM."""
 
-    async def test_high_approved_with_confirm(
+    async def test_high_approved_on_accept(
         self, tmp_path: Path, fake_driver: FakeDriver
     ) -> None:
         db_path = tmp_path / "agent.db"
         session_paths = new_session(tmp_path / "sessions")
-        # Create a dummy IQ file inside the session dir so the handler
-        # accepts the path.
         iq_file = session_paths.iq_dir / "test.iq"
         iq_file.parent.mkdir(parents=True, exist_ok=True)
         iq_file.write_bytes(b"\x00\x00" * 1024)
@@ -304,10 +276,7 @@ class TestHighApprovalFlow:
         deps = await _make_deps(db_path, session_paths, fake_driver)
         try:
             async def _cb(context, params) -> ElicitResult:
-                return ElicitResult(
-                    action="accept",
-                    content={"approve": True, "confirm": "CONFIRM"},
-                )
+                return ElicitResult(action="accept", content={})
 
             async def _test(session: ClientSession) -> None:
                 # 144 MHz = amateur 2m band → HIGH risk
@@ -331,7 +300,7 @@ class TestHighApprovalFlow:
         finally:
             await deps._audit_ctx.__aexit__(None, None, None)  # type: ignore[attr-defined]
 
-    async def test_high_denied_with_wrong_confirm(
+    async def test_high_denied_on_decline(
         self, tmp_path: Path, fake_driver: FakeDriver
     ) -> None:
         db_path = tmp_path / "agent.db"
@@ -339,10 +308,7 @@ class TestHighApprovalFlow:
         deps = await _make_deps(db_path, session_paths, fake_driver)
         try:
             async def _cb(context, params) -> ElicitResult:
-                return ElicitResult(
-                    action="accept",
-                    content={"approve": True, "confirm": "nope"},
-                )
+                return ElicitResult(action="decline", content={})
 
             async def _test(session: ClientSession) -> None:
                 result = await session.call_tool(
@@ -351,38 +317,7 @@ class TestHighApprovalFlow:
                         "center_freq_hz": 144_000_000,
                         "iq_path": str(tmp_path / "test.iq"),
                         "tx_vga_gain_db": 10,
-                        "justification": "test wrong confirm",
-                        "expected_effect": "should be denied",
-                    },
-                )
-                assert result.is_error is True
-
-            await _run_with_callback(deps, _cb, _test)
-        finally:
-            await deps._audit_ctx.__aexit__(None, None, None)  # type: ignore[attr-defined]
-
-    async def test_high_denied_missing_confirm(
-        self, tmp_path: Path, fake_driver: FakeDriver
-    ) -> None:
-        """HIGH command where callback doesn't include confirm at all."""
-        db_path = tmp_path / "agent.db"
-        session_paths = new_session(tmp_path / "sessions")
-        deps = await _make_deps(db_path, session_paths, fake_driver)
-        try:
-            async def _cb(context, params) -> ElicitResult:
-                return ElicitResult(
-                    action="accept",
-                    content={"approve": True},  # no "confirm" key
-                )
-
-            async def _test(session: ClientSession) -> None:
-                result = await session.call_tool(
-                    "hackrf_transmit_iq",
-                    {
-                        "center_freq_hz": 144_000_000,
-                        "iq_path": str(tmp_path / "test.iq"),
-                        "tx_vga_gain_db": 10,
-                        "justification": "test missing confirm",
+                        "justification": "test high deny",
                         "expected_effect": "should be denied",
                     },
                 )

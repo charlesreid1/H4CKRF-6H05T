@@ -27,9 +27,9 @@ never write to stdout from inside a handler.
 
 ## Host configuration
 
-### Claude Desktop
-
-`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+We use Claude Code and OpenCode day-to-day. Both discover MCP servers from a
+per-project `.mcp.json` in the repo root, so a single file wires up both
+hosts at once. The repo already ships one — check it in and you're done:
 
 ```json
 {
@@ -41,33 +41,53 @@ never write to stdout from inside a handler.
   }
 }
 ```
+
+Sanity-check the binary is on your `PATH` before either host tries to spawn
+it:
+
+```bash
+which hackrf-agent-mcp
+# → /usr/local/bin/hackrf-agent-mcp  (or a venv/pyenv path)
+```
+
+If it's not found, re-run `pip install "hackrf-agent[mcp,hackrf]"` in the
+environment your host will inherit (`pyenv` shim, `uv tool install`, system
+Python — whichever launches when the host spawns the subprocess).
 
 ### Claude Code
 
-Per-project `.mcp.json` in your repo root, or global `~/.claude.json`:
+Claude Code auto-loads `./.mcp.json` when it starts in a directory that
+contains one. On first use it prompts to approve the server; approve it
+once per project.
 
-```json
-{
-  "mcpServers": {
-    "hackrf": {
-      "command": "hackrf-agent-mcp",
-      "args": []
-    }
-  }
-}
-```
+- **Verify it loaded:** run `/mcp` inside Claude Code. `hackrf` should
+  appear with status `connected` and the tool list from the table below.
+- **Global fallback:** add the same `mcpServers` block to `~/.claude.json`
+  if you want the server available outside this repo.
+- **Debugging:** launch Claude Code with `--mcp-debug` to see the spawn
+  command and stderr from `hackrf-agent-mcp`.
 
-### mcp-cli (manual testing)
+### OpenCode
+
+OpenCode reads `.mcp.json` from the project root using the same schema.
+No extra config is needed — open the repo in OpenCode and the `hackrf`
+server appears in the MCP panel.
+
+- **Verify it loaded:** open OpenCode's MCP panel (or run its equivalent
+  of `/mcp`); `hackrf` should be listed with its tools.
+- **Global fallback:** OpenCode also honors a user-level MCP config; add
+  the same `mcpServers` block there if you want the server available in
+  every project.
+- **Elicitation:** OpenCode surfaces MCP elicitation prompts inline, so
+  MEDIUM/HIGH approval flows work without extra setup.
+
+### Manual testing (`mcp-cli`)
+
+Useful when you want to poke tool calls without a full host:
 
 ```bash
 mcp-cli --stdio -- hackrf-agent-mcp
 ```
-
-### Other hosts (Cursor, OpenCode, Zed, …)
-
-Point your host's MCP server config at the `hackrf-agent-mcp` binary.
-The server is client-agnostic — no host-specific fields or prompts.
-Consult your host's MCP documentation for the exact config format.
 
 ## Tools
 
@@ -97,11 +117,12 @@ not filling them in. They land in the audit log verbatim.
 
 - **LOW** — auto-executes; no approval needed. Read-only admin actions,
   short RX sweeps (dwell ≤ 2 s), short captures (≤ 5 s).
-- **MEDIUM** — host renders an approval prompt; operator clicks Approve or
+- **MEDIUM** — host renders an approval prompt; operator clicks Allow or
   Deny. Long sweeps, long captures, ISM-band TX within grant limits.
-- **HIGH** — same as MEDIUM but the operator must also type the literal
-  string `CONFIRM` into the elicitation form. Amateur-band TX,
-  unclassified-band TX, ISM TX above 30 dB gain.
+- **HIGH** — same Allow/Deny prompt as MEDIUM; the tier is called out in
+  the prompt text so the operator knows what they're approving.
+  Amateur-band TX, unclassified-band TX, ISM TX above 30 dB gain. HIGH
+  is never covered by `--auto-approve-medium`.
 - **BLOCKED** — the server refuses the command before any hardware is
   touched. Protected bands (GPS, ADS-B, VHF guard, cellular), malformed
   arguments, out-of-range gain values.
@@ -129,11 +150,10 @@ client (host)         hackrf-agent-mcp
      │  ◄─── tools/call result
 ```
 
-- **MEDIUM** commands: the host renders an `approve` boolean. Click Approve
-  or Deny.
-- **HIGH** commands: the host also renders a `confirm` text field. The
-  operator must type the literal string `CONFIRM`. Anything else is treated
-  as a denial.
+- **MEDIUM** and **HIGH** commands: the elicitation carries no form
+  fields. The host renders a plain confirmation prompt — click **Allow**
+  to approve or **Deny** to deny. Same one-click flow at both tiers; the
+  message text tells the operator which tier they're approving.
 - **Timeout:** hosts typically time out elicitation prompts after 120 s.
   A timeout is treated as a denial.
 - **Auto-approve MEDIUM:** pass `--auto-approve-medium` to the server (or

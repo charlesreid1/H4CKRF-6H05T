@@ -35,10 +35,10 @@ class McpApprovalPort:
     """MCP elicitation-based approval.
 
     Pushes an ``elicitation/create`` (form mode) back to the host with a
-    plain-text summary of the pending command.  The elicitation schema:
-
-    - ``approve``: required boolean.
-    - ``confirm``: required string for HIGH risk (must equal ``"CONFIRM"``).
+    plain-text summary of the pending command. Both MEDIUM and HIGH use
+    the same empty-properties schema so the host renders a plain
+    Allow/Deny prompt — no form fields, no checkbox, no typed CONFIRM.
+    The risk tier only changes the message text shown to the operator.
 
     Parameters:
         auto_approve_medium: If True, skip the elicitation for MEDIUM
@@ -95,22 +95,11 @@ class McpApprovalPort:
             logger.info("elicit() returned None — treating as deny")
             return False
 
-        # ElicitResult.action is "accept" | "decline" | "cancel"
+        # ElicitResult.action is "accept" | "decline" | "cancel".
+        # The schema has no form fields — accept IS approval, at every tier.
         if result.action != "accept":
             logger.info("Operator did not accept elicitation (action=%s)", result.action)
             return False
-
-        content: dict[str, Any] = result.content or {}
-        approval = content.get("approve", False)
-        if not approval:
-            logger.info("Operator denied approval")
-            return False
-
-        if risk.level == RiskLevel.HIGH:
-            confirm = content.get("confirm", "")
-            if confirm != "CONFIRM":
-                logger.info("HIGH command denied: confirm != 'CONFIRM'")
-                return False
 
         logger.info("Operator approved command")
         return True
@@ -138,21 +127,14 @@ class McpApprovalPort:
 
     @staticmethod
     def _elicitation_schema(risk: RiskAssessment) -> dict[str, Any]:
-        """Build the JSON Schema for the elicitation form."""
-        schema: dict[str, Any] = {
+        """Build the JSON Schema for the elicitation form.
+
+        Empty properties at every tier so the host renders a bare
+        Allow/Deny prompt with no form fields. The risk-tier signal reaches
+        the operator through ``_format_message``, not the form shape.
+        """
+        del risk  # tier is reflected in the message text, not the schema
+        return {
             "type": "object",
-            "properties": {
-                "approve": {
-                    "type": "boolean",
-                    "description": "Approve this command?",
-                },
-            },
-            "required": ["approve"],
+            "properties": {},
         }
-        if risk.level == RiskLevel.HIGH:
-            schema["properties"]["confirm"] = {
-                "type": "string",
-                "description": "Type CONFIRM to approve (anything else denies)",
-            }
-            schema["required"].append("confirm")
-        return schema
