@@ -41,6 +41,11 @@ hackrf = [
 mcp = [
     "mcp==2.0.0",
 ]
+# ``analyze`` has no Python dependencies — both tools are external binaries.
+# ``analyze_pulses`` requires ``rtl_433`` (brew install rtl_433).
+# ``demodulate_bits`` requires ``urh_cli`` (pipx install urh).
+analyze = [
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -85,4 +90,6 @@ markers = [
     "hardware: tests that require a HackRF One attached via USB",
     "llm: tests that require a live LLM API key (OpenRouter)",
     "slow: tests that take more than 5 seconds",
+    "rtl433: tests that require rtl_433 installed on PATH",
+    "urh: tests that require urh_cli installed on PATH",
 ]

@@ -11,7 +11,8 @@
             "capture_iq",
             "transmit_iq",
             "read_iq_summary",
-            "decode_ook",
+            "analyze_pulses",
+            "demodulate_bits",
             "grant_list",
             "audit_query"
           ],

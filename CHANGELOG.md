@@ -2,6 +2,36 @@
 
 ## v0.1.0 (unreleased)
 
+### Added
+
+- **`analyze_pulses` action** — shells out to `rtl_433 -A` on a captured IQ
+  file to estimate pulse timing, guess the modulation family
+  (OOK/PPM/PWM/Manchester), and match against ~200 known device protocols.
+  Requires `rtl_433` installed on the host (`brew install rtl_433`).
+- **`demodulate_bits` action** — shells out to `urh_cli` with explicit demod
+  parameters (modulation type, samples-per-symbol, threshold, etc.) and
+  returns the raw bitstream. No protocol matching — the caller recognises
+  framing, CRC, sync words. Requires URH installed (`pipx install urh`).
+- **`decode_ook` → `analyze_pulses` alias** — the old action name is
+  accepted as a backward-compatible alias for one release cycle. Saved
+  transcripts and plans referencing `decode_ook` continue to work.
+- **`doctor` three-state check status** — `Status` enum with `OK`, `WARN`
+  (optional tool unavailable; exit still 0), and `FAIL` (required feature
+  broken; exit 1). Added `rtl_433` and `urh_cli` checks (both `WARN` on
+  absent).
+
+### Changed
+
+- **`doctor` output** now shows yellow `WARN` for optional-tool checks
+  instead of red `FAIL`. The LLM system prompt documents the two new actions
+  and the recommended `analyze_pulses` → `demodulate_bits` workflow.
+
+### Fixed
+
+- `docs/safety.md` incorrectly listed `decode_ook` as MEDIUM tier. Both
+  `analyze_pulses` and `demodulate_bits` are correctly classified as LOW
+  (read-only, file-local, no TX).
+
 Initial release. Eight-Part implementation complete:
 
 - **Part 1:** Environment, hardware access, reference material.

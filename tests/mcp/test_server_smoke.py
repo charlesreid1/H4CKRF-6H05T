@@ -132,7 +132,7 @@ async def _make_deps(
 
 
 class TestListTools:
-    async def test_lists_all_eight_tools(
+    async def test_lists_all_nine_tools(
         self, db_path: Path, session_paths, fake_driver: FakeDriver
     ) -> None:
         deps = await _make_deps(db_path, session_paths, fake_driver)
@@ -141,7 +141,7 @@ class TestListTools:
             async def _test(session: ClientSession) -> None:
                 result = await session.list_tools()
                 tool_names = [t.name for t in result.tools]
-                assert len(tool_names) == 8
+                assert len(tool_names) == 9
                 for name in tool_names:
                     assert name.startswith("hackrf_"), f"Bad tool name: {name}"
 

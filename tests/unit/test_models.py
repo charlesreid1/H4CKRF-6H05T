@@ -177,7 +177,7 @@ class TestGrant:
 
 
 class TestCommandAction:
-    def test_exactly_eight_values(self) -> None:
+    def test_exactly_nine_values(self) -> None:
         values = {m.value for m in CommandAction}
         expected = {
             "get_device_info",
@@ -185,11 +185,18 @@ class TestCommandAction:
             "capture_iq",
             "transmit_iq",
             "read_iq_summary",
-            "decode_ook",
+            "analyze_pulses",
+            "demodulate_bits",
             "grant_list",
             "audit_query",
         }
         assert values == expected
+
+    def test_decode_ook_alias(self) -> None:
+        """``decode_ook`` is a backward-compatible alias for ``analyze_pulses``."""
+        result = CommandAction("decode_ook")
+        assert result is CommandAction.ANALYZE_PULSES
+        assert result.value == "analyze_pulses"
 
 
 # ---------------------------------------------------------------------------

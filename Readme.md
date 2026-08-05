@@ -126,6 +126,19 @@ pip install -e '.[dev]'
 The `[dev]` extra pulls in `pyhackrf` (which links against the `libhackrf` you
 installed in step 1) and the OpenAI SDK (for OpenRouter).
 
+#### Optional: OOK/pulse analysis tools
+
+Two actions shell out to external SDR tools for IQ analysis. Neither is
+required for capture, sweep, or TX — only for ``analyze_pulses`` and
+``demodulate_bits``:
+
+| Action | Tool | Install |
+|--------|------|---------|
+| ``analyze_pulses`` | [rtl_433](https://github.com/merbanan/rtl_433) | ``brew install rtl_433`` |
+| ``demodulate_bits`` | [URH](https://github.com/jopohl/urh) | ``pipx install urh`` |
+
+Run ``hackrf-agent doctor`` to see which tools are available.
+
 ### 4. Export your OpenRouter API key
 
 `hackrf-agent` reads `OPENROUTER_API_KEY` from the environment — nothing else.

@@ -22,9 +22,19 @@ class CommandAction(str, Enum):  # noqa: UP042
     CAPTURE_IQ = "capture_iq"
     TRANSMIT_IQ = "transmit_iq"
     READ_IQ_SUMMARY = "read_iq_summary"
-    DECODE_OOK = "decode_ook"
+    ANALYZE_PULSES = "analyze_pulses"
+    DEMODULATE_BITS = "demodulate_bits"
     GRANT_LIST = "grant_list"
     AUDIT_QUERY = "audit_query"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "CommandAction | None":
+        # Backward-compatible aliases.  ``decode_ook`` was the pre-0.6 name
+        # for what is now ``analyze_pulses``; keep it accepted for one release
+        # cycle so saved transcripts and plans don't break.
+        if value == "decode_ook":
+            return cls.ANALYZE_PULSES
+        return None
 
 
 class RiskLevel(str, Enum):  # noqa: UP042

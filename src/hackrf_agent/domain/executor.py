@@ -281,8 +281,28 @@ class CommandExecutor:
                 sample_rate_hz=raw["sample_rate_hz"],
                 session_paths=self._session_paths,
             )
-        if kind == "decode_ook":
-            return f.format_decode_ook(iq_path=raw["iq_path"])
+        if kind == "analyze_pulses":
+            return f.format_analyze_pulses(
+                iq_path=raw["iq_path"],
+                sample_rate_hz=raw["sample_rate_hz"],
+                pulses=raw.get("pulses"),
+                gaps=raw.get("gaps"),
+                estimated_symbol_rate_hz=raw.get("estimated_symbol_rate_hz"),
+                modulation=raw.get("modulation", "unknown"),
+                protocol_matches=raw.get("protocol_matches"),
+                rtl_433_version=raw.get("rtl_433_version"),
+                warnings=raw.get("warnings"),
+            )
+        if kind == "demodulate_bits":
+            return f.format_demodulate_bits(
+                iq_path=raw["iq_path"],
+                sample_rate_hz=raw["sample_rate_hz"],
+                params=raw.get("params"),
+                bits=raw.get("bits", ""),
+                bit_count=raw.get("bit_count", 0),
+                urh_version=raw.get("urh_version"),
+                warnings=raw.get("warnings"),
+            )
         if kind == "grant_list":
             return f.format_grant_list(raw["grants"])
         if kind == "audit_query":

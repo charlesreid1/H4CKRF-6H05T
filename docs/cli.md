@@ -64,17 +64,26 @@ immediately.
 hackrf-agent doctor
 ```
 
-Runs four checks and prints a checklist:
+Runs six checks and prints a checklist with three-state status:
 
-| Check | What it verifies |
-|---|---|
-| `home_dir` | `~/.hackrf-agent/` exists and is writable |
-| `db_schema` | SQLite schema is up to date (`ensure_schema` idempotent) |
-| `api_key` | `OPENROUTER_API_KEY` env var is set in the shell environment |
-| `hackrf` | HackRF One enumerates via `hackrf_info` subprocess |
+| Status | Colour | Meaning |
+|--------|--------|---------|
+| `OK` | green | Required or optional feature is working |
+| `WARN` | yellow | Optional tool unavailable — exit code still 0 |
+| `FAIL` | red | Required feature broken — exit code 1 |
 
-Exit code 0 if all checks pass, 1 if any check fails. The `hackrf` check uses
-`hackrf_info` subprocess — `pyhackrf` is not required.
+| Check | What it verifies | Required? |
+|---|---|---|
+| `home_dir` | `~/.hackrf-agent/` exists and is writable | Yes |
+| `db_schema` | SQLite schema is up to date (`ensure_schema` idempotent) | Yes |
+| `api_key` | `OPENROUTER_API_KEY` env var is set in the shell environment | Yes |
+| `hackrf` | HackRF One enumerates via `hackrf_info` subprocess | Yes |
+| `rtl_433` | `rtl_433` is on PATH (needed for `analyze_pulses`) | No — WARN on absent |
+| `urh_cli` | `urh_cli` is on PATH (needed for `demodulate_bits`) | No — WARN on absent |
+
+Exit code 0 if all required checks pass, 1 if any `FAIL`. A `WARN` never
+contributes to the exit code. The `hackrf` check uses `hackrf_info`
+subprocess — `pyhackrf` is not required.
 
 ---
 
@@ -334,7 +343,8 @@ hackrf-agent (main.py Typer app)
 ├── grant list                      → PermissionService.list_active
 ├── grant revoke <uuid>             → PermissionService.revoke
 ├── audit tail [--session] [--trace] → AuditService.query
-└── doctor                          → check home_dir, db, api_key, hackrf_info
+└── doctor                          → check home_dir, db, api_key, hackrf_info,
+                                        rtl_433, urh_cli (three-state: OK/WARN/FAIL)
 ```
 
 ---

@@ -4,7 +4,7 @@ Every hardware-facing error inherits from :class:`HackrfError`. Callers
 ``except HackrfError:`` at the executor boundary and translate to
 ``CommandResult(success=False, error=...)``.
 
-There are exactly five exceptions in this module. Do not add a sixth
+There are exactly ten exceptions in this module. Do not add an eleventh
 without discussion. Do not use these outside ``hackrf_agent.hw.*``.
 """
 
@@ -37,3 +37,28 @@ class InvalidHackrfArgError(HackrfError, ValueError):
 
 class HackrfTimeoutError(HackrfError):
     """A libhackrf operation did not complete within the caller's timeout."""
+
+
+# ---------------------------------------------------------------------------
+# External-tool errors — rtl_433, urh_cli, and future shell-out adapters
+# ---------------------------------------------------------------------------
+
+
+class ExternalToolError(HackrfError):
+    """Base for errors from external analysis/demodulation tools."""
+
+
+class Rtl433NotInstalled(ExternalToolError):
+    """``rtl_433`` is not on PATH. Install hint in the message."""
+
+
+class Rtl433Failed(ExternalToolError):
+    """``rtl_433`` ran but returned an unexpected error or timed out."""
+
+
+class UrhNotInstalled(ExternalToolError):
+    """``urh_cli`` is not on PATH. Install hint in the message."""
+
+
+class UrhFailed(ExternalToolError):
+    """``urh_cli`` ran but returned an unexpected error or timed out."""

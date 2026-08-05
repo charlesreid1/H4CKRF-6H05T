@@ -21,9 +21,10 @@ import numpy as np
 import numpy.typing as npt
 
 from hackrf_agent.domain.args import (
+    AnalyzePulsesArgs,
     AuditQueryArgs,
     CaptureIqArgs,
-    DecodeOokArgs,
+    DemodulateBitsArgs,
     GetDeviceInfoArgs,
     GrantListArgs,
     ReadIqSummaryArgs,
@@ -200,12 +201,65 @@ async def _handle_read_iq_summary(ctx: HandlerContext, args: dict[str, Any]) -> 
     }
 
 
-async def _handle_decode_ook(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
-    parsed = DecodeOokArgs(**args)
+async def _handle_analyze_pulses(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
+    parsed = AnalyzePulsesArgs(**args)
     iq_path = parsed.iq_path_resolved
     if not ctx.session_paths.is_within(iq_path):
         raise ValueError(f"iq_path {iq_path} escapes session root {ctx.session_paths.root}")
-    return {"kind": "decode_ook", "iq_path": iq_path}
+    if not iq_path.is_file():
+        raise ValueError(f"iq_path {iq_path} does not exist or is not a file")
+
+    from hackrf_agent.hw.rtl_433_analyzer import analyze as analyze_rtl433
+
+    result = await analyze_rtl433(iq_path, parsed.sample_rate_hz)
+    return {
+        "kind": "analyze_pulses",
+        "iq_path": iq_path,
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "pulses": result.get("pulse_stats"),
+        "gaps": None,
+        "estimated_symbol_rate_hz": None,
+        "modulation": result.get("modulation_guess", "unknown"),
+        "protocol_matches": result.get("protocol_matches", []),
+        "rtl_433_version": None,
+        "warnings": [],
+    }
+
+
+async def _handle_demodulate_bits(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
+    parsed = DemodulateBitsArgs(**args)
+    iq_path = parsed.iq_path_resolved
+    if not ctx.session_paths.is_within(iq_path):
+        raise ValueError(f"iq_path {iq_path} escapes session root {ctx.session_paths.root}")
+    if not iq_path.is_file():
+        raise ValueError(f"iq_path {iq_path} does not exist or is not a file")
+    modulation = parsed.modulation.upper()
+    if modulation not in {"ASK", "FSK", "GFSK", "PSK"}:
+        raise ValueError(
+            f"modulation must be ASK, FSK, GFSK, or PSK; got {parsed.modulation!r}"
+        )
+
+    from hackrf_agent.hw.urh_demodulator import demodulate as demodulate_urh
+
+    result = await demodulate_urh(
+        iq_path=iq_path,
+        sample_rate_hz=parsed.sample_rate_hz,
+        modulation=modulation,
+        samples_per_symbol=parsed.samples_per_symbol,
+        threshold=parsed.threshold,
+        invert=parsed.invert,
+        bit_order=parsed.bit_order,
+    )
+    return {
+        "kind": "demodulate_bits",
+        "iq_path": iq_path,
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "params": result.get("params", {}),
+        "bits": result.get("bits", ""),
+        "bit_count": result.get("bit_count", 0),
+        "urh_version": None,
+        "warnings": [],
+    }
 
 
 async def _handle_grant_list(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
@@ -233,7 +287,8 @@ HANDLERS: dict[
     CommandAction.CAPTURE_IQ: _handle_capture_iq,
     CommandAction.TRANSMIT_IQ: _handle_transmit_iq,
     CommandAction.READ_IQ_SUMMARY: _handle_read_iq_summary,
-    CommandAction.DECODE_OOK: _handle_decode_ook,
+    CommandAction.ANALYZE_PULSES: _handle_analyze_pulses,
+    CommandAction.DEMODULATE_BITS: _handle_demodulate_bits,
     CommandAction.GRANT_LIST: _handle_grant_list,
     CommandAction.AUDIT_QUERY: _handle_audit_query,
 }

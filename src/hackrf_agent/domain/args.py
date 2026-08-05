@@ -140,15 +140,59 @@ class ReadIqSummaryArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# decode_ook
+# analyze_pulses
 # ---------------------------------------------------------------------------
 
 
-class DecodeOokArgs(BaseModel):
-    """Attempt OOK bit decoding of an .iq file (placeholder)."""
+class AnalyzePulsesArgs(BaseModel):
+    """Run ``rtl_433 -A`` on a captured IQ file to estimate pulse timing,
+    guess modulation, and match against known device protocols.
+    """
 
     iq_path: str = Field(
         ..., description="Path to .iq file (must be under session root)"
+    )
+    sample_rate_hz: int = Field(
+        ..., description="Sample rate in Hz (must match the capture)", gt=0
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# demodulate_bits
+# ---------------------------------------------------------------------------
+
+
+class DemodulateBitsArgs(BaseModel):
+    """Run ``urh_cli`` on a captured IQ file with explicit demod parameters.
+    Returns the raw bitstream.  No protocol matching — caller recognises framing.
+    """
+
+    iq_path: str = Field(
+        ..., description="Path to .iq file (must be under session root)"
+    )
+    sample_rate_hz: int = Field(
+        ..., description="Sample rate in Hz (must match the capture)", gt=0
+    )
+    modulation: str = Field(
+        ..., description="Modulation type: ASK, FSK, GFSK, or PSK"
+    )
+    samples_per_symbol: int = Field(
+        ..., description="Samples per symbol (e.g. sample_rate / symbol_rate)", gt=0
+    )
+    threshold: float | None = Field(
+        default=None, description="Amplitude threshold (0.0–1.0, optional)"
+    )
+    invert: bool = Field(
+        default=False, description="Invert output bits"
+    )
+    bit_order: str | None = Field(
+        default=None, description="Bit order: 'lsb' or 'msb' (optional)"
     )
 
     model_config = {"frozen": True, "extra": "forbid"}
@@ -196,7 +240,8 @@ ActionArgs = (
     | CaptureIqArgs
     | TransmitIqArgs
     | ReadIqSummaryArgs
-    | DecodeOokArgs
+    | AnalyzePulsesArgs
+    | DemodulateBitsArgs
     | GrantListArgs
     | AuditQueryArgs
 )
@@ -212,7 +257,8 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "capture_iq": CaptureIqArgs,
     "transmit_iq": TransmitIqArgs,
     "read_iq_summary": ReadIqSummaryArgs,
-    "decode_ook": DecodeOokArgs,
+    "analyze_pulses": AnalyzePulsesArgs,
+    "demodulate_bits": DemodulateBitsArgs,
     "grant_list": GrantListArgs,
     "audit_query": AuditQueryArgs,
 }

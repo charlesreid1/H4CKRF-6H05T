@@ -306,6 +306,80 @@ class TestErrorHandling:
         assert result.error.startswith("ValueError")
 
 
+class TestExternalToolActions:
+    """Happy-path tests for analyze_pulses / demodulate_bits — the executor
+    must route the handler's raw dict through the formatter without tripping
+    on the ``kind`` key. Regression guard for a bug where every real-file
+    invocation crashed with ``TypeError: got an unexpected keyword argument
+    'kind'`` because the executor previously did ``format_*(**raw)``.
+    """
+
+    async def test_analyze_pulses_happy_path(self, bench, monkeypatch) -> None:
+        session = bench["session"]
+        iq = session.root / "cap.iq"
+        iq.write_bytes(b"\x00" * 1024)
+
+        async def fake_analyze(iq_path, sample_rate_hz, timeout_s=30.0):
+            return {
+                "protocol_matches": [{"model": "Acurite-606TX", "id": 42}],
+                "pulse_stats": {"min_us": 200, "max_us": 500, "median_us": 300},
+                "modulation_guess": "PPM",
+                "rtl_433_stderr": "",
+            }
+
+        monkeypatch.setattr(
+            "hackrf_agent.hw.rtl_433_analyzer.analyze", fake_analyze
+        )
+
+        result = await bench["executor"].execute(
+            make_cmd(
+                "analyze_pulses",
+                iq_path=str(iq),
+                sample_rate_hz=2_000_000,
+            )
+        )
+        assert result.success is True, result.error
+        assert result.data["modulation"] == "PPM"
+        assert result.data["protocol_matches"][0]["model"] == "Acurite-606TX"
+        assert result.data["sample_rate_hz"] == 2_000_000
+
+    async def test_demodulate_bits_happy_path(self, bench, monkeypatch) -> None:
+        session = bench["session"]
+        iq = session.root / "cap.iq"
+        iq.write_bytes(b"\x00" * 1024)
+
+        async def fake_demodulate(**kwargs):
+            return {
+                "bits": "10101100",
+                "bit_count": 8,
+                "urh_stderr": "",
+                "params": {
+                    "modulation": "ASK",
+                    "samples_per_symbol": 100,
+                    "threshold": None,
+                    "invert": False,
+                    "bit_order": None,
+                },
+            }
+
+        monkeypatch.setattr(
+            "hackrf_agent.hw.urh_demodulator.demodulate", fake_demodulate
+        )
+
+        result = await bench["executor"].execute(
+            make_cmd(
+                "demodulate_bits",
+                iq_path=str(iq),
+                sample_rate_hz=2_000_000,
+                modulation="ASK",
+                samples_per_symbol=100,
+            )
+        )
+        assert result.success is True, result.error
+        assert result.data["bits"] == "10101100"
+        assert result.data["bit_count"] == 8
+
+
 class TestEndToEnd:
     async def test_five_commands_sequence(self, bench) -> None:
         """Five commands: BLOCKED, LOW, MEDIUM-approved, MEDIUM-denied, LOW.

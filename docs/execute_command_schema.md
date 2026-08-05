@@ -88,21 +88,37 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** No hardware access; runs FFT on disk contents.
 
-## `decode_ook`
+## `analyze_pulses`
 
-**Purpose.** Attempt OOK bit decoding of an .iq file (placeholder).
+**Purpose.** Run rtl_433 -A on a captured IQ file to estimate pulse timing, guess the modulation family (OOK/PPM/PWM/Manchester), and match against known device protocols.
 
-**Args.** iq_path (str).
+**Args.** iq_path (str), sample_rate_hz (int).
 
 **Default risk tier.** LOW
 
 **Example envelope.**
 
 ```json
-{"action": "decode_ook", "args": {"iq_path": "..."}, "justification": "...", "expected_effect": "..."}
+{"action": "analyze_pulses", "args": {"iq_path": "...", "sample_rate_hz": 2000000}, "justification": "...", "expected_effect": "..."}
 ```
 
-**Notes.** Placeholder — returns empty bits + a note until Part 9.
+**Notes.** Requires rtl_433 installed on the host (brew install rtl_433). Returns pulse stats, modulation guess, and any protocol matches. The old action name "decode_ook" is accepted as an alias.
+
+## `demodulate_bits`
+
+**Purpose.** Run urh_cli on a captured IQ file with explicit demod parameters to extract a raw bitstream. No protocol matching — caller recognises framing, CRC, sync words.
+
+**Args.** iq_path (str), sample_rate_hz (int), modulation (str: ASK/FSK/GFSK/PSK), samples_per_symbol (int), threshold (float, optional), invert (bool, optional), bit_order (str, optional: lsb/msb).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "demodulate_bits", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "modulation": "ASK", "samples_per_symbol": 1000}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Requires URH installed on the host (pipx install urh). Recommended workflow: run analyze_pulses first, then feed its estimated_symbol_rate_hz and modulation guess into demodulate_bits.
 
 ## `grant_list`
 

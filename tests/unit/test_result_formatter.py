@@ -210,10 +210,52 @@ class TestAllFormatsJson:
             )
         )
 
-    def test_decode_ook_json(self, fmt: ResultFormatter) -> None:
-        result = fmt.format_decode_ook(iq_path=Path("/tmp/x.iq"))
-        assert result["bits"] == []
-        assert "note" in result
+    def test_analyze_pulses_json(self, fmt: ResultFormatter) -> None:
+        result = fmt.format_analyze_pulses(
+            iq_path=Path("/tmp/x.iq"),
+            sample_rate_hz=2_000_000,
+            modulation="PWM",
+            protocol_matches=[{"model": "Test", "id": 1}],
+        )
+        assert result["modulation"] == "PWM"
+        assert len(result["protocol_matches"]) == 1
+        assert result["sample_rate_hz"] == 2_000_000
+        _assert_json_serializable(result)
+
+    def test_analyze_pulses_caps_matches(self, fmt: ResultFormatter) -> None:
+        """protocol_matches is capped at 32 entries."""
+        many = [{"model": f"M-{i}"} for i in range(50)]
+        result = fmt.format_analyze_pulses(
+            iq_path=Path("/tmp/x.iq"),
+            sample_rate_hz=2_000_000,
+            protocol_matches=many,
+        )
+        assert len(result["protocol_matches"]) == 32
+
+    def test_demodulate_bits_json(self, fmt: ResultFormatter) -> None:
+        result = fmt.format_demodulate_bits(
+            iq_path=Path("/tmp/x.iq"),
+            sample_rate_hz=2_000_000,
+            params={"modulation": "ASK", "samples_per_symbol": 500},
+            bits="1010110001111000",
+            bit_count=16,
+        )
+        assert result["bits"] == "1010110001111000"
+        assert result["bit_count"] == 16
+        assert result["params"]["modulation"] == "ASK"
+        _assert_json_serializable(result)
+
+    def test_demodulate_bits_truncates(self, fmt: ResultFormatter) -> None:
+        """Bit string is capped at 4096 chars but bit_count is preserved."""
+        long_bits = "1" * 5000
+        result = fmt.format_demodulate_bits(
+            iq_path=Path("/tmp/x.iq"),
+            sample_rate_hz=2_000_000,
+            bits=long_bits,
+            bit_count=5000,
+        )
+        assert len(result["bits"]) == 4096
+        assert result["bit_count"] == 5000
         _assert_json_serializable(result)
 
     def test_grant_list_empty_json(self, fmt: ResultFormatter) -> None:

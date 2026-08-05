@@ -56,7 +56,8 @@ class RiskAssessor:
             CommandAction.GRANT_LIST,
             CommandAction.AUDIT_QUERY,
             CommandAction.READ_IQ_SUMMARY,
-            CommandAction.DECODE_OOK,
+            CommandAction.ANALYZE_PULSES,
+            CommandAction.DEMODULATE_BITS,
         ):
             return RiskAssessment(
                 level=RiskLevel.LOW,

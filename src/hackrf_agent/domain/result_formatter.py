@@ -150,18 +150,52 @@ class ResultFormatter:
             session_paths=session_paths,
         )
 
-    def format_decode_ook(
+    def format_analyze_pulses(
         self,
         *,
         iq_path: Path,
-        note: str = "OOK decoding not yet implemented",
+        sample_rate_hz: int,
+        pulses: dict[str, int] | None = None,
+        gaps: dict[str, int] | None = None,
+        estimated_symbol_rate_hz: int | None = None,
+        modulation: str = "unknown",
+        protocol_matches: list[dict[str, Any]] | None = None,
+        rtl_433_version: str | None = None,
+        warnings: list[str] | None = None,
     ) -> dict[str, Any]:
-        # Placeholder for Part 5 — decode_ook is a future action; the
-        # executor still needs a formatter to return something structured.
+        """Format rtl_433 -A results into a compact LLM-friendly dict."""
         return {
             "iq_path": str(iq_path),
-            "bits": [],
-            "note": note,
+            "sample_rate_hz": int(sample_rate_hz),
+            "pulses": pulses or {},
+            "gaps": gaps or {},
+            "estimated_symbol_rate_hz": estimated_symbol_rate_hz,
+            "modulation": modulation,
+            "protocol_matches": (protocol_matches or [])[:32],
+            "rtl_433_version": rtl_433_version,
+            "warnings": warnings or [],
+        }
+
+    def format_demodulate_bits(
+        self,
+        *,
+        iq_path: Path,
+        sample_rate_hz: int,
+        params: dict[str, Any] | None = None,
+        bits: str = "",
+        bit_count: int = 0,
+        urh_version: str | None = None,
+        warnings: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Format urh_cli demodulation results into a compact LLM-friendly dict."""
+        return {
+            "iq_path": str(iq_path),
+            "sample_rate_hz": int(sample_rate_hz),
+            "params": params or {},
+            "bits": bits[:4096],
+            "bit_count": int(bit_count),
+            "urh_version": urh_version,
+            "warnings": warnings or [],
         }
 
     def format_grant_list(self, grants: list[Any]) -> dict[str, Any]:

@@ -109,7 +109,8 @@ not filling them in. They land in the audit log verbatim.
 | `hackrf_capture_iq`       | `CAPTURE_IQ`        | LOW / MEDIUM     | RX only     |
 | `hackrf_transmit_iq`      | `TRANSMIT_IQ`       | MEDIUM / HIGH    | TX          |
 | `hackrf_read_iq_summary`  | `READ_IQ_SUMMARY`   | LOW              | none        |
-| `hackrf_decode_ook`       | `DECODE_OOK`        | LOW              | none        |
+| `hackrf_analyze_pulses`   | `ANALYZE_PULSES`    | LOW              | rtl_433     |
+| `hackrf_demodulate_bits`  | `DEMODULATE_BITS`   | LOW              | urh_cli     |
 | `hackrf_grant_list`       | `GRANT_LIST`        | LOW              | none        |
 | `hackrf_audit_query`      | `AUDIT_QUERY`       | LOW              | none        |
 

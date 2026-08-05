@@ -81,6 +81,25 @@ MATRIX = [
         6,
         False,
     ),
+    (
+        CommandAction.ANALYZE_PULSES,
+        {"iq_path": "/nonexistent.iq", "sample_rate_hz": 2_000_000},
+        RiskLevel.LOW,
+        4,
+        False,
+    ),
+    (
+        CommandAction.DEMODULATE_BITS,
+        {
+            "iq_path": "/nonexistent.iq",
+            "sample_rate_hz": 2_000_000,
+            "modulation": "ASK",
+            "samples_per_symbol": 100,
+        },
+        RiskLevel.LOW,
+        4,
+        False,
+    ),
 ]
 
 

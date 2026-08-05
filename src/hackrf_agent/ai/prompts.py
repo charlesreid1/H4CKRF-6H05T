@@ -61,9 +61,9 @@ Every command passes through a host-side risk gate. The gate classifies your
 command into one of four tiers:
 
 - **LOW** — Read-only informational commands: get_device_info, grant_list,
-  audit_query, read_iq_summary, decode_ook, sweep_spectrum with dwell_s ≤ 2 s,
-  and capture_iq with duration_s ≤ 5 s. Executed immediately; no operator
-  approval needed.
+  audit_query, read_iq_summary, analyze_pulses, demodulate_bits,
+  sweep_spectrum with dwell_s ≤ 2 s, and capture_iq with duration_s ≤ 5 s.
+  Executed immediately; no operator approval needed.
 - **MEDIUM** — Longer RX (sweeps with dwell_s > 2 s, captures with
   duration_s > 5 s), or a TX in an ISM band that is either covered by an
   active grant or uses tx_vga_gain_db ≤ 30 without a grant. Requires
@@ -121,8 +121,18 @@ Available actions and their required args:
 - **read_iq_summary** — args: iq_path (str), center_freq_hz (int), plus
   optional sample_rate_hz. Returns statistical summary of an IQ file without
   re-capturing.
-- **decode_ook** — args: iq_path (str). Attempts on-off keying demodulation
-  on captured IQ data.
+- **analyze_pulses** — args: iq_path (str), sample_rate_hz (int). Runs
+  `rtl_433 -A` on a captured IQ file to estimate pulse timing, guess the
+  modulation family (OOK/PPM/PWM/Manchester), and match against known device
+  protocols. Returns pulse stats and any protocol decodes. Requires rtl_433
+  installed on the host.
+- **demodulate_bits** — args: iq_path (str), sample_rate_hz (int),
+  modulation (str: ASK, FSK, GFSK, PSK), samples_per_symbol (int), plus
+  optional threshold (float), invert (bool), bit_order (str). Runs urh_cli
+  on a captured IQ file to extract a raw bitstream. No protocol matching.
+  Recommended workflow: run analyze_pulses first, then feed its
+  estimated_symbol_rate_hz and modulation guess into demodulate_bits.
+  Requires URH installed on the host (pipx install urh).
 - **grant_list** — args: {} — Lists currently active TX grants.
 - **audit_query** — args: optional session_id (str), limit (int). Reads the
   audit log for past commands in this session.
