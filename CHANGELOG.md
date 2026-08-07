@@ -4,6 +4,19 @@
 
 ### Added
 
+- **RTTY, AX.25, and APRS decoders.** Three new LOW-risk verbs.
+  - `decode_rtty`: Baudot ITA2 5-bit over 2FSK with LTRS/FIGS shift
+    tracking, framing = 1 start + 5 data + 1 stop.
+  - `decode_ax25`: HDLC over Bell 202 AFSK-1200 (or direct FSK-9600).
+    NRZI + bit-unstuffing + LSB-first packing + CRC-16-CCITT FCS.
+    Parses destination/source/digipeaters, control, PID, info.
+  - `decode_aprs`: interprets AX.25 UI frames as APRS. Supports
+    position (uncompressed, w/ + w/o timestamp), status, message,
+    object, and telemetry data-type identifiers.
+  - Extracted a shared `fsk_bit_stream` DSP primitive used by POCSAG,
+    RTTY, and AX.25. Switched the threshold logic from median (which
+    fails on idle-mark-heavy streams like RTTY) to a per-symbol min/max
+    midpoint.
 - **Protocol decoders — `decode_pocsag` and `decode_ads_b`.** Both LOW
   risk, both read-only. POCSAG: 2FSK demod, sync-word scan for
   `0x7CD215D8` in both polarities, BCH(31,21) syndrome + even-parity
