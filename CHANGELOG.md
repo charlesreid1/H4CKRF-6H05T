@@ -4,6 +4,15 @@
 
 ### Added
 
+- **Protocol decoders — `decode_pocsag` and `decode_ads_b`.** Both LOW
+  risk, both read-only. POCSAG: 2FSK demod, sync-word scan for
+  `0x7CD215D8` in both polarities, BCH(31,21) syndrome + even-parity
+  validation per codeword, address+message assembly with numeric-BCD
+  and 7-bit-ASCII payload interpretations. ADS-B: Mode S 112-bit
+  extended-squitter decoder with preamble correlation, 1 μs/bit PPM
+  slicing, CRC-24 (`0xFFF409`), DF+ICAO24 extraction. Requires
+  `sample_rate_hz >= 2 MHz`. **TX on 1090 MHz remains BLOCKED** — this
+  verb only decodes captured RX data.
 - **Analysis tier — seven new `CommandAction` verbs.** Offline DSP on
   already-captured `.iq` files, hardcoded `LOW` risk. Verbs:
   `analyze_iq_modulation` (moment-based classifier),
