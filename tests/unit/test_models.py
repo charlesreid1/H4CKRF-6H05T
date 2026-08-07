@@ -197,6 +197,8 @@ class TestCommandAction:
             "decode_pwm",
             "decode_ppm",
             "decode_nrz",
+            "decode_pocsag",
+            "decode_ads_b",
             # Knowledge tier (Phase 3)
             "knowledge_list_topics",
             "knowledge_read",

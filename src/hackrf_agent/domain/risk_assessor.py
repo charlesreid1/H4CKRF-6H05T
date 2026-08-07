@@ -94,6 +94,8 @@ class RiskAssessor:
             CommandAction.DECODE_PWM,
             CommandAction.DECODE_PPM,
             CommandAction.DECODE_NRZ,
+            CommandAction.DECODE_POCSAG,
+            CommandAction.DECODE_ADS_B,
         ):
             return RiskAssessment(
                 level=RiskLevel.LOW,

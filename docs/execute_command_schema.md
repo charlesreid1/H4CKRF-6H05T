@@ -248,6 +248,38 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** 'nrz' = level encodes bit directly; 'nrzi' = transition encodes a 1.
 
+## `decode_pocsag`
+
+**Purpose.** POCSAG paging decoder (baud 512/1200/2400).
+
+**Args.** iq_path (str), sample_rate_hz (int), baud (int in {512, 1200, 2400}, default 1200).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_pocsag", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "baud": 1200}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns per-message ric, function, and both numeric-BCD and 7-bit-ASCII payload strings. Also reports sync-word offsets and per-codeword BCH validity.
+
+## `decode_ads_b`
+
+**Purpose.** Mode S / ADS-B decoder for 1090 MHz captures.
+
+**Args.** iq_path (str), sample_rate_hz (int, >= 2000000), max_frames (int, default 64).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_ads_b", "args": {"iq_path": "...", "sample_rate_hz": 2000000}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Read-only over already-captured IQ. TX on 1090 MHz stays BLOCKED regardless. Returns per-frame df, icao24_hex, raw_hex, crc_ok.
+
 ## `knowledge_list_topics`
 
 **Purpose.** Enumerate every topic dir under knowledge/ and its markdown files.

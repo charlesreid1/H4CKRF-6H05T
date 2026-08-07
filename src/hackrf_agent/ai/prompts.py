@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v3"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v4"
 
 TOOL_NAME: str = "execute_command"
 
@@ -158,6 +158,18 @@ touch libhackrf. Feed them files produced by ``capture_iq``.
 - **decode_nrz** — args: iq_path (str), sample_rate_hz (int),
   symbol_rate_hz (float), variant ('nrz' or 'nrzi'), inverted (bool).
   NRZ level-encoded bits, or NRZI where transitions = 1.
+- **decode_pocsag** — args: iq_path (str), sample_rate_hz (int),
+  baud (int in {512, 1200, 2400}, default 1200). POCSAG paging
+  decoder. Returns per-message ``ric``, ``function``, and both
+  numeric-BCD and 7-bit-ASCII payload strings — the caller picks the
+  interpretation the payload looks like. Also reports the sync-word
+  offsets and per-codeword BCH validity.
+- **decode_ads_b** — args: iq_path (str), sample_rate_hz (int, must be
+  >= 2 MHz for 0.5 μs chip resolution), max_frames (int). Mode S /
+  ADS-B extended-squitter decoder for 1090 MHz captures. Returns
+  per-frame ``df``, ``icao24_hex``, ``raw_hex``, ``crc_ok``. **TX on
+  1090 MHz stays BLOCKED regardless — this verb only decodes
+  already-captured RX data.**
 
 Analysis verbs are the composition layer between raw IQ and a decoded
 bitstream. A typical CTF flow: ``capture_iq`` -> ``analyze_iq_modulation``

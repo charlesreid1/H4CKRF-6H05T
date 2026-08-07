@@ -352,6 +352,59 @@ class DecodeNrzArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# decode_pocsag
+# ---------------------------------------------------------------------------
+
+
+class DecodePocsagArgs(BaseModel):
+    """POCSAG paging decoder (512 / 1200 / 2400 baud)."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: int = Field(default=1200, description="POCSAG baud rate")
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _valid_baud(self) -> "DecodePocsagArgs":
+        if self.baud not in (512, 1200, 2400):
+            raise ValueError(f"baud must be 512, 1200, or 2400; got {self.baud}")
+        return self
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_ads_b
+# ---------------------------------------------------------------------------
+
+
+class DecodeAdsBArgs(BaseModel):
+    """Mode S / ADS-B decoder over captured 1090 MHz IQ."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(
+        default=2_000_000,
+        description="Capture rate. Must be >= 2 MHz for 0.5 μs chip resolution.",
+        ge=2_000_000,
+    )
+    max_frames: int = Field(
+        default=64,
+        description="Maximum frames to decode from the capture.",
+        ge=1,
+        le=4096,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
 # knowledge_list_topics
 # ---------------------------------------------------------------------------
 
@@ -480,6 +533,8 @@ ActionArgs = (
     | DecodePwmArgs
     | DecodePpmArgs
     | DecodeNrzArgs
+    | DecodePocsagArgs
+    | DecodeAdsBArgs
     | KnowledgeListTopicsArgs
     | KnowledgeReadArgs
     | KnowledgeSearchArgs
@@ -509,6 +564,8 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "decode_pwm": DecodePwmArgs,
     "decode_ppm": DecodePpmArgs,
     "decode_nrz": DecodeNrzArgs,
+    "decode_pocsag": DecodePocsagArgs,
+    "decode_ads_b": DecodeAdsBArgs,
     "knowledge_list_topics": KnowledgeListTopicsArgs,
     "knowledge_read": KnowledgeReadArgs,
     "knowledge_search": KnowledgeSearchArgs,

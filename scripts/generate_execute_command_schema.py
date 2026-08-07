@@ -209,6 +209,31 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
         "notes": "'nrz' = level encodes bit directly; 'nrzi' = transition "
                  "encodes a 1.",
     },
+    CommandAction.DECODE_POCSAG: {
+        "purpose": "POCSAG paging decoder (baud 512/1200/2400).",
+        "args_doc": "iq_path (str), sample_rate_hz (int), baud (int in "
+                    "{512, 1200, 2400}, default 1200).",
+        "example": '{"action": "decode_pocsag", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"baud": 1200}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns per-message ric, function, and both numeric-BCD "
+                 "and 7-bit-ASCII payload strings. Also reports sync-word "
+                 "offsets and per-codeword BCH validity.",
+    },
+    CommandAction.DECODE_ADS_B: {
+        "purpose": "Mode S / ADS-B decoder for 1090 MHz captures.",
+        "args_doc": "iq_path (str), sample_rate_hz (int, >= 2000000), "
+                    "max_frames (int, default 64).",
+        "example": '{"action": "decode_ads_b", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Read-only over already-captured IQ. TX on 1090 MHz "
+                 "stays BLOCKED regardless. Returns per-frame df, "
+                 "icao24_hex, raw_hex, crc_ok.",
+    },
     CommandAction.KNOWLEDGE_LIST_TOPICS: {
         "purpose": "Enumerate every topic dir under knowledge/ and its markdown files.",
         "args_doc": "No arguments.",

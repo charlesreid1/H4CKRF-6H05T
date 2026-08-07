@@ -26,9 +26,11 @@ from hackrf_agent.domain.args import (
     AnalyzeIqSymbolsArgs,
     AuditQueryArgs,
     CaptureIqArgs,
+    DecodeAdsBArgs,
     DecodeManchesterArgs,
     DecodeNrzArgs,
     DecodeOokArgs,
+    DecodePocsagArgs,
     DecodePpmArgs,
     DecodePwmArgs,
     GetDeviceInfoArgs,
@@ -51,6 +53,9 @@ from hackrf_agent.hw.analysis import (
     classify_modulation as _classify_modulation,
 )
 from hackrf_agent.hw.analysis import (
+    decode_ads_b as _decode_ads_b,
+)
+from hackrf_agent.hw.analysis import (
     decode_manchester as _decode_manchester,
 )
 from hackrf_agent.hw.analysis import (
@@ -61,6 +66,9 @@ from hackrf_agent.hw.analysis import (
 )
 from hackrf_agent.hw.analysis import (
     decode_ppm as _decode_ppm,
+)
+from hackrf_agent.hw.analysis import (
+    decode_pocsag as _decode_pocsag,
 )
 from hackrf_agent.hw.analysis import (
     decode_pwm as _decode_pwm,
@@ -424,6 +432,43 @@ async def _handle_decode_ppm(
     }
 
 
+async def _handle_decode_pocsag(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodePocsagArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_pocsag(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        baud=parsed.baud,
+    )
+    return {
+        "kind": "decode_pocsag",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        **result,
+    }
+
+
+async def _handle_decode_ads_b(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodeAdsBArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_ads_b(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        max_frames=parsed.max_frames,
+    )
+    return {
+        "kind": "decode_ads_b",
+        "iq_path": str(iq_path),
+        **result,
+    }
+
+
 async def _handle_decode_nrz(
     ctx: HandlerContext, args: dict[str, Any]
 ) -> dict[str, Any]:
@@ -563,4 +608,6 @@ HANDLERS: dict[
     CommandAction.DECODE_PWM: _handle_decode_pwm,
     CommandAction.DECODE_PPM: _handle_decode_ppm,
     CommandAction.DECODE_NRZ: _handle_decode_nrz,
+    CommandAction.DECODE_POCSAG: _handle_decode_pocsag,
+    CommandAction.DECODE_ADS_B: _handle_decode_ads_b,
 }

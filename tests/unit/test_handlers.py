@@ -336,6 +336,88 @@ class TestAnalysisHandlers:
         )
         assert sum(result["bits"]) == 0
 
+    async def test_decode_pocsag(self, ctx: HandlerContext) -> None:
+        import numpy as np
+        from hackrf_agent.hw.analysis import _POCSAG_IDLE, _POCSAG_SYNC
+        fs = 1_200_000
+        baud = 1200
+        sps = fs // baud
+        # Sync + 16 idle codewords.
+        bits: list[int] = []
+        for b in range(31, -1, -1):
+            bits.append((_POCSAG_SYNC >> b) & 1)
+        for _ in range(16):
+            for b in range(31, -1, -1):
+                bits.append((_POCSAG_IDLE >> b) & 1)
+        inst_freq = np.empty(len(bits) * sps, dtype=np.float32)
+        for i, bit in enumerate(bits):
+            inst_freq[i * sps : (i + 1) * sps] = -4500.0 if bit else 4500.0
+        phase = np.cumsum(2 * np.pi * inst_freq / fs)
+        iq = np.exp(1j * phase).astype(np.complex64)
+        # HackRF native format: int8 interleaved I/Q.
+        i8 = (iq.real * 127).astype(np.int8)
+        q8 = (iq.imag * 127).astype(np.int8)
+        interleaved = np.empty(2 * i8.size, dtype=np.int8)
+        interleaved[0::2] = i8
+        interleaved[1::2] = q8
+        iq_path = ctx.session_paths.new_iq_path("pocsag-test")
+        iq_path.parent.mkdir(parents=True, exist_ok=True)
+        iq_path.write_bytes(interleaved.tobytes())
+        result = await HANDLERS[CommandAction.DECODE_POCSAG](
+            ctx,
+            {
+                "iq_path": str(iq_path),
+                "sample_rate_hz": fs,
+                "baud": baud,
+            },
+        )
+        assert result["sync_offsets"]
+        assert result["num_codewords"] == 16
+        assert result["invalid_codewords"] == 0
+
+    async def test_decode_ads_b(self, ctx: HandlerContext) -> None:
+        import numpy as np
+        from hackrf_agent.hw.analysis import _MODES_PREAMBLE_CHIPS
+        fs = 2_000_000
+        msg_hex = "8D4840D6202CC371C32CE0576098"
+        msg_bytes = bytes.fromhex(msg_hex)
+        bits = np.unpackbits(np.frombuffer(msg_bytes, dtype=np.uint8))
+        sps_per_us = fs / 1_000_000
+        samples_per_bit = int(round(sps_per_us))
+        half = samples_per_bit // 2
+        samples_per_chip = int(round(sps_per_us / 2))
+        preamble = np.repeat(
+            np.array(_MODES_PREAMBLE_CHIPS, dtype=np.float32),
+            samples_per_chip,
+        )
+        payload = np.zeros(bits.size * samples_per_bit, dtype=np.float32)
+        for i, b in enumerate(bits):
+            base = i * samples_per_bit
+            if b:
+                payload[base : base + half] = 1.0
+            else:
+                payload[base + half : base + samples_per_bit] = 1.0
+        silence = np.zeros(40, dtype=np.float32)
+        envelope = np.concatenate([silence, preamble, payload, silence])
+        iq = envelope.astype(np.complex64)
+        i8 = (iq.real * 127).astype(np.int8)
+        q8 = np.zeros_like(i8)
+        interleaved = np.empty(2 * i8.size, dtype=np.int8)
+        interleaved[0::2] = i8
+        interleaved[1::2] = q8
+        iq_path = ctx.session_paths.new_iq_path("adsb-test")
+        iq_path.parent.mkdir(parents=True, exist_ok=True)
+        iq_path.write_bytes(interleaved.tobytes())
+        result = await HANDLERS[CommandAction.DECODE_ADS_B](
+            ctx,
+            {"iq_path": str(iq_path), "sample_rate_hz": fs},
+        )
+        assert result["frames"]
+        f0 = result["frames"][0]
+        assert f0["df"] == 17
+        assert f0["icao24_hex"] == "4840D6"
+        assert f0["crc_ok"] is True
+
     async def test_decode_ppm(self, ctx: HandlerContext) -> None:
         import numpy as np
         fs = 1_000_000

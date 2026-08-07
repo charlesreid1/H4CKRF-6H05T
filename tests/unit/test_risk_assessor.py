@@ -96,6 +96,8 @@ class TestAnalysisActions:
             CommandAction.DECODE_PWM,
             CommandAction.DECODE_PPM,
             CommandAction.DECODE_NRZ,
+            CommandAction.DECODE_POCSAG,
+            CommandAction.DECODE_ADS_B,
         ],
     )
     def test_always_low_no_approval(

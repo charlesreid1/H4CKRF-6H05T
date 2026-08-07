@@ -704,3 +704,488 @@ def decode_nrzi(
         "samples_per_symbol": sliced.samples_per_symbol,
         "threshold": sliced.threshold,
     }
+
+
+# ---------------------------------------------------------------------------
+# POCSAG decoder
+# ---------------------------------------------------------------------------
+
+_POCSAG_SYNC: int = 0x7CD215D8
+_POCSAG_IDLE: int = 0x7A89C197
+_POCSAG_BCH_GEN: int = 0b11101101001  # 0x769, x^10+x^9+x^8+x^6+x^5+x^3+1
+_POCSAG_BAUDS: tuple[int, ...] = (512, 1200, 2400)
+
+
+def _pocsag_bch_syndrome(codeword_31: int) -> int:
+    """Compute BCH(31,21) syndrome. Returns 0 for a valid 31-bit codeword.
+
+    ``codeword_31`` is the 31 bits of data+parity (excluding the trailing
+    even-parity bit).
+    """
+    cw = codeword_31 & 0x7FFFFFFF  # 31 bits
+    for i in range(30, 9, -1):
+        if cw & (1 << i):
+            cw ^= _POCSAG_BCH_GEN << (i - 10)
+    return cw & 0x3FF  # 10-bit remainder
+
+
+def _pocsag_even_parity(codeword_32: int) -> int:
+    """Return 1 iff the 32-bit codeword has odd number of 1-bits (i.e.
+    even-parity check fails)."""
+    x = codeword_32
+    x ^= x >> 16
+    x ^= x >> 8
+    x ^= x >> 4
+    x ^= x >> 2
+    x ^= x >> 1
+    return x & 1
+
+
+def _pocsag_2fsk_demod(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    baud: int,
+) -> npt.NDArray[np.uint8]:
+    """Demodulate a 2FSK POCSAG stream to a bit array at ``baud``.
+
+    Uses the instantaneous-frequency method: unwrap phase, take diff,
+    threshold at the median. High frequency = 0 (mark), low frequency = 1
+    (space) per POCSAG convention. Returns one bit per symbol period.
+    """
+    phase = np.unwrap(np.angle(iq.astype(np.complex128)))
+    inst_freq = np.diff(phase)
+    if inst_freq.size == 0:
+        return np.zeros(0, dtype=np.uint8)
+    # np.diff drops one sample; repeat the last value so slicing at
+    # ``iq.size`` samples produces the same number of symbols we expect
+    # from the raw sample count.
+    inst_freq = np.concatenate([inst_freq, inst_freq[-1:]])
+    threshold = float(np.median(inst_freq))
+    binary = (inst_freq > threshold).astype(np.int8)  # 1 = high freq
+
+    sps = int(round(sample_rate_hz / baud))
+    if sps < 2:
+        return np.zeros(0, dtype=np.uint8)
+    n_symbols = binary.size // sps
+    if n_symbols == 0:
+        return np.zeros(0, dtype=np.uint8)
+    trimmed = binary[: n_symbols * sps].reshape(n_symbols, sps)
+    # Majority vote per symbol.
+    above = trimmed.sum(axis=1)
+    bits = (above > (sps // 2)).astype(np.uint8)
+    # POCSAG: high frequency = 0 (mark), low frequency = 1 (space) —
+    # invert the "high-freq = 1" convention.
+    return 1 - bits
+
+
+def _bits_to_uint32_be(bits: npt.NDArray[np.uint8]) -> int:
+    """Pack a 32-bit big-endian bit array (MSB first) into an int."""
+    v = 0
+    for b in bits:
+        v = (v << 1) | int(b)
+    return v
+
+
+def _pocsag_find_sync(bits: npt.NDArray[np.uint8]) -> list[int]:
+    """Return start indices of every occurrence of the 32-bit sync word."""
+    if bits.size < 32:
+        return []
+    sync_bits = np.array(
+        [(_POCSAG_SYNC >> (31 - i)) & 1 for i in range(32)], dtype=np.uint8
+    )
+    hits: list[int] = []
+    # Sliding window; small enough for direct comparison.
+    end = bits.size - 32 + 1
+    for i in range(end):
+        if np.array_equal(bits[i : i + 32], sync_bits):
+            hits.append(i)
+    return hits
+
+
+def _pocsag_parse_codeword(
+    cw32: int, frame_slot: int
+) -> dict[str, object]:
+    """Parse one 32-bit POCSAG codeword.
+
+    Returns:
+        A dict with ``flag`` ("address" | "message" | "idle"), plus the
+        role-specific fields. Also always includes ``bch_ok`` and
+        ``parity_ok``.
+    """
+    bch_ok = _pocsag_bch_syndrome(cw32 >> 1) == 0
+    parity_ok = _pocsag_even_parity(cw32) == 0
+    if cw32 == _POCSAG_IDLE:
+        return {
+            "flag": "idle",
+            "raw_hex": f"0x{cw32:08X}",
+            "bch_ok": bch_ok,
+            "parity_ok": parity_ok,
+        }
+    is_message = (cw32 >> 31) & 1
+    if is_message == 0:
+        # Address codeword.
+        address_upper18 = (cw32 >> 13) & 0x3FFFF
+        function = (cw32 >> 11) & 0x3
+        # RIC = address_upper18 << 3 | frame_slot
+        ric = (address_upper18 << 3) | (frame_slot & 0x7)
+        return {
+            "flag": "address",
+            "ric": int(ric),
+            "function": int(function),
+            "raw_hex": f"0x{cw32:08X}",
+            "bch_ok": bch_ok,
+            "parity_ok": parity_ok,
+        }
+    # Message codeword.
+    message_bits = (cw32 >> 11) & 0xFFFFF  # 20 bits
+    return {
+        "flag": "message",
+        "message_bits": int(message_bits),
+        "raw_hex": f"0x{cw32:08X}",
+        "bch_ok": bch_ok,
+        "parity_ok": parity_ok,
+    }
+
+
+def _pocsag_decode_numeric(bit_stream: str) -> str:
+    """Interpret an accumulated message bit stream as POCSAG numeric BCD.
+
+    Groups the bit stream into 4-bit nibbles (LSB first per POCSAG spec
+    — bit-reversed relative to the transmission order within each
+    nibble). The 16 codes map to ``0-9`` and the special chars
+    ``[spare]U [ ]spare``.
+    """
+    codes = "0123456789*U -]"
+    out: list[str] = []
+    # POCSAG numeric: 4 bits per digit, sent LSB-first (least-significant
+    # bit transmitted first). The received-order MSB-first stream is
+    # bit-reversed inside each nibble.
+    for i in range(0, len(bit_stream) - 3, 4):
+        nib = bit_stream[i : i + 4]
+        # Reverse to interpret MSB-first as if it were LSB-first.
+        val = int(nib[::-1], 2)
+        out.append(codes[val] if val < len(codes) else "?")
+    return "".join(out)
+
+
+def _pocsag_decode_alpha(bit_stream: str) -> str:
+    """Interpret an accumulated message bit stream as POCSAG 7-bit ASCII.
+
+    Groups the bit stream into 7-bit chars, LSB first per POCSAG spec.
+    """
+    out: list[str] = []
+    for i in range(0, len(bit_stream) - 6, 7):
+        septet = bit_stream[i : i + 7]
+        val = int(septet[::-1], 2)  # LSB-first → reverse to reconstruct
+        if 32 <= val < 127:
+            out.append(chr(val))
+        else:
+            out.append(f"[0x{val:02X}]")
+    return "".join(out)
+
+
+def decode_pocsag(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    baud: int = 1200,
+) -> dict[str, object]:
+    """POCSAG 512/1200/2400 paging decoder.
+
+    2FSK-demodulates the input, searches for the 32-bit sync word
+    ``0x7CD215D8``, parses each 8-frame batch after every sync into
+    codewords, and assembles messages (address codeword + subsequent
+    message codewords, up to the next address or idle).
+
+    For each message, both numeric-BCD and 7-bit-ASCII interpretations
+    are returned — the caller picks the one the payload looks like.
+    Function bits (0-3) hint at which encoding the pager used:
+    function 0 = numeric; 3 = alphanumeric; 1/2 = tone/voice-alert.
+
+    Args:
+        iq: complex64 samples.
+        sample_rate_hz: capture sample rate.
+        baud: 512, 1200, or 2400. Must be present in ``_POCSAG_BAUDS``.
+
+    Returns:
+        ``{"baud", "sync_offsets", "num_codewords", "messages",
+        "invalid_codewords"}``. ``messages`` is a list of dicts
+        containing ``ric``, ``function``, ``numeric``, ``alpha``,
+        ``codeword_count``.
+    """
+    if baud not in _POCSAG_BAUDS:
+        raise ValueError(f"baud must be one of {_POCSAG_BAUDS}, got {baud}")
+
+    bits = _pocsag_2fsk_demod(iq, sample_rate_hz, baud)
+    if bits.size < 32:
+        return {
+            "baud": baud,
+            "sync_offsets": [],
+            "num_codewords": 0,
+            "messages": [],
+            "invalid_codewords": 0,
+            "note": "not enough symbols after 2FSK demod",
+        }
+
+    # Try both polarities — the "which tone is 0/1" convention varies by
+    # transmitter. Pick the polarity that yields more sync-word hits.
+    inv = 1 - bits
+    hits_pos = _pocsag_find_sync(bits)
+    hits_neg = _pocsag_find_sync(inv)
+    if len(hits_neg) > len(hits_pos):
+        bits = inv
+        sync_offsets = hits_neg
+    else:
+        sync_offsets = hits_pos
+
+    messages: list[dict[str, object]] = []
+    invalid_codewords = 0
+    num_codewords = 0
+
+    for sync_off in sync_offsets:
+        # A batch has 16 codewords (8 frames * 2) = 512 bits after the sync.
+        cw_start = sync_off + 32
+        current_addr: dict[str, object] | None = None
+        current_bits: list[str] = []
+        for cw_idx in range(16):
+            start = cw_start + cw_idx * 32
+            end = start + 32
+            if end > bits.size:
+                break
+            cw = _bits_to_uint32_be(bits[start:end])
+            num_codewords += 1
+            frame_slot = cw_idx // 2  # 8 frames of 2 codewords each
+            parsed = _pocsag_parse_codeword(cw, frame_slot)
+            if not parsed.get("bch_ok"):
+                invalid_codewords += 1
+            flag = parsed["flag"]
+            if flag == "idle":
+                # Close out any pending message.
+                if current_addr is not None:
+                    messages.append(
+                        _pocsag_finalize_message(current_addr, current_bits)
+                    )
+                    current_addr = None
+                    current_bits = []
+                continue
+            if flag == "address":
+                if current_addr is not None:
+                    messages.append(
+                        _pocsag_finalize_message(current_addr, current_bits)
+                    )
+                current_addr = parsed
+                current_bits = []
+                continue
+            # Message codeword — accumulate 20 payload bits (MSB first).
+            payload = parsed["message_bits"]  # 20-bit int
+            for b in range(19, -1, -1):
+                current_bits.append("1" if (payload >> b) & 1 else "0")
+        # End of batch — flush any pending message.
+        if current_addr is not None:
+            messages.append(
+                _pocsag_finalize_message(current_addr, current_bits)
+            )
+
+    return {
+        "baud": baud,
+        "sync_offsets": sync_offsets,
+        "num_codewords": num_codewords,
+        "invalid_codewords": invalid_codewords,
+        "messages": messages,
+    }
+
+
+def _pocsag_finalize_message(
+    addr: dict[str, object], bits: list[str]
+) -> dict[str, object]:
+    """Turn accumulated bits into numeric + alpha payload strings."""
+    bit_stream = "".join(bits)
+    return {
+        "ric": addr["ric"],
+        "function": addr["function"],
+        "numeric": _pocsag_decode_numeric(bit_stream) if bit_stream else "",
+        "alpha": _pocsag_decode_alpha(bit_stream) if bit_stream else "",
+        "message_bit_count": len(bit_stream),
+    }
+
+
+# ---------------------------------------------------------------------------
+# ADS-B / Mode S decoder
+# ---------------------------------------------------------------------------
+
+# Mode S CRC-24 generator polynomial: x^24 + x^23 + x^22 + x^21 + x^20 +
+# x^19 + x^18 + x^17 + x^16 + x^15 + x^14 + x^13 + x^12 + x^10 + x^3 + 1
+# = 0x1FFF409 (25-bit representation) → 0xFFF409 for the 24-bit trailing part.
+_MODES_CRC_POLY: int = 0xFFF409
+_MODES_LONG_MSG_BITS: int = 112
+_MODES_SHORT_MSG_BITS: int = 56
+# Preamble pattern at 1 Mbps: pulses at t=0, 1.0, 3.5, 4.5 μs, each 0.5 μs
+# wide, in an 8 μs window. Encoded as a 16-chip pattern at 2 chips/μs.
+# The chip pattern is:
+#   1 0 1 0 0 0 0 1 0 1 0 0 0 0 0 0
+_MODES_PREAMBLE_CHIPS: list[int] = [
+    1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0
+]
+
+
+def _modes_crc24(bits: npt.NDArray[np.uint8]) -> int:
+    """CRC-24 over a Mode S message.
+
+    Iterates MSB-first. For a valid DF17 message the CRC over the full
+    112 bits (including the trailing 24-bit checksum) is zero. For DF11
+    it equals the ICAO24 (address/parity overlay).
+    """
+    reg = 0
+    for b in bits:
+        reg = ((reg << 1) | int(b)) & 0xFFFFFFFF
+        if reg & (1 << 24):
+            reg ^= (1 << 24) | _MODES_CRC_POLY
+    return reg & 0xFFFFFF
+
+
+def _modes_ppm_slice(
+    envelope: npt.NDArray[np.float32],
+    fs: int,
+    start_idx: int,
+    n_bits: int,
+) -> npt.NDArray[np.uint8]:
+    """Slice ``n_bits`` PPM chips from the envelope starting at
+    ``start_idx``.
+
+    Each bit is 1 μs = ``fs / 1e6`` samples. Bit "1" = pulse in the
+    first half; bit "0" = pulse in the second half.
+    """
+    sps_per_us = fs / 1_000_000
+    if sps_per_us < 2:
+        # Below Nyquist for the 0.5 μs chip.
+        return np.zeros(0, dtype=np.uint8)
+    samples_per_bit = int(round(sps_per_us))
+    half = samples_per_bit // 2
+    end = start_idx + n_bits * samples_per_bit
+    if end > envelope.size:
+        return np.zeros(0, dtype=np.uint8)
+    bits = np.zeros(n_bits, dtype=np.uint8)
+    for i in range(n_bits):
+        base = start_idx + i * samples_per_bit
+        first_half = float(np.sum(envelope[base : base + half]))
+        second_half = float(np.sum(envelope[base + half : base + samples_per_bit]))
+        bits[i] = 1 if first_half > second_half else 0
+    return bits
+
+
+def _modes_find_preambles(
+    envelope: npt.NDArray[np.float32],
+    fs: int,
+    max_frames: int = 4096,
+) -> list[int]:
+    """Return sample indices where the Mode S preamble likely begins.
+
+    Uses correlation of the envelope against the expected 8 μs preamble
+    chip pattern, then thresholds at the top few percent of correlation
+    values. This is deliberately loose: a real dump1090 uses a much more
+    sophisticated preamble detector, but for CTF-scale clean captures
+    a peaked correlation is enough.
+    """
+    sps_per_us = fs / 1_000_000
+    if sps_per_us < 2:
+        return []
+    samples_per_chip = int(round(sps_per_us / 2))
+    template = np.repeat(np.array(_MODES_PREAMBLE_CHIPS, dtype=np.float32), samples_per_chip)
+    template = template - template.mean()
+    env_c = envelope.astype(np.float32) - float(np.mean(envelope))
+    if env_c.size < template.size:
+        return []
+    corr = np.convolve(env_c, template[::-1], mode="valid")
+    if corr.size == 0:
+        return []
+    threshold = float(np.percentile(corr, 99.5))
+    if threshold <= 0:
+        return []
+    # Non-max suppression: keep peaks separated by at least one full
+    # (preamble + long-frame) span so we don't return overlapping hits.
+    min_gap = int(sps_per_us * (8 + _MODES_LONG_MSG_BITS))
+    hits: list[int] = []
+    last = -min_gap
+    for i in np.flatnonzero(corr > threshold):
+        if i - last >= min_gap:
+            hits.append(int(i))
+            last = int(i)
+            if len(hits) >= max_frames:
+                break
+    return hits
+
+
+def decode_ads_b(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    max_frames: int = 64,
+) -> dict[str, object]:
+    """Mode S / ADS-B decoder for captured IQ at 1090 MHz.
+
+    Requires ``sample_rate_hz >= 2_000_000`` for the 0.5 μs chip
+    resolution. Decodes 112-bit long frames (DF17 = extended squitter =
+    ADS-B). For DF17 the CRC over the 112-bit message is zero when
+    valid; for DF11 the CRC equals the ICAO24 address (parity-address
+    overlay). We report the DF field and the ICAO24 field
+    unconditionally so callers can inspect even CRC-failed frames.
+
+    Args:
+        iq: complex64 samples (Mode S is always at 1090 MHz).
+        sample_rate_hz: capture rate; must be >= 2 MHz.
+        max_frames: cap on decoded frames.
+
+    Returns:
+        ``{"sample_rate_hz", "num_preambles", "frames"}``. Each frame is
+        ``{"start_sample", "df", "icao24_hex", "raw_hex", "crc_residual",
+        "crc_ok"}``.
+    """
+    if sample_rate_hz < 2_000_000:
+        raise ValueError(
+            f"ADS-B requires sample_rate_hz >= 2000000, got {sample_rate_hz}"
+        )
+    envelope = np.abs(iq).astype(np.float32)
+    preambles = _modes_find_preambles(envelope, sample_rate_hz, max_frames=max_frames * 4)
+    frames: list[dict[str, object]] = []
+
+    sps_per_us = sample_rate_hz / 1_000_000
+    samples_per_us = int(round(sps_per_us))
+    preamble_samples = 8 * samples_per_us
+
+    for pre_idx in preambles:
+        if len(frames) >= max_frames:
+            break
+        payload_idx = pre_idx + preamble_samples
+        bits = _modes_ppm_slice(
+            envelope, sample_rate_hz, payload_idx, _MODES_LONG_MSG_BITS
+        )
+        if bits.size < _MODES_LONG_MSG_BITS:
+            continue
+        df = int((bits[0] << 4) | (bits[1] << 3) | (bits[2] << 2) | (bits[3] << 1) | bits[4])
+        crc_residual = _modes_crc24(bits)
+        crc_ok = crc_residual == 0
+        # Message byte layout (14 bytes = 112 bits, MSB first).
+        raw_bytes = bytearray(14)
+        for i in range(14):
+            byte_val = 0
+            for j in range(8):
+                byte_val = (byte_val << 1) | int(bits[i * 8 + j])
+            raw_bytes[i] = byte_val
+        raw_hex = raw_bytes.hex().upper()
+        icao24 = 0
+        for i in range(8, 32):
+            icao24 = (icao24 << 1) | int(bits[i])
+        frames.append(
+            {
+                "start_sample": int(payload_idx),
+                "df": df,
+                "icao24_hex": f"{icao24:06X}",
+                "raw_hex": raw_hex,
+                "crc_residual": int(crc_residual),
+                "crc_ok": bool(crc_ok),
+            }
+        )
+
+    return {
+        "sample_rate_hz": sample_rate_hz,
+        "num_preambles": len(preambles),
+        "frames": frames,
+    }

@@ -9,10 +9,18 @@ import pytest
 
 from hackrf_agent.hw.analysis import (
     MAX_IQ_FILE_BYTES,
+    _MODES_PREAMBLE_CHIPS,
+    _POCSAG_IDLE,
+    _POCSAG_SYNC,
+    _modes_crc24,
+    _pocsag_bch_syndrome,
+    _pocsag_even_parity,
     classify_modulation,
+    decode_ads_b,
     decode_manchester,
     decode_nrz,
     decode_nrzi,
+    decode_pocsag,
     decode_ppm,
     decode_pwm,
     estimate_symbol_rate,
@@ -384,3 +392,139 @@ class TestDecodeNrzi:
         # Constant level → no transitions → all zeros.
         bits = result["bits"]
         assert sum(bits) == 0
+
+
+# ---------------------------------------------------------------------------
+# POCSAG
+# ---------------------------------------------------------------------------
+
+
+def _synth_pocsag_batch(codewords: list[int], fs: int, baud: int) -> np.ndarray:
+    """Synthesize a 2FSK POCSAG batch (sync + codewords) as complex IQ.
+
+    High-frequency = 0 (mark), low-frequency = 1 (space).
+    """
+    sps = fs // baud
+    bits: list[int] = []
+    for b in range(31, -1, -1):
+        bits.append((_POCSAG_SYNC >> b) & 1)
+    for cw in codewords:
+        for b in range(31, -1, -1):
+            bits.append((cw >> b) & 1)
+    n = len(bits)
+    inst_freq = np.empty(n * sps, dtype=np.float32)
+    freq_hi = 4500.0
+    freq_lo = -4500.0
+    for i, bit in enumerate(bits):
+        inst_freq[i * sps : (i + 1) * sps] = freq_lo if bit else freq_hi
+    phase = np.cumsum(2 * np.pi * inst_freq / fs)
+    return np.exp(1j * phase).astype(np.complex64)
+
+
+class TestPocsagPrimitives:
+    def test_bch_syndrome_zero_for_sync_and_idle(self) -> None:
+        # Canonical POCSAG sync/idle words must have syndrome zero.
+        assert _pocsag_bch_syndrome(_POCSAG_SYNC >> 1) == 0
+        assert _pocsag_bch_syndrome(_POCSAG_IDLE >> 1) == 0
+
+    def test_parity_even_for_sync_and_idle(self) -> None:
+        assert _pocsag_even_parity(_POCSAG_SYNC) == 0
+        assert _pocsag_even_parity(_POCSAG_IDLE) == 0
+
+
+class TestDecodePocsag:
+    def test_batch_of_idle_codewords(self) -> None:
+        # Sync + 16 idle codewords. Should decode without any address,
+        # so no messages, but sync should be found and codewords counted.
+        fs = 1_200_000
+        baud = 1200
+        iq = _synth_pocsag_batch([_POCSAG_IDLE] * 16, fs, baud)
+        result = decode_pocsag(iq, sample_rate_hz=fs, baud=baud)
+        assert result["sync_offsets"]
+        assert result["num_codewords"] == 16
+        # Every codeword was a canonical idle → BCH-valid.
+        assert result["invalid_codewords"] == 0
+        assert result["messages"] == []
+
+    def test_rejects_bad_baud(self) -> None:
+        iq = np.ones(10_000, dtype=np.complex64)
+        with pytest.raises(ValueError, match="baud must be one of"):
+            decode_pocsag(iq, sample_rate_hz=1_000_000, baud=999)
+
+    def test_too_few_samples(self) -> None:
+        iq = np.ones(10, dtype=np.complex64)
+        result = decode_pocsag(iq, sample_rate_hz=1_000_000, baud=1200)
+        assert result["messages"] == []
+        assert result["num_codewords"] == 0
+
+
+# ---------------------------------------------------------------------------
+# ADS-B / Mode S
+# ---------------------------------------------------------------------------
+
+
+def _synth_ads_b_frame(msg_hex: str, fs: int) -> np.ndarray:
+    """Synthesize a Mode S envelope: silence + preamble + PPM payload."""
+    msg_bytes = bytes.fromhex(msg_hex)
+    bits = np.unpackbits(np.frombuffer(msg_bytes, dtype=np.uint8))
+    sps_per_us = fs / 1_000_000
+    samples_per_bit = int(round(sps_per_us))
+    half = samples_per_bit // 2
+    # Preamble: 16 chips at 2 chips/us (i.e. 8 us total).
+    samples_per_chip = int(round(sps_per_us / 2))
+    preamble = np.repeat(
+        np.array(_MODES_PREAMBLE_CHIPS, dtype=np.float32), samples_per_chip
+    )
+    # Payload PPM.
+    payload = np.zeros(bits.size * samples_per_bit, dtype=np.float32)
+    for i, b in enumerate(bits):
+        base = i * samples_per_bit
+        if b:
+            payload[base : base + half] = 1.0
+        else:
+            payload[base + half : base + samples_per_bit] = 1.0
+    silence = np.zeros(40, dtype=np.float32)
+    envelope = np.concatenate([silence, preamble, payload, silence])
+    return envelope.astype(np.complex64)
+
+
+class TestAdsBPrimitives:
+    def test_crc_zero_for_valid_frame(self) -> None:
+        # A canonical DF17 frame from real captures.
+        msg_hex = "8D4840D6202CC371C32CE0576098"
+        bits = np.unpackbits(np.frombuffer(bytes.fromhex(msg_hex), dtype=np.uint8))
+        assert _modes_crc24(bits) == 0
+
+    def test_crc_nonzero_for_corrupted_frame(self) -> None:
+        msg_hex = "8D4840D6202CC371C32CE0576099"  # flipped last byte
+        bits = np.unpackbits(np.frombuffer(bytes.fromhex(msg_hex), dtype=np.uint8))
+        assert _modes_crc24(bits) != 0
+
+
+class TestDecodeAdsB:
+    def test_round_trips_synthetic_frame(self) -> None:
+        msg_hex = "8D4840D6202CC371C32CE0576098"
+        iq = _synth_ads_b_frame(msg_hex, fs=2_000_000)
+        result = decode_ads_b(iq, sample_rate_hz=2_000_000, max_frames=4)
+        assert result["num_preambles"] >= 1
+        assert result["frames"]
+        f0 = result["frames"][0]
+        assert f0["df"] == 17
+        assert f0["icao24_hex"] == "4840D6"
+        assert f0["crc_ok"] is True
+        assert f0["raw_hex"] == msg_hex
+
+    def test_rejects_low_sample_rate(self) -> None:
+        iq = np.ones(1000, dtype=np.complex64)
+        with pytest.raises(ValueError, match="sample_rate_hz"):
+            decode_ads_b(iq, sample_rate_hz=1_000_000)
+
+    def test_no_preamble_no_frames(self) -> None:
+        # Pure noise: no correlation peaks above the threshold.
+        rng = np.random.default_rng(0)
+        iq = rng.normal(0, 0.05, 100_000).astype(np.complex64)
+        result = decode_ads_b(iq, sample_rate_hz=2_000_000)
+        # Should not crash; may report 0 or a few false positives at the
+        # 99.5-percentile threshold. Real payloads must fail CRC.
+        for frame in result["frames"]:
+            assert frame["crc_ok"] is False

@@ -293,6 +293,57 @@ class TestAnalysisDispatch:
         assert cmd.action == CommandAction.DECODE_NRZ
         assert cmd.args["variant"] == "nrzi"
 
+    def test_decode_pocsag(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_pocsag",
+            {
+                "iq_path": "/tmp/x.iq",
+                "sample_rate_hz": 1_200_000,
+                "baud": 1200,
+                "justification": "Decode paging traffic",
+                "expected_effect": "Per-message ric + payloads",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_POCSAG
+        assert cmd.args["baud"] == 1200
+
+    def test_decode_pocsag_rejects_bad_baud(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_decode_pocsag",
+                {
+                    "iq_path": "/tmp/x.iq",
+                    "baud": 999,
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_decode_ads_b(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_ads_b",
+            {
+                "iq_path": "/tmp/x.iq",
+                "sample_rate_hz": 2_000_000,
+                "justification": "Decode ADS-B",
+                "expected_effect": "Aircraft frames",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_ADS_B
+        assert cmd.args["sample_rate_hz"] == 2_000_000
+
+    def test_decode_ads_b_rejects_low_sample_rate(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_decode_ads_b",
+                {
+                    "iq_path": "/tmp/x.iq",
+                    "sample_rate_hz": 1_000_000,
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
     def test_decode_nrz_rejects_bad_variant(self) -> None:
         with pytest.raises(Exception):
             dispatch(
