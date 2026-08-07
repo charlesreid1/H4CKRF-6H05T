@@ -60,6 +60,7 @@ _TOOL_DESCRIPTIONS: dict[str, str] = {
     "knowledge_explain_signal": "Rank candidate signals from known_signals.json given a partial description (freq_hz, bw_hz, modulation_guess). At least one hint required. Read-only.",
     "knowledge_cross_reference": "Given a record_id, resolve its see_also list across every records/*.json file. Read-only.",
     "knowledge_verify_claim": "Grade a factual claim against the trap catalog (true/false/needs_qualification/unverified). Read-only.",
+    "play_sequence": "Chain 2-8 sub-actions through the funnel in order. Each sub-action goes through the full RiskAssessor/PermissionService/ApprovalPort/AuditService flow — no batching bypass. LOW itself; per-step risk applies. play_sequence cannot nest.",
 }
 
 # Fields that every tool schema must include (in addition to action-specific args).

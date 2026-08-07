@@ -552,3 +552,19 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Returns verdict in {true, false, needs_qualification, unverified} with citations. 'unverified' means no trap fired — caveat accordingly.
 
+## `play_sequence`
+
+**Purpose.** Chain 2-8 sub-actions through the funnel in order.
+
+**Args.** steps (list of {action, args}, 2-8 items), stop_on_error (bool, default true).
+
+**Default risk tier.** LOW (per-step risk applies)
+
+**Example envelope.**
+
+```json
+{"action": "play_sequence", "args": {"steps": [{"action": "analyze_iq_modulation", "args": {"iq_path": "..."}}, {"action": "analyze_iq_symbols", "args": {"iq_path": "..."}}]}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Each sub-action re-enters CommandExecutor.execute() with its own risk assessment, permission check, approval flow, and audit trail. No batching bypass. play_sequence cannot nest inside itself. stop_on_error=false runs every step even after a failure.
+

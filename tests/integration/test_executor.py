@@ -380,3 +380,109 @@ class TestEndToEnd:
         rows = await bench["audit"].query(limit=500)
         for r in rows:
             assert r.session_id == "s1"
+
+
+class TestPlaySequence:
+    """play_sequence drives sub-actions through the full funnel."""
+
+    async def test_two_low_steps_both_succeed(self, bench) -> None:
+        result = await bench["executor"].execute(
+            make_cmd(
+                "play_sequence",
+                steps=[
+                    {"action": "get_device_info", "args": {}},
+                    {"action": "grant_list", "args": {}},
+                ],
+            )
+        )
+        assert result.success is True
+        assert result.data["num_completed"] == 2
+        assert result.data["num_total"] == 2
+        assert all(s["success"] for s in result.data["steps"])
+        assert result.data["risk_tier"] == "LOW"
+
+    async def test_each_step_gets_own_trace_id(self, bench) -> None:
+        await bench["executor"].execute(
+            make_cmd(
+                "play_sequence",
+                steps=[
+                    {"action": "get_device_info", "args": {}},
+                    {"action": "grant_list", "args": {}},
+                ],
+            )
+        )
+        await _flush()
+        rows = await bench["audit"].query(limit=500)
+        # play_sequence itself doesn't audit (it dispatches sub-executes).
+        # Each of the two sub-executes gets its own trace_id.
+        actions = {(r.trace_id, r.action) for r in rows}
+        distinct_traces = {t for t, _ in actions}
+        assert len(distinct_traces) == 2
+
+    async def test_blocked_step_short_circuits(self, bench) -> None:
+        result = await bench["executor"].execute(
+            make_cmd(
+                "play_sequence",
+                steps=[
+                    {
+                        "action": "transmit_iq",
+                        "args": {
+                            "center_freq_hz": 1_090_000_000,
+                            "tx_vga_gain_db": 20,
+                            "iq_path": "/tmp/x.iq",
+                        },
+                    },
+                    {"action": "get_device_info", "args": {}},
+                ],
+            )
+        )
+        # First step BLOCKED; stop_on_error=True (default) → only step 1 ran.
+        assert result.success is False
+        assert result.data["num_completed"] == 1
+        assert result.data["steps"][0]["success"] is False
+
+    async def test_continue_on_error_when_configured(self, bench) -> None:
+        result = await bench["executor"].execute(
+            make_cmd(
+                "play_sequence",
+                steps=[
+                    {
+                        "action": "transmit_iq",
+                        "args": {
+                            "center_freq_hz": 1_090_000_000,
+                            "tx_vga_gain_db": 20,
+                            "iq_path": "/tmp/x.iq",
+                        },
+                    },
+                    {"action": "get_device_info", "args": {}},
+                ],
+                stop_on_error=False,
+            )
+        )
+        assert result.data["num_completed"] == 2
+        # Sub-action step 0 failed; step 1 succeeded → overall failure
+        # (any step failure means the sequence failed).
+        assert result.success is False
+        assert result.data["steps"][0]["success"] is False
+        assert result.data["steps"][1]["success"] is True
+
+    async def test_medium_step_inside_sequence_still_needs_approval(
+        self, bench
+    ) -> None:
+        # A long capture is MEDIUM and needs approval; play_sequence
+        # does NOT bypass the approval gate.
+        bench["approval"].answer = False
+        result = await bench["executor"].execute(
+            make_cmd(
+                "play_sequence",
+                steps=[
+                    {"action": "get_device_info", "args": {}},
+                    {
+                        "action": "capture_iq",
+                        "args": {"center_freq_hz": 433_000_000, "duration_s": 10.0},
+                    },
+                ],
+            )
+        )
+        assert result.success is False
+        assert result.data["steps"][1]["error"] == "approval_denied"

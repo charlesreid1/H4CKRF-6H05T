@@ -75,6 +75,14 @@ class CommandExecutor:
     # ------------------------------------------------------------------
 
     async def execute(self, command: ExecuteCommand) -> CommandResult:
+        # play_sequence is a composition verb — it drives sub-executes
+        # through the same funnel rather than dispatching a handler.
+        # Each sub-action gets its own trace_id, risk assessment,
+        # permission check, approval flow, and audit trail. play_sequence
+        # itself is hardcoded LOW; there is no batching bypass.
+        if command.action == CommandAction.PLAY_SEQUENCE:
+            return await self._execute_play_sequence(command)
+
         trace_id = new_trace_id()
         t0 = time.perf_counter()
 
@@ -238,6 +246,92 @@ class CommandExecutor:
             message=message,
             data=data,
             error=error,
+        )
+
+    # ------------------------------------------------------------------
+    # play_sequence
+    # ------------------------------------------------------------------
+
+    async def _execute_play_sequence(
+        self, command: ExecuteCommand
+    ) -> CommandResult:
+        """Run each sub-action through the full funnel, in order.
+
+        No batching bypass — each step re-enters execute() with its own
+        trace_id, risk assessment, permission check, approval flow, and
+        audit trail. play_sequence itself is hardcoded LOW.
+        """
+        from hackrf_agent.domain.args import PlaySequenceArgs
+
+        try:
+            parsed = PlaySequenceArgs(**command.args)
+        except Exception as e:  # noqa: BLE001 — surface pydantic errors as failures
+            return CommandResult(
+                success=False,
+                action=command.action,
+                message="play_sequence args failed validation.",
+                error=f"{type(e).__name__}: {e}",
+            )
+
+        results: list[dict[str, Any]] = []
+        overall_success = True
+
+        for i, step in enumerate(parsed.steps):
+            try:
+                sub_action = CommandAction(step.action)
+            except ValueError:
+                results.append(
+                    {
+                        "step": i,
+                        "action": step.action,
+                        "success": False,
+                        "message": f"unknown action: {step.action}",
+                        "error": "unknown_action",
+                    }
+                )
+                overall_success = False
+                if parsed.stop_on_error:
+                    break
+                continue
+
+            sub_command = ExecuteCommand(
+                action=sub_action,
+                args=step.args,
+                justification=(
+                    f"play_sequence step {i + 1}/{len(parsed.steps)}: "
+                    f"{command.justification}"
+                ),
+                expected_effect=command.expected_effect,
+            )
+            sub_result = await self.execute(sub_command)
+            results.append(
+                {
+                    "step": i,
+                    "action": step.action,
+                    "success": sub_result.success,
+                    "message": sub_result.message,
+                    "data": sub_result.data,
+                    "error": sub_result.error,
+                }
+            )
+            if not sub_result.success:
+                overall_success = False
+                if parsed.stop_on_error:
+                    break
+
+        return CommandResult(
+            success=overall_success,
+            action=command.action,
+            message=(
+                f"play_sequence completed {len(results)}/{len(parsed.steps)} steps."
+            ),
+            data={
+                "risk_tier": RiskLevel.LOW.value,
+                "steps": results,
+                "num_completed": len(results),
+                "num_total": len(parsed.steps),
+                "stopped_on_error": parsed.stop_on_error and not overall_success,
+            },
         )
 
     # ------------------------------------------------------------------

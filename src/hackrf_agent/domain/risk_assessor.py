@@ -57,6 +57,7 @@ class RiskAssessor:
             CommandAction.AUDIT_QUERY,
             CommandAction.READ_IQ_SUMMARY,
             CommandAction.DECODE_OOK,
+            CommandAction.PLAY_SEQUENCE,
         ):
             return RiskAssessment(
                 level=RiskLevel.LOW,

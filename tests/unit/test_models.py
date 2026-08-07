@@ -217,6 +217,8 @@ class TestCommandAction:
             "knowledge_explain_signal",
             "knowledge_cross_reference",
             "knowledge_verify_claim",
+            # Composition tier
+            "play_sequence",
         }
         assert values == expected
 

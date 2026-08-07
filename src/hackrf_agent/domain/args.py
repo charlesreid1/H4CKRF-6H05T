@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from typing import Any
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -775,6 +777,65 @@ class KnowledgeVerifyClaimArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# play_sequence
+# ---------------------------------------------------------------------------
+
+
+class PlaySequenceStep(BaseModel):
+    """One step in a play_sequence — an inline (action, args) pair."""
+
+    action: str = Field(
+        ...,
+        description="CommandAction value for this step (e.g. 'analyze_iq_modulation').",
+        min_length=1,
+        max_length=64,
+    )
+    args: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Args passed to the step's handler after Pydantic validation.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+class PlaySequenceArgs(BaseModel):
+    """Chain 2-8 sub-actions through the funnel in order.
+
+    Each sub-action is dispatched through the full ``CommandExecutor``
+    with its own risk assessment, permission check, and audit trail.
+    play_sequence does NOT batch approvals — a TX inside a sequence
+    still blocks on the standard approval flow if the risk tier
+    requires it. play_sequence itself is hardcoded LOW; the funnel
+    invariant applies per-step.
+
+    Sub-actions cannot nest ``play_sequence`` (would allow unbounded
+    depth); attempts are rejected at validation time.
+    """
+
+    steps: list[PlaySequenceStep] = Field(
+        ...,
+        description="Ordered list of sub-actions. Length 2-8.",
+        min_length=2,
+        max_length=8,
+    )
+    stop_on_error: bool = Field(
+        default=True,
+        description="If True (default), abort the sequence at the first failed step.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _no_nested_play_sequence(self) -> "PlaySequenceArgs":
+        for i, step in enumerate(self.steps):
+            if step.action == "play_sequence":
+                raise ValueError(
+                    f"steps[{i}]: play_sequence cannot nest inside itself"
+                )
+        return self
+
+
+# ---------------------------------------------------------------------------
 # Discriminated union (for generating a single tool schema in the chat prompt)
 # ---------------------------------------------------------------------------
 
@@ -814,6 +875,7 @@ ActionArgs = (
     | KnowledgeExplainSignalArgs
     | KnowledgeCrossReferenceArgs
     | KnowledgeVerifyClaimArgs
+    | PlaySequenceArgs
 )
 
 
@@ -856,4 +918,5 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "knowledge_explain_signal": KnowledgeExplainSignalArgs,
     "knowledge_cross_reference": KnowledgeCrossReferenceArgs,
     "knowledge_verify_claim": KnowledgeVerifyClaimArgs,
+    "play_sequence": PlaySequenceArgs,
 }

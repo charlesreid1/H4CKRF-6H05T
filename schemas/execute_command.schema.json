@@ -39,7 +39,8 @@
             "knowledge_random",
             "knowledge_explain_signal",
             "knowledge_cross_reference",
-            "knowledge_verify_claim"
+            "knowledge_verify_claim",
+            "play_sequence"
           ],
           "type": "string"
         }

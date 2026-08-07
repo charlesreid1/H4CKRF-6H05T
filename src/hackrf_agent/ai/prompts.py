@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v8"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v9"
 
 TOOL_NAME: str = "execute_command"
 
@@ -254,6 +254,26 @@ a factual RF question can be answered from the corpus.
   ``true``/``false``/``needs_qualification``/``unverified`` against a trap
   catalog. Caveat ``unverified`` claims to the operator — the corpus does
   not confirm them.
+
+== Composition Tier (LOW risk, per-step funnel) ==
+
+- **play_sequence** — args: steps (list of {action, args}, length 2-8),
+  stop_on_error (bool, default true). Chains sub-actions through the
+  funnel in order. Each sub-action gets its own risk assessment,
+  permission check, approval flow, and audit trail — no batching
+  bypass. play_sequence itself is LOW; a TX inside a sequence still
+  blocks on approval as if bare. play_sequence cannot nest.
+
+  Use for pipelines where the sub-actions are pre-known — e.g.
+  ``[{"action": "analyze_iq_modulation", "args": {"iq_path": "..."}},
+    {"action": "analyze_iq_symbols", "args": {"iq_path": "..."}},
+    {"action": "decode_manchester", "args": {"iq_path": "...",
+    "symbol_rate_hz": 2000}}]``.
+
+  Do NOT try to chain ``capture_iq`` into a decode step inside a single
+  play_sequence — the iq_path from capture_iq is only known after the
+  capture completes. Instead, run capture_iq alone, then a play_sequence
+  over the analysis pipeline.
 
 == Operating Discipline ==
 

@@ -415,6 +415,21 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
                  "with citations. 'unverified' means no trap fired — caveat "
                  "accordingly.",
     },
+    CommandAction.PLAY_SEQUENCE: {
+        "purpose": "Chain 2-8 sub-actions through the funnel in order.",
+        "args_doc": "steps (list of {action, args}, 2-8 items), "
+                    "stop_on_error (bool, default true).",
+        "example": '{"action": "play_sequence", "args": {"steps": '
+                   '[{"action": "analyze_iq_modulation", "args": {"iq_path": "..."}}, '
+                   '{"action": "analyze_iq_symbols", "args": {"iq_path": "..."}}]}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW (per-step risk applies)",
+        "notes": "Each sub-action re-enters CommandExecutor.execute() with "
+                 "its own risk assessment, permission check, approval flow, "
+                 "and audit trail. No batching bypass. play_sequence cannot "
+                 "nest inside itself. stop_on_error=false runs every step "
+                 "even after a failure.",
+    },
 }
 
 

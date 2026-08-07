@@ -784,6 +784,22 @@ async def _handle_knowledge_cross_reference(
     }
 
 
+async def _handle_play_sequence(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    """play_sequence is executed at the CommandExecutor layer.
+
+    This handler is a stub kept here so `set(HANDLERS) == set(CommandAction)`.
+    If the executor forgets to intercept play_sequence, this hard-fails
+    rather than silently returning something surprising.
+    """
+    raise RuntimeError(
+        "play_sequence must be dispatched at the CommandExecutor layer, "
+        "not the handler layer. If you see this error, the executor's "
+        "early-return branch was bypassed."
+    )
+
+
 async def _handle_knowledge_verify_claim(
     ctx: HandlerContext, args: dict[str, Any]
 ) -> dict[str, Any]:
@@ -825,6 +841,7 @@ HANDLERS: dict[
     CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL: _handle_knowledge_explain_signal,
     CommandAction.KNOWLEDGE_CROSS_REFERENCE: _handle_knowledge_cross_reference,
     CommandAction.KNOWLEDGE_VERIFY_CLAIM: _handle_knowledge_verify_claim,
+    CommandAction.PLAY_SEQUENCE: _handle_play_sequence,
     CommandAction.ANALYZE_IQ_MODULATION: _handle_analyze_iq_modulation,
     CommandAction.ANALYZE_IQ_SYMBOLS: _handle_analyze_iq_symbols,
     CommandAction.ANALYZE_IQ_SPECTROGRAM: _handle_analyze_iq_spectrogram,

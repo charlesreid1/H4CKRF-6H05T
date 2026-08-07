@@ -638,3 +638,64 @@ class TestKnowledgeDispatch:
         )
         assert cmd.action == CommandAction.KNOWLEDGE_CROSS_REFERENCE
         assert cmd.args["record_id"] == "protocol-pocsag-1200"
+
+
+class TestPlaySequenceDispatch:
+    """play_sequence dispatch round-trips including step validation."""
+
+    def test_dispatch(self) -> None:
+        cmd = dispatch(
+            "hackrf_play_sequence",
+            {
+                "steps": [
+                    {"action": "get_device_info", "args": {}},
+                    {"action": "grant_list", "args": {}},
+                ],
+                "justification": "Chain two admin verbs",
+                "expected_effect": "Both results in one turn",
+            },
+        )
+        assert cmd.action == CommandAction.PLAY_SEQUENCE
+        assert len(cmd.args["steps"]) == 2
+        assert cmd.args["stop_on_error"] is True
+
+    def test_rejects_single_step(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_play_sequence",
+                {
+                    "steps": [{"action": "grant_list", "args": {}}],
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_rejects_too_many_steps(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_play_sequence",
+                {
+                    "steps": [
+                        {"action": "grant_list", "args": {}} for _ in range(9)
+                    ],
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_rejects_nested_play_sequence(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_play_sequence",
+                {
+                    "steps": [
+                        {"action": "grant_list", "args": {}},
+                        {
+                            "action": "play_sequence",
+                            "args": {"steps": []},
+                        },
+                    ],
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )

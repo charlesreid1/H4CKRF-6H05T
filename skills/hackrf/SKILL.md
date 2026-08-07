@@ -74,6 +74,13 @@ There is one tool: `execute_command`. Every call is discriminated by
 - `get_device_info`, `sweep_spectrum`, `capture_iq`, `transmit_iq`,
   `read_iq_summary`, `decode_ook`, `grant_list`, `audit_query`
 
+### Compose — chain sub-actions through the funnel
+
+- `play_sequence` — run 2-8 sub-actions in order, each through the
+  full RiskAssessor/PermissionService/ApprovalPort/AuditService flow.
+  No batching bypass; a TX inside a sequence still blocks on approval
+  as if bare. play_sequence cannot nest inside itself.
+
 TX actions go through `RiskAssessor` → optional
 `PermissionService.check` → optional `ApprovalPort.request`. TX in a
 BLOCKED band is refused deterministically.
