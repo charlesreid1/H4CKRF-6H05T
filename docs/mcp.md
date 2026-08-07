@@ -102,16 +102,65 @@ These are surfaced as required strings in every tool's JSON Schema so hosts
 pass them through even when the operator is driving directly and the LLM is
 not filling them in. They land in the audit log verbatim.
 
-| MCP tool name             | Underlying action   | Risk (typical)   | RF activity |
-|---------------------------|---------------------|------------------|-------------|
-| `hackrf_get_device_info`  | `GET_DEVICE_INFO`   | LOW              | none        |
-| `hackrf_sweep_spectrum`   | `SWEEP_SPECTRUM`    | LOW / MEDIUM     | RX only     |
-| `hackrf_capture_iq`       | `CAPTURE_IQ`        | LOW / MEDIUM     | RX only     |
-| `hackrf_transmit_iq`      | `TRANSMIT_IQ`       | MEDIUM / HIGH    | TX          |
-| `hackrf_read_iq_summary`  | `READ_IQ_SUMMARY`   | LOW              | none        |
-| `hackrf_decode_ook`       | `DECODE_OOK`        | LOW              | none        |
-| `hackrf_grant_list`       | `GRANT_LIST`        | LOW              | none        |
-| `hackrf_audit_query`      | `AUDIT_QUERY`       | LOW              | none        |
+<!-- BEGIN AUTO-GENERATED MCP TOOLS TABLE -->
+
+### Know tier
+
+| MCP tool name | Underlying action | Risk (typical) | RF activity |
+|---|---|---|---|
+| `hackrf_knowledge_list_topics` | `KNOWLEDGE_LIST_TOPICS` | LOW | none |
+| `hackrf_knowledge_read` | `KNOWLEDGE_READ` | LOW | none |
+| `hackrf_knowledge_search` | `KNOWLEDGE_SEARCH` | LOW | none |
+| `hackrf_knowledge_lookup_band` | `KNOWLEDGE_LOOKUP_BAND` | LOW | none |
+| `hackrf_knowledge_lookup_modulation` | `KNOWLEDGE_LOOKUP_MODULATION` | LOW | none |
+| `hackrf_knowledge_lookup_protocol` | `KNOWLEDGE_LOOKUP_PROTOCOL` | LOW | none |
+| `hackrf_knowledge_lookup_keyfob` | `KNOWLEDGE_LOOKUP_KEYFOB` | LOW | none |
+| `hackrf_knowledge_lookup_decoder` | `KNOWLEDGE_LOOKUP_DECODER` | LOW | none |
+| `hackrf_knowledge_bibliography` | `KNOWLEDGE_BIBLIOGRAPHY` | LOW | none |
+| `hackrf_knowledge_random` | `KNOWLEDGE_RANDOM` | LOW | none |
+| `hackrf_knowledge_explain_signal` | `KNOWLEDGE_EXPLAIN_SIGNAL` | LOW | none |
+| `hackrf_knowledge_cross_reference` | `KNOWLEDGE_CROSS_REFERENCE` | LOW | none |
+| `hackrf_knowledge_verify_claim` | `KNOWLEDGE_VERIFY_CLAIM` | LOW | none |
+
+### Analyze tier
+
+| MCP tool name | Underlying action | Risk (typical) | RF activity |
+|---|---|---|---|
+| `hackrf_read_iq_summary` | `READ_IQ_SUMMARY` | LOW | none |
+| `hackrf_analyze_iq_modulation` | `ANALYZE_IQ_MODULATION` | LOW | none |
+| `hackrf_analyze_iq_symbols` | `ANALYZE_IQ_SYMBOLS` | LOW | none |
+| `hackrf_analyze_iq_spectrogram` | `ANALYZE_IQ_SPECTROGRAM` | LOW | none |
+| `hackrf_analyze_iq_carrier_frequency` | `ANALYZE_IQ_CARRIER_FREQUENCY` | LOW | none |
+| `hackrf_decode_manchester` | `DECODE_MANCHESTER` | LOW | none |
+| `hackrf_decode_pwm` | `DECODE_PWM` | LOW | none |
+| `hackrf_decode_ppm` | `DECODE_PPM` | LOW | none |
+| `hackrf_decode_nrz` | `DECODE_NRZ` | LOW | none |
+| `hackrf_decode_pocsag` | `DECODE_POCSAG` | LOW | none |
+| `hackrf_decode_ads_b` | `DECODE_ADS_B` | LOW | none |
+| `hackrf_decode_rtty` | `DECODE_RTTY` | LOW | none |
+| `hackrf_decode_ax25` | `DECODE_AX25` | LOW | none |
+| `hackrf_decode_aprs` | `DECODE_APRS` | LOW | none |
+
+### Act tier
+
+| MCP tool name | Underlying action | Risk (typical) | RF activity |
+|---|---|---|---|
+| `hackrf_get_device_info` | `GET_DEVICE_INFO` | LOW | none |
+| `hackrf_sweep_spectrum` | `SWEEP_SPECTRUM` | LOW | RX only |
+| `hackrf_capture_iq` | `CAPTURE_IQ` | LOW under 5s; MEDIUM above | RX only |
+| `hackrf_transmit_iq` | `TRANSMIT_IQ` | MEDIUM in-grant ISM; HIGH out-of-grant; BLOCKED in protected bands | TX |
+| `hackrf_decode_ook` | `DECODE_OOK` | LOW | none |
+| `hackrf_grant_list` | `GRANT_LIST` | LOW | none |
+| `hackrf_audit_query` | `AUDIT_QUERY` | LOW | none |
+| `hackrf_sweep_spectrum_bulk` | `SWEEP_SPECTRUM_BULK` | LOW at dwell_s <= 2s; MEDIUM above | RX only |
+
+### Compose tier
+
+| MCP tool name | Underlying action | Risk (typical) | RF activity |
+|---|---|---|---|
+| `hackrf_play_sequence` | `PLAY_SEQUENCE` | LOW (per-step risk applies) | per-step |
+
+<!-- END AUTO-GENERATED MCP TOOLS TABLE -->
 
 **Risk tiers:**
 

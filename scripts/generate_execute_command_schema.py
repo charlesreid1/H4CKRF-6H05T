@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
-"""Regenerate docs/execute_command_schema.md and
-schemas/execute_command.schema.json from CommandAction + Pydantic models.
+"""Regenerate docs/execute_command_schema.md,
+schemas/execute_command.schema.json, and the MCP tools table in
+docs/mcp.md from CommandAction + Pydantic models.
 
 Wired into a pre-commit hook so drift between code and reference is
 impossible: the hook regenerates and fails the commit if the diff is
 non-empty.
+
+Usage:
+    python scripts/generate_execute_command_schema.py            # regenerate
+    python scripts/generate_execute_command_schema.py --check    # fail if diff
 """
 
 from __future__ import annotations
 
+import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -19,12 +26,15 @@ from hackrf_agent.domain.models import CommandAction
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_JSON_PATH = REPO_ROOT / "schemas" / "execute_command.schema.json"
 SCHEMA_MD_PATH = REPO_ROOT / "docs" / "execute_command_schema.md"
+MCP_MD_PATH = REPO_ROOT / "docs" / "mcp.md"
+MCP_TABLE_BEGIN = "<!-- BEGIN AUTO-GENERATED MCP TOOLS TABLE -->"
+MCP_TABLE_END = "<!-- END AUTO-GENERATED MCP TOOLS TABLE -->"
 
 
 # Per-action human documentation. Each entry: (purpose, args_doc,
 # example_envelope, default_tier, notes).
-# When adding a new CommandAction, add its row here — a Part 8 test
-# asserts every CommandAction has an entry.
+# When adding a new CommandAction, add its row here — a test in
+# tests/unit/ asserts every CommandAction has an entry.
 PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
     CommandAction.GET_DEVICE_INFO: {
         "purpose": "Read the attached HackRF's serial, firmware, and board revision.",
@@ -451,6 +461,117 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# MCP-table metadata: group each action into Know / Analyze / Act / Compose,
+# plus the RF-activity column for the mcp.md tools table.
+# ---------------------------------------------------------------------------
+_KNOW_ACTIONS: set[CommandAction] = {
+    CommandAction.KNOWLEDGE_LIST_TOPICS,
+    CommandAction.KNOWLEDGE_READ,
+    CommandAction.KNOWLEDGE_SEARCH,
+    CommandAction.KNOWLEDGE_LOOKUP_BAND,
+    CommandAction.KNOWLEDGE_LOOKUP_MODULATION,
+    CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL,
+    CommandAction.KNOWLEDGE_LOOKUP_KEYFOB,
+    CommandAction.KNOWLEDGE_LOOKUP_DECODER,
+    CommandAction.KNOWLEDGE_BIBLIOGRAPHY,
+    CommandAction.KNOWLEDGE_RANDOM,
+    CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL,
+    CommandAction.KNOWLEDGE_CROSS_REFERENCE,
+    CommandAction.KNOWLEDGE_VERIFY_CLAIM,
+}
+_ANALYZE_ACTIONS: set[CommandAction] = {
+    CommandAction.READ_IQ_SUMMARY,
+    CommandAction.ANALYZE_IQ_MODULATION,
+    CommandAction.ANALYZE_IQ_SYMBOLS,
+    CommandAction.ANALYZE_IQ_SPECTROGRAM,
+    CommandAction.ANALYZE_IQ_CARRIER_FREQUENCY,
+    CommandAction.DECODE_MANCHESTER,
+    CommandAction.DECODE_PWM,
+    CommandAction.DECODE_PPM,
+    CommandAction.DECODE_NRZ,
+    CommandAction.DECODE_POCSAG,
+    CommandAction.DECODE_ADS_B,
+    CommandAction.DECODE_RTTY,
+    CommandAction.DECODE_AX25,
+    CommandAction.DECODE_APRS,
+}
+_COMPOSE_ACTIONS: set[CommandAction] = {
+    CommandAction.PLAY_SEQUENCE,
+}
+# Everything else = Act tier.
+
+_RF_ACTIVITY: dict[CommandAction, str] = {
+    CommandAction.GET_DEVICE_INFO: "none",
+    CommandAction.SWEEP_SPECTRUM: "RX only",
+    CommandAction.SWEEP_SPECTRUM_BULK: "RX only",
+    CommandAction.CAPTURE_IQ: "RX only",
+    CommandAction.TRANSMIT_IQ: "TX",
+    CommandAction.PLAY_SEQUENCE: "per-step",
+    CommandAction.GRANT_LIST: "none",
+    CommandAction.AUDIT_QUERY: "none",
+}
+
+
+def _action_group(action: CommandAction) -> str:
+    if action in _KNOW_ACTIONS:
+        return "Know"
+    if action in _ANALYZE_ACTIONS:
+        return "Analyze"
+    if action in _COMPOSE_ACTIONS:
+        return "Compose"
+    return "Act"
+
+
+def _rf_activity(action: CommandAction) -> str:
+    return _RF_ACTIVITY.get(action, "none")
+
+
+def _render_mcp_tools_table() -> str:
+    """Build the MCP tools table for docs/mcp.md, grouped by tier."""
+    groups: dict[str, list[CommandAction]] = {
+        "Know": [],
+        "Analyze": [],
+        "Act": [],
+        "Compose": [],
+    }
+    for action in CommandAction:
+        groups[_action_group(action)].append(action)
+
+    lines: list[str] = [MCP_TABLE_BEGIN, ""]
+    for group in ("Know", "Analyze", "Act", "Compose"):
+        actions = groups[group]
+        if not actions:
+            continue
+        lines.append(f"### {group} tier")
+        lines.append("")
+        lines.append("| MCP tool name | Underlying action | Risk (typical) | RF activity |")
+        lines.append("|---|---|---|---|")
+        for action in actions:
+            entry = PER_ACTION_DOCS.get(action)
+            tier = entry["default_tier"] if entry else "LOW"
+            lines.append(
+                f"| `hackrf_{action.value}` | `{action.name}` | {tier} | "
+                f"{_rf_activity(action)} |"
+            )
+        lines.append("")
+    lines.append(MCP_TABLE_END)
+    return "\n".join(lines)
+
+
+def _splice_mcp_table(current: str, new_table: str) -> str:
+    """Replace the content between MCP_TABLE_BEGIN / MCP_TABLE_END markers."""
+    begin_idx = current.find(MCP_TABLE_BEGIN)
+    end_idx = current.find(MCP_TABLE_END)
+    if begin_idx == -1 or end_idx == -1:
+        raise RuntimeError(
+            f"Markers {MCP_TABLE_BEGIN!r} / {MCP_TABLE_END!r} not found in "
+            f"{MCP_MD_PATH}; add them where the MCP tools table should live."
+        )
+    end_idx += len(MCP_TABLE_END)
+    return current[:begin_idx] + new_table + current[end_idx:]
+
+
 def _render_markdown() -> str:
     """Build the docs/execute_command_schema.md content."""
     lines = [
@@ -496,17 +617,53 @@ def _render_markdown() -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
-    # JSON schema.
-    SCHEMA_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
-    SCHEMA_JSON_PATH.write_text(
-        json.dumps(EXECUTE_COMMAND_TOOL_SCHEMA, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+def _generate() -> dict[Path, str]:
+    """Return the target-path → intended-content map for every artefact."""
+    outputs: dict[Path, str] = {}
+    outputs[SCHEMA_JSON_PATH] = (
+        json.dumps(EXECUTE_COMMAND_TOOL_SCHEMA, indent=2, sort_keys=True) + "\n"
     )
-    # Markdown reference.
-    SCHEMA_MD_PATH.write_text(_render_markdown(), encoding="utf-8")
-    print(f"wrote {SCHEMA_JSON_PATH}")
-    print(f"wrote {SCHEMA_MD_PATH}")
+    outputs[SCHEMA_MD_PATH] = _render_markdown()
+
+    mcp_current = MCP_MD_PATH.read_text(encoding="utf-8")
+    outputs[MCP_MD_PATH] = _splice_mcp_table(mcp_current, _render_mcp_tools_table())
+    return outputs
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Exit non-zero if any generated file differs from its "
+             "current on-disk contents. Does not write anything.",
+    )
+    args = parser.parse_args()
+
+    SCHEMA_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
+    outputs = _generate()
+
+    if args.check:
+        drift: list[Path] = []
+        for path, want in outputs.items():
+            have = path.read_text(encoding="utf-8") if path.exists() else ""
+            if have != want:
+                drift.append(path)
+        if drift:
+            for path in drift:
+                print(f"drift: {path.relative_to(REPO_ROOT)}", file=sys.stderr)
+            print(
+                "\nRe-run `python scripts/generate_execute_command_schema.py` "
+                "and commit the result.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        print("no drift")
+        return
+
+    for path, content in outputs.items():
+        path.write_text(content, encoding="utf-8")
+        print(f"wrote {path}")
 
 
 if __name__ == "__main__":
