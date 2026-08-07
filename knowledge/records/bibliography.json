@@ -1,0 +1,194 @@
+[
+  {
+    "id": "fcc-part-15",
+    "name": "47 CFR Part 15 — Radio Frequency Devices",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15",
+      "section_index": {
+        "15.231": "Periodic operation in the band 40.66–40.70 MHz and above 70 MHz",
+        "15.247": "Operation within the bands 902–928 MHz, 2400–2483.5 MHz, and 5725–5850 MHz",
+        "15.249": "Operation within the bands 902–928 MHz, 2400–2483.5 MHz, and 5725–5850 MHz — narrowband"
+      }
+    }
+  },
+  {
+    "id": "fcc-part-22",
+    "name": "47 CFR Part 22 — Public Mobile Services",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-22"
+    }
+  },
+  {
+    "id": "fcc-part-24",
+    "name": "47 CFR Part 24 — Personal Communications Services",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-24"
+    }
+  },
+  {
+    "id": "fcc-part-27",
+    "name": "47 CFR Part 27 — Miscellaneous Wireless Communications Services",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-27"
+    }
+  },
+  {
+    "id": "fcc-part-80",
+    "name": "47 CFR Part 80 — Stations in the Maritime Services",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-80"
+    }
+  },
+  {
+    "id": "fcc-part-87",
+    "name": "47 CFR Part 87 — Aviation Services",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-87"
+    }
+  },
+  {
+    "id": "fcc-part-90",
+    "name": "47 CFR Part 90 — Private Land Mobile Radio Services",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-90"
+    }
+  },
+  {
+    "id": "fcc-part-97",
+    "name": "47 CFR Part 97 — Amateur Radio Service",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "US FCC",
+      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-97"
+    }
+  },
+  {
+    "id": "etsi-en-300-220",
+    "name": "ETSI EN 300 220 — Short Range Devices, 25 MHz to 1000 MHz",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "ETSI",
+      "url": "https://www.etsi.org/deliver/etsi_en/300200_300299/30022001/"
+    }
+  },
+  {
+    "id": "itu-rr",
+    "name": "ITU Radio Regulations",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "International Telecommunication Union",
+      "url": "https://www.itu.int/pub/R-REG-RR"
+    }
+  },
+  {
+    "id": "itu-ra-769",
+    "name": "ITU-R RA.769 — Protection criteria used for radio astronomical measurements",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "ITU-R",
+      "url": "https://www.itu.int/rec/R-REC-RA.769/en"
+    }
+  },
+  {
+    "id": "hackrf-docs",
+    "name": "HackRF documentation (Great Scott Gadgets)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "Great Scott Gadgets",
+      "url": "https://hackrf.readthedocs.io/"
+    }
+  },
+  {
+    "id": "sigmf-spec",
+    "name": "SigMF specification v1.0",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "SigMF working group",
+      "url": "https://github.com/sigmf/SigMF/blob/main/sigmf-spec.md"
+    }
+  },
+  {
+    "id": "proakis-digital-comm",
+    "name": "Proakis & Salehi, Digital Communications (5th ed.)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "McGraw-Hill",
+      "year": 2007
+    }
+  },
+  {
+    "id": "gnu-radio-wiki",
+    "name": "GNU Radio wiki",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "GNU Radio project",
+      "url": "https://wiki.gnuradio.org/"
+    }
+  },
+  {
+    "id": "rtl-433-github",
+    "name": "rtl_433 decoder catalog",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {
+      "publisher": "merbanan / rtl_433 contributors",
+      "url": "https://github.com/merbanan/rtl_433"
+    }
+  },
+  {
+    "id": "hackrf-agent-repo",
+    "name": "H4CKRF-6H05T repository — frequency_policy.py",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {
+      "publisher": "H4CKRF-6H05T project",
+      "path": "src/hackrf_agent/domain/frequency_policy.py"
+    }
+  }
+]

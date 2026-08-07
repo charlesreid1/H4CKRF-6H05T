@@ -1,0 +1,668 @@
+[
+  {
+    "id": "band-ism-315",
+    "name": "ISM 315 MHz",
+    "aliases": ["315 MHz", "NA sub-GHz ISM"],
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1989-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 310000000,
+      "stop_hz": 320000000,
+      "regulatory_basis": "47 CFR §15.231 (periodic transmitters)",
+      "primary_use": "keyfobs, TPMS, garage doors, doorbells",
+      "common_modulations": ["OOK", "ASK", "2FSK"],
+      "common_symbol_rates_bps": [1000, 2000, 4000, 4800]
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-grant-required",
+    "see_also": ["band-ism-433", "keyfob-generic-fixed-code", "protocol-generic-tpms"]
+  },
+  {
+    "id": "band-ism-433",
+    "name": "ISM 433.05–434.79 MHz",
+    "aliases": ["433 MHz", "70 cm ISM", "EU SRD"],
+    "category": "band_allocation",
+    "region": "EU",
+    "era_bounds": ["1998-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-en-300-220", "fcc-part-15", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 433050000,
+      "stop_hz": 434790000,
+      "regulatory_basis_eu": "ETSI EN 300 220 (Short Range Devices)",
+      "regulatory_basis_us": "Amateur secondary (70 cm band, 420–450 MHz); Part 15 §15.231 for keyless entry",
+      "primary_use": "SRD keyfobs, weather stations, doorbells, garage doors, thermometers, TPMS (EU)",
+      "duty_cycle_limit_eu_percent": 10,
+      "erp_limit_eu_mw": 10,
+      "common_modulations": ["OOK", "ASK", "2FSK", "GFSK", "CSS (LoRa)"],
+      "common_symbol_rates_bps": [1000, 2000, 4000, 9600]
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-grant-required",
+    "see_also": ["band-ism-315", "modulation-ook", "protocol-generic-weather-station"]
+  },
+  {
+    "id": "band-ism-868",
+    "name": "ISM 868 MHz (EU)",
+    "aliases": ["868 MHz", "SRD Band 868"],
+    "category": "band_allocation",
+    "region": "EU",
+    "era_bounds": ["1999-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-en-300-220"],
+    "technical_body": {
+      "start_hz": 863000000,
+      "stop_hz": 870000000,
+      "regulatory_basis": "ETSI EN 300 220 (SRD sub-bands a–d)",
+      "primary_use": "LPWAN (Sigfox, LoRaWAN EU868), Z-Wave EU, some smart meters",
+      "sub_bands": [
+        {"start_hz": 868000000, "stop_hz": 868600000, "erp_mw": 25, "duty_cycle_percent": 1.0, "label": "Band a"},
+        {"start_hz": 868700000, "stop_hz": 869200000, "erp_mw": 25, "duty_cycle_percent": 0.1, "label": "Band b"},
+        {"start_hz": 869400000, "stop_hz": 869650000, "erp_mw": 500, "duty_cycle_percent": 10.0, "label": "Band c"},
+        {"start_hz": 869700000, "stop_hz": 870000000, "erp_mw": 5, "duty_cycle_percent": null, "label": "Band d"}
+      ],
+      "common_modulations": ["GFSK", "CSS (LoRa)", "FSK"]
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-grant-required",
+    "see_also": ["band-ism-902-928", "modulation-gfsk", "protocol-lorawan"]
+  },
+  {
+    "id": "band-ism-902-928",
+    "name": "ISM 902–928 MHz (US)",
+    "aliases": ["915 MHz", "902-928 ISM"],
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 902000000,
+      "stop_hz": 928000000,
+      "regulatory_basis": "47 CFR §15.247 (spread spectrum) / §15.249 (narrowband)",
+      "primary_use": "LPWAN (LoRaWAN US915), Z-Wave US, older cordless phones, industrial telemetry",
+      "power_limit_dbm_15247": 30,
+      "power_limit_dbm_15249": 20,
+      "amateur_overlap": "33 cm amateur band overlaps but is secondary to ISM",
+      "common_modulations": ["GFSK", "CSS (LoRa)", "FSK", "OFDM"]
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-grant-required",
+    "see_also": ["band-ism-868", "band-amateur-33cm", "protocol-lorawan"]
+  },
+  {
+    "id": "band-ism-2400",
+    "name": "ISM 2400–2483.5 MHz",
+    "aliases": ["2.4 GHz ISM"],
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 2400000000,
+      "stop_hz": 2483500000,
+      "regulatory_basis": "47 CFR §15.247 / §15.249 (US); §15 harmonization elsewhere",
+      "primary_use": "WiFi 2.4 GHz, Bluetooth Classic + BLE, Zigbee 802.15.4, microwave ovens, ISM telemetry",
+      "power_limit_dbm_15247": 30,
+      "amateur_overlap": "13 cm amateur 2390–2450 partly overlaps",
+      "common_modulations": ["OFDM", "GFSK", "DSSS", "CSS"]
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-grant-required",
+    "see_also": ["modulation-ofdm", "modulation-gfsk"]
+  },
+  {
+    "id": "band-ism-5ghz",
+    "name": "ISM 5725–5875 MHz",
+    "aliases": ["5 GHz ISM"],
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 5725000000,
+      "stop_hz": 5875000000,
+      "regulatory_basis": "47 CFR §15.247 / §15.249",
+      "primary_use": "WiFi 5 GHz upper (channels 149–165), video links, ISM microwave heating"
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-grant-required",
+    "see_also": ["band-ism-2400"]
+  },
+  {
+    "id": "band-airband",
+    "name": "Aviation voice communications (118–137 MHz)",
+    "aliases": ["airband"],
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1947-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 118000000,
+      "stop_hz": 137000000,
+      "regulatory_basis": "47 CFR §87.171",
+      "primary_use": "ATC voice (AM DSB, 25 kHz or 8.33 kHz channel spacing), ATIS, tower/ground/approach",
+      "modulation": "AM DSB",
+      "notes": "121.5 MHz is international aeronautical emergency (VHF Guard)"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-vhf-guard"]
+  },
+  {
+    "id": "band-vhf-guard",
+    "name": "International aeronautical emergency 121.5 MHz (VHF Guard)",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1947-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 121400000,
+      "stop_hz": 121600000,
+      "regulatory_basis": "ICAO Annex 10",
+      "notes": "Nested inside band-airband; both are BLOCKED for TX regardless."
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-airband"]
+  },
+  {
+    "id": "band-marine-distress",
+    "name": "Maritime distress/safety channel 16",
+    "aliases": ["156.8 MHz", "channel 16"],
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1974-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-80", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 156762500,
+      "stop_hz": 156837500,
+      "regulatory_basis": "47 CFR §80.369",
+      "primary_use": "Maritime distress and safety calling; DSC on 156.525 MHz (Channel 70) adjacent"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": []
+  },
+  {
+    "id": "band-ads-b",
+    "name": "ADS-B / SSR / TCAS 1090 MHz",
+    "aliases": ["Mode S", "1090 MHz"],
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1087000000,
+      "stop_hz": 1093000000,
+      "regulatory_basis": "47 CFR §87.131",
+      "primary_use": "Aircraft transponders, ADS-B extended squitter, TCAS interrogation",
+      "modulation": "PPM (Pulse Position Modulation), 1 Mbps"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["protocol-mode-s-ads-b"]
+  },
+  {
+    "id": "band-gps-l1",
+    "name": "GPS L1",
+    "aliases": ["L1"],
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1978-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1559000000,
+      "stop_hz": 1591000000,
+      "regulatory_basis": "ITU RR RNSS allocation",
+      "primary_use": "GPS L1 C/A code (BPSK-R, DSSS)",
+      "notes": "Spoofing GPS is a federal offense in the US; RX-only always."
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-gps-l2", "band-gps-l5", "band-glonass-g1"]
+  },
+  {
+    "id": "band-gps-l2",
+    "name": "GPS L2",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1978-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1215000000,
+      "stop_hz": 1240000000,
+      "regulatory_basis": "ITU RR RNSS allocation"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-gps-l1"]
+  },
+  {
+    "id": "band-gps-l5",
+    "name": "GPS L5 (safety-of-life)",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1164000000,
+      "stop_hz": 1189000000,
+      "regulatory_basis": "ITU RR RNSS allocation (safety-of-life)"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-gps-l1"]
+  },
+  {
+    "id": "band-glonass-g1",
+    "name": "GLONASS G1",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1982-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1592952500,
+      "stop_hz": 1610485000,
+      "regulatory_basis": "ITU RR"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-gps-l1"]
+  },
+  {
+    "id": "band-glonass-g2",
+    "name": "GLONASS G2",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1982-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1237827500,
+      "stop_hz": 1254427500,
+      "regulatory_basis": "ITU RR"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-gps-l1"]
+  },
+  {
+    "id": "band-galileo-e6",
+    "name": "Galileo E6",
+    "category": "band_allocation",
+    "region": "EU",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1260000000,
+      "stop_hz": 1300000000,
+      "regulatory_basis": "ITU RR"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-gps-l1"]
+  },
+  {
+    "id": "band-cellular-dl-band12",
+    "name": "Cellular downlink Band 12 (US, 729–746 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["2009-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-27", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 729000000,
+      "stop_hz": 746000000,
+      "regulatory_basis": "47 CFR Part 27"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-cellular-dl-band13", "band-cellular-dl-band17"]
+  },
+  {
+    "id": "band-cellular-dl-band13",
+    "name": "Cellular downlink Band 13 (US, 746–756 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["2011-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-27", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 746000000,
+      "stop_hz": 756000000,
+      "regulatory_basis": "47 CFR Part 27"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-cellular-dl-band12"]
+  },
+  {
+    "id": "band-cellular-dl-band17",
+    "name": "Cellular downlink Band 17 (US, 734–746 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["2011-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-27", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 734000000,
+      "stop_hz": 746000000,
+      "regulatory_basis": "47 CFR Part 27",
+      "notes": "Nested inside Band 12."
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-cellular-dl-band12"]
+  },
+  {
+    "id": "band-cellular-dl-band5",
+    "name": "Cellular downlink Band 5 (US, 869–894 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1983-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-22", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 869000000,
+      "stop_hz": 894000000,
+      "regulatory_basis": "47 CFR Part 22H"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": []
+  },
+  {
+    "id": "band-cellular-dl-band2",
+    "name": "Cellular downlink Band 2 (US, 1930–1990 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-24", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1930000000,
+      "stop_hz": 1990000000,
+      "regulatory_basis": "47 CFR Part 24E"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": []
+  },
+  {
+    "id": "band-cellular-dl-band4",
+    "name": "Cellular downlink Band 4 (AWS, 2110–2155 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["2006-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-27", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 2110000000,
+      "stop_hz": 2155000000,
+      "regulatory_basis": "47 CFR Part 27"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": []
+  },
+  {
+    "id": "band-firstnet",
+    "name": "FirstNet public safety (758–775 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["2012-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-90", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 758000000,
+      "stop_hz": 775000000,
+      "primary_use": "Public safety narrowband + broadband (FirstNet)"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-npspac"]
+  },
+  {
+    "id": "band-npspac",
+    "name": "NPSPAC public safety (851–854 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1987-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-90", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 851000000,
+      "stop_hz": 854000000,
+      "primary_use": "National Public Safety Planning Advisory Committee 800 MHz"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-firstnet"]
+  },
+  {
+    "id": "band-radio-astronomy-406",
+    "name": "Radio astronomy protected 406.1–410 MHz",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1971-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-ra-769", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 406100000,
+      "stop_hz": 410000000,
+      "regulatory_basis": "ITU-R RA.769",
+      "primary_use": "Passive radio astronomy"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-radio-astronomy-608", "band-radio-astronomy-1400", "band-radio-astronomy-2690"]
+  },
+  {
+    "id": "band-radio-astronomy-608",
+    "name": "Radio astronomy protected 608–614 MHz",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1971-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-ra-769", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 608000000,
+      "stop_hz": 614000000,
+      "regulatory_basis": "ITU-R RA.769"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-radio-astronomy-406"]
+  },
+  {
+    "id": "band-radio-astronomy-1400",
+    "name": "Radio astronomy 21 cm (1400–1427 MHz)",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1971-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-ra-769", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1400000000,
+      "stop_hz": 1427000000,
+      "regulatory_basis": "ITU-R RA.769",
+      "primary_use": "Neutral hydrogen line — cornerstone of radio astronomy"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-radio-astronomy-406"]
+  },
+  {
+    "id": "band-radio-astronomy-2690",
+    "name": "Radio astronomy protected 2690–2700 MHz",
+    "category": "band_allocation",
+    "region": "universal",
+    "era_bounds": ["1971-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-ra-769", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 2690000000,
+      "stop_hz": 2700000000,
+      "regulatory_basis": "ITU-R RA.769"
+    },
+    "blocked_tx": true,
+    "hackrf_role": "rx-only",
+    "see_also": ["band-radio-astronomy-406"]
+  },
+  {
+    "id": "band-amateur-2m",
+    "name": "2 m amateur (144–148 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1928-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97"],
+    "technical_body": {
+      "start_hz": 144000000,
+      "stop_hz": 148000000,
+      "regulatory_basis": "47 CFR Part 97",
+      "primary_use": "FM voice, packet, weak-signal SSB (144.100–144.300)"
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-license-required",
+    "see_also": ["band-amateur-70cm", "band-amateur-33cm"]
+  },
+  {
+    "id": "band-amateur-125cm",
+    "name": "1.25 m amateur (222–225 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 222000000,
+      "stop_hz": 225000000,
+      "regulatory_basis": "47 CFR Part 97"
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-license-required",
+    "see_also": ["band-amateur-2m"]
+  },
+  {
+    "id": "band-amateur-70cm",
+    "name": "70 cm amateur (420–450 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1938-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 420000000,
+      "stop_hz": 450000000,
+      "regulatory_basis": "47 CFR Part 97",
+      "notes": "Overlaps EU ISM 433 MHz — the same frequency is Part 97 amateur here and ETSI EN 300 220 ISM in Europe."
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-license-required",
+    "see_also": ["band-ism-433"]
+  },
+  {
+    "id": "band-amateur-33cm",
+    "name": "33 cm amateur (902–928 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 902000000,
+      "stop_hz": 928000000,
+      "regulatory_basis": "47 CFR Part 97",
+      "notes": "Amateur secondary to ISM in the same band; ISM classification wins in this MCP."
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-license-required",
+    "see_also": ["band-ism-902-928"]
+  },
+  {
+    "id": "band-amateur-23cm",
+    "name": "23 cm amateur (1240–1300 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1938-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 1240000000,
+      "stop_hz": 1300000000,
+      "regulatory_basis": "47 CFR Part 97",
+      "notes": "Overlaps GPS L2 and Galileo E6 (both BLOCKED); TX requires care."
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-license-required",
+    "see_also": ["band-gps-l2", "band-galileo-e6"]
+  },
+  {
+    "id": "band-amateur-13cm",
+    "name": "13 cm amateur (2390–2450 MHz)",
+    "category": "band_allocation",
+    "region": "US",
+    "era_bounds": ["1938-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97", "hackrf-agent-repo"],
+    "technical_body": {
+      "start_hz": 2390000000,
+      "stop_hz": 2450000000,
+      "regulatory_basis": "47 CFR Part 97",
+      "notes": "Overlaps 2.4 GHz ISM."
+    },
+    "blocked_tx": false,
+    "hackrf_role": "rx-primary-tx-license-required",
+    "see_also": ["band-ism-2400"]
+  }
+]
