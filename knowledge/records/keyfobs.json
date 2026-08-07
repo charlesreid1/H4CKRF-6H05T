@@ -8,7 +8,7 @@
     "era_bounds": ["1990-01-01", "2005-12-31"],
     "still_effective_2026": true,
     "confidence": "secondary",
-    "citations": ["rtl-433-github"],
+    "citations": ["rtl-433-github", "kamkar-rolljam-2015"],
     "technical_body": {
       "carrier_options_hz": [315000000, 433920000],
       "modulation": "OOK",
@@ -31,7 +31,7 @@
     "era_bounds": ["1996-01-01", "2011-12-31"],
     "still_effective_2026": true,
     "confidence": "secondary",
-    "citations": [],
+    "citations": ["rtl-433-github"],
     "technical_body": {
       "carrier_hz": 315000000,
       "modulation": "OOK",
@@ -53,18 +53,18 @@
     "era_bounds": ["2011-01-01", null],
     "still_effective_2026": true,
     "confidence": "secondary",
-    "citations": [],
+    "citations": ["kamkar-rolljam-2015", "rtl-433-github"],
     "technical_body": {
       "carrier_hz_options": [310000000, 315000000, 390000000],
       "modulation": "OOK",
       "symbol_encoding": "Manchester",
       "symbol_rate_bps": 4000,
       "rolling_code": true,
-      "rolljam_verdict": "vulnerable in principle (Kamkar 2015 disclosure)",
-      "replay_verdict": "fresh replay defeated by rolling counter"
+      "rolljam_verdict": "vulnerable in principle (Kamkar 2015)",
+      "replay_verdict": "fresh replay defeated by counter"
     },
     "hackrf_role": "rx-analyze",
-    "flag_pattern_hint": "if you see increment-by-1 payloads across presses -> confirmed rolling",
+    "flag_pattern_hint": "increment-by-1 counter across consecutive presses",
     "see_also": ["keyfob-chamberlain-security-plus-1", "keyfob-genie-intellicode"]
   },
   {
@@ -76,7 +76,7 @@
     "era_bounds": ["1995-01-01", null],
     "still_effective_2026": true,
     "confidence": "secondary",
-    "citations": [],
+    "citations": ["kasper-keeloq-2008", "rtl-433-github"],
     "technical_body": {
       "carrier_hz_options": [315000000, 433920000],
       "modulation": "OOK",
@@ -86,7 +86,7 @@
       "replay_verdict": "fresh replay defeated by counter"
     },
     "hackrf_role": "rx-analyze",
-    "see_also": ["keyfob-chamberlain-security-plus-2", "crypto-keeloq"]
+    "see_also": ["keyfob-chamberlain-security-plus-2", "keyfob-generic-keeloq"]
   },
   {
     "id": "keyfob-genie-dip-switch",
@@ -97,7 +97,7 @@
     "era_bounds": ["1975-01-01", "1995-12-31"],
     "still_effective_2026": true,
     "confidence": "community",
-    "citations": [],
+    "citations": ["rtl-sdr-blog", "rtl-433-github"],
     "technical_body": {
       "carrier_hz_options": [27000000, 300000000, 390000000],
       "modulation": "OOK",
@@ -111,13 +111,13 @@
   {
     "id": "keyfob-generic-keeloq",
     "name": "Generic Keeloq keyfob (Ford, GM, Chrysler, VW, many others)",
-    "aliases": ["Keeloq", "HCS200/300/301/360/410"],
+    "aliases": ["Keeloq", "HCS200", "HCS300", "HCS301", "HCS360", "HCS410"],
     "category": "keyfob_system",
     "region": "universal",
     "era_bounds": ["1996-01-01", null],
     "still_effective_2026": true,
     "confidence": "primary",
-    "citations": [],
+    "citations": ["kasper-keeloq-2008", "kamkar-rolljam-2015"],
     "technical_body": {
       "carrier_hz_options": [315000000, 433920000, 868350000],
       "modulation": "OOK",
@@ -132,46 +132,66 @@
       "rolljam_verdict": "vulnerable"
     },
     "hackrf_role": "rx-analyze",
-    "flag_pattern_hint": "32-bit encrypted counter that increments by 1 per press",
-    "see_also": ["keyfob-generic-hitag2", "crypto-keeloq"]
+    "flag_pattern_hint": "32-bit encrypted counter increments by 1 per press",
+    "see_also": ["keyfob-generic-hitag2", "keyfob-genie-intellicode"]
   },
   {
     "id": "keyfob-generic-hitag2",
     "name": "Generic HITAG2 keyfob (some Asian-market vehicles)",
-    "aliases": ["HITAG2"],
+    "aliases": ["HITAG2", "PCF7936"],
     "category": "keyfob_system",
     "region": "universal",
     "era_bounds": ["2000-01-01", null],
     "still_effective_2026": true,
-    "confidence": "secondary",
-    "citations": [],
+    "confidence": "primary",
+    "citations": ["verdult-hitag2-2012"],
     "technical_body": {
       "carrier_hz_options": [315000000, 433920000],
       "modulation": "OOK or 2FSK",
       "rolling_code": true,
       "crypto": "HITAG2 (48-bit key)",
-      "key_recovery_verdict": "practical (~1000-2000 captured presses per Verdult/Garcia et al.)"
+      "key_recovery_verdict": "practical, 1000-2000 captured presses (Verdult/Garcia et al.)"
     },
     "hackrf_role": "rx-analyze",
-    "see_also": ["keyfob-generic-keeloq", "crypto-hitag2"]
+    "see_also": ["keyfob-generic-keeloq", "keyfob-generic-megamos"]
+  },
+  {
+    "id": "keyfob-generic-megamos",
+    "name": "Generic Megamos Crypto immobilizer (VW group, Audi, Porsche etc.)",
+    "aliases": ["Megamos Crypto", "V-VAG immo"],
+    "category": "keyfob_system",
+    "region": "EU",
+    "era_bounds": ["1997-01-01", "2015-12-31"],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["verdult-megamos-2013"],
+    "technical_body": {
+      "crypto": "Megamos Crypto (proprietary 96-bit)",
+      "carrier_hz_lf_challenge": 125000,
+      "carrier_hz_uhf_reply_options": [315000000, 433920000],
+      "vulnerability": "Verdult-Garcia-Ege 2013 cryptanalysis (injunction lifted 2015)",
+      "key_recovery_verdict": "practical against affected vehicle families"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["keyfob-generic-hitag2"]
   },
   {
     "id": "keyfob-passive-keyless-entry",
-    "name": "Passive Keyless Entry (PKE) — generic",
+    "name": "Passive Keyless Entry (PKE) - generic",
     "aliases": ["PKE", "keyless start"],
     "category": "keyfob_system",
     "region": "universal",
     "era_bounds": ["2007-01-01", null],
     "still_effective_2026": true,
     "confidence": "primary",
-    "citations": [],
+    "citations": ["francillon-pke-2011"],
     "technical_body": {
       "lf_challenge_hz": 125000,
       "uhf_response_hz_options": [315000000, 433920000],
       "modulation_uhf": "OOK or 2FSK",
       "rolling_code": true,
-      "vulnerability": "relay attack",
-      "hackrf_support_verdict": "cannot receive 125 kHz LF challenge; PKE is out of HackRF single-band reach"
+      "vulnerability": "relay attack (Francillon-Danev-Capkun NDSS 2011)",
+      "hackrf_support_verdict": "125 kHz LF is below HackRF's 1 MHz floor - out of single-band reach"
     },
     "hackrf_role": "out-of-scope",
     "see_also": ["keyfob-generic-keeloq"]
@@ -185,7 +205,7 @@
     "era_bounds": ["2017-01-01", null],
     "still_effective_2026": true,
     "confidence": "secondary",
-    "citations": [],
+    "citations": ["rtl-sdr-blog", "defcon-rf-village"],
     "technical_body": {
       "carrier_hz": 433920000,
       "modulation": "OOK",
@@ -194,5 +214,200 @@
     },
     "hackrf_role": "rx-analyze",
     "see_also": ["keyfob-generic-keeloq"]
+  },
+  {
+    "id": "keyfob-honda-rolling-pwn",
+    "name": "Honda rolling-code keyfob (Rolling PWN affected models)",
+    "aliases": ["Rolling PWN", "CVE-2022-27254"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["2012-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rolling-pwn-2022"],
+    "technical_body": {
+      "carrier_hz": 433920000,
+      "modulation": "OOK",
+      "rolling_code": true,
+      "vulnerability": "receiver accepts rewound counter (CVE-2022-27254); replay works with observed sequence",
+      "affected_models": "Civic 2012-2022, CR-V, Accord (subset), others per RollingPWN team"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-generic-keeloq"]
+  },
+  {
+    "id": "keyfob-hyundai-kia-fixed-code-legacy",
+    "name": "Hyundai/Kia older keyfobs with known-plaintext weakness",
+    "aliases": ["Hyundai fob (legacy)"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["2005-01-01", "2020-12-31"],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["rtl-sdr-blog", "kamkar-rolljam-2015"],
+    "technical_body": {
+      "carrier_hz_options": [315000000, 433920000],
+      "modulation": "OOK",
+      "rolling_code": true,
+      "vulnerability": "several generations vulnerable to fixed-code + known-plaintext attacks"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-honda-rolling-pwn"]
+  },
+  {
+    "id": "keyfob-toyota-rolling",
+    "name": "Toyota rolling-code keyfob",
+    "aliases": ["Toyota fob"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["1998-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["defcon-rf-village"],
+    "technical_body": {
+      "carrier_hz_options": [315000000, 433920000, 434420000],
+      "modulation": "OOK or 2FSK",
+      "rolling_code": true,
+      "replay_verdict": "fresh replay defeated by counter"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-generic-keeloq", "keyfob-tesla-model-3"]
+  },
+  {
+    "id": "keyfob-vw-audi-uds",
+    "name": "VW/Audi rolling-code keyfob (post-Megamos)",
+    "aliases": ["VW fob", "Audi fob"],
+    "category": "keyfob_system",
+    "region": "EU",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["defcon-rf-village"],
+    "technical_body": {
+      "carrier_hz_options": [433920000, 868350000],
+      "modulation": "OOK or 2FSK",
+      "rolling_code": true,
+      "crypto": "AES-128 rolling (later generations)"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-generic-megamos"]
+  },
+  {
+    "id": "keyfob-ford-security-plus",
+    "name": "Ford rolling-code keyfob (Security+ family)",
+    "aliases": ["Ford fob"],
+    "category": "keyfob_system",
+    "region": "US",
+    "era_bounds": ["2005-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["kasper-keeloq-2008", "rtl-433-github"],
+    "technical_body": {
+      "carrier_hz": 315000000,
+      "modulation": "OOK",
+      "symbol_encoding": "Manchester",
+      "rolling_code": true,
+      "crypto": "Keeloq-family in early years; migrating to AES-CMAC in newer models"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-generic-keeloq"]
+  },
+  {
+    "id": "keyfob-liftmaster-security-plus",
+    "name": "LiftMaster Security+ (older generations, single-color LED remotes)",
+    "aliases": ["LiftMaster S+"],
+    "category": "keyfob_system",
+    "region": "US",
+    "era_bounds": ["1997-01-01", "2011-12-31"],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["kasper-keeloq-2008", "rtl-433-github"],
+    "technical_body": {
+      "carrier_hz_options": [315000000, 390000000],
+      "modulation": "OOK",
+      "symbol_encoding": "Manchester",
+      "rolling_code": true,
+      "crypto": "Keeloq NLFSR",
+      "replay_verdict": "fresh replay defeated by counter; slide attacks per Kasper et al. against learn-mode"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-chamberlain-security-plus-1", "keyfob-chamberlain-security-plus-2"]
+  },
+  {
+    "id": "keyfob-homelink-universal",
+    "name": "HomeLink in-vehicle universal remote",
+    "aliases": ["HomeLink", "in-car universal remote"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rtl-433-github", "hackrf-wiki"],
+    "technical_body": {
+      "carrier_hz_options": [286000000, 288000000, 315000000, 390000000, 433920000, 868000000],
+      "modulation": "OOK",
+      "role": "learns and replays an existing fob; not a fob PHY in itself"
+    },
+    "hackrf_role": "rx-observe-only",
+    "see_also": ["keyfob-chamberlain-security-plus-2", "keyfob-genie-intellicode"]
+  },
+  {
+    "id": "keyfob-microchip-hcs-family",
+    "name": "Microchip HCS200/300/301/360/365/410/473 encoder chips",
+    "aliases": ["HCS200", "HCS300", "HCS301", "HCS360", "HCS365", "HCS410", "HCS473"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["kasper-keeloq-2008"],
+    "technical_body": {
+      "role": "encoder chip family that implements Keeloq NLFSR rolling code",
+      "carrier_hz_options": [315000000, 433920000, 868350000],
+      "modulation": "OOK",
+      "rolling_code": true,
+      "crypto": "Keeloq NLFSR (64-bit key, 32-bit block)"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-generic-keeloq"]
+  },
+  {
+    "id": "keyfob-atmel-atsam-secure",
+    "name": "Atmel/Microchip AVR-based fixed-code remotes",
+    "aliases": ["AVR fixed remote"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["1998-01-01", "2012-12-31"],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["rtl-433-github"],
+    "technical_body": {
+      "role": "generic fixed-code encoder used by cheap aftermarket remotes",
+      "modulation": "OOK",
+      "rolling_code": false,
+      "replay_verdict": "trivial replay"
+    },
+    "hackrf_role": "rx-and-tx-replay",
+    "see_also": ["keyfob-generic-fixed-code"]
+  },
+  {
+    "id": "keyfob-aes-cmac-rolling",
+    "name": "AES-CMAC rolling-code keyfob (2020s high-end vehicles)",
+    "aliases": ["AES rolling fob"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["2018-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["defcon-rf-village"],
+    "technical_body": {
+      "carrier_hz_options": [315000000, 433920000, 902000000],
+      "modulation": "2FSK",
+      "rolling_code": true,
+      "crypto": "AES-128 CMAC challenge-response",
+      "replay_verdict": "no practical replay; strength depends on vendor key management"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-tesla-model-3", "keyfob-vw-audi-uds"]
   }
 ]
