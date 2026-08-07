@@ -115,10 +115,11 @@ Three `.iq` fixtures in `tests/fixtures/iq/`, each ≤ 100 KB:
 
 | File | Content | Source |
 |------|---------|--------|
-| `ism_433_tone.iq` | CW tone at 434.12 MHz (200 kHz above 433.92 MHz center) | Synthetic placeholder |
-| `ism_315_noise_only.iq` | Noise floor only — no transmitter | Synthetic placeholder |
-| `two_tone.iq` | Two tones at ±150 kHz from 433 MHz center | Synthetic |
+| `ism_433_tone.iq` | CW tone at 434.12 MHz (200 kHz above 433.92 MHz center) | Synthetic (deterministic) |
+| `ism_315_noise_only.iq` | Noise floor only — no transmitter | Synthetic (deterministic) |
+| `two_tone.iq` | Two tones at ±150 kHz from 433 MHz center | Synthetic (deterministic) |
 
-Each has a sibling `.iq.md` provenance file. The `two_tone.iq` can be regenerated
-from `two_tone.py`. Real hardware captures should replace the synthetic placeholders
-when a HackRF is available.
+Each has a sibling `.iq.md` provenance file. Every fixture is generated
+deterministically by the paired script in the same directory; regenerate with
+`python tests/fixtures/iq/<name>.py`. The fixtures are the tests' input contract
+— they don't need replacement with real captures.
