@@ -4,6 +4,22 @@
 
 ### Added
 
+- **Seven additional knowledge-tier verbs** — `knowledge_lookup_protocol`,
+  `knowledge_lookup_keyfob`, `knowledge_lookup_decoder`,
+  `knowledge_bibliography`, `knowledge_random`, `knowledge_explain_signal`,
+  `knowledge_cross_reference`. All hardcoded LOW. `explain_signal` scores
+  candidates in `known_signals.json` against a `(freq_hz, bw_hz,
+  modulation_guess)` hint tuple; `cross_reference` walks `see_also`
+  across every records/*.json file with resolved-vs-unresolved
+  reporting. Lookup matcher upgraded to exact-then-substring so short
+  aliases like `POCSAG` resolve without demanding the full record name.
+- **Three new records files.** `records/decoders.json` (Manchester,
+  differential Manchester, NRZ, NRZI, PWM, PPM, PCM),
+  `records/sdr_hardware.json` (HackRF One + RTL-SDR v3 / Airspy R2 /
+  LimeSDR Mini / USRP B200 / ADALM-Pluto / KrakenSDR comparative
+  entries), and `records/regulatory.json` (documentation-only mirror
+  of the hardcoded BLOCKED/ISM tables in `frequency_policy.py` — the
+  gate does not read it).
 - **Reviewer's checklist for adding a `CommandAction`.** The 10-item
   short list in `docs/development.md` becomes a 14-item authoritative
   checklist: enum → args → risk → handler → executor pass-through →
