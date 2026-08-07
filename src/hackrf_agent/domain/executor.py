@@ -304,6 +304,8 @@ class CommandExecutor:
             "decode_pocsag",
             "decode_ads_b",
             "decode_rtty",
+            "decode_ax25",
+            "decode_aprs",
         ):
             # Knowledge + analysis handlers return JSON-primitive payloads
             # directly. Strip the internal "kind" marker before returning.

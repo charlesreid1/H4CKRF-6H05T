@@ -248,6 +248,31 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
                  "if the decoded text is nonsense but num_characters is "
                  "nonzero — some transmitters swap MARK/SPACE polarity.",
     },
+    CommandAction.DECODE_AX25: {
+        "purpose": "AX.25 packet-radio decoder (HDLC over Bell 202 AFSK-1200 or direct FSK-9600).",
+        "args_doc": "iq_path (str), sample_rate_hz (int), baud (float, "
+                    "default 1200), invert (bool, default false).",
+        "example": '{"action": "decode_ax25", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 48000, '
+                   '"baud": 1200}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns per-frame destination/source/digipeaters, control, "
+                 "PID, info bytes, and CRC-16-CCITT status. NRZI + "
+                 "bit-unstuffing handled internally.",
+    },
+    CommandAction.DECODE_APRS: {
+        "purpose": "APRS decoder - AX.25 UI frames with APRS payload interpretation.",
+        "args_doc": "iq_path (str), sample_rate_hz (int), baud (float, "
+                    "default 1200), invert (bool, default false).",
+        "example": '{"action": "decode_aprs", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 48000}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Recognized DTIs: !/= (position no-ts), //@  (position ts), "
+                 "> (status), : (message), ; (object), T (telemetry). "
+                 "Position reports return lat/lon in decimal degrees.",
+    },
     CommandAction.KNOWLEDGE_LIST_TOPICS: {
         "purpose": "Enumerate every topic dir under knowledge/ and its markdown files.",
         "args_doc": "No arguments.",

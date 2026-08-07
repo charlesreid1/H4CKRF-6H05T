@@ -432,6 +432,46 @@ class DecodeRttyArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# decode_ax25
+# ---------------------------------------------------------------------------
+
+
+class DecodeAx25Args(BaseModel):
+    """AX.25 HDLC packet decoder (Bell 202 AFSK-1200 or direct FSK-9600)."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: float = Field(default=1200.0, description="AX.25 baud rate (1200 or 9600 typical).", gt=0)
+    invert: bool = Field(default=False, description="Swap FSK polarity if flag pattern is present but CRCs fail.")
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_aprs
+# ---------------------------------------------------------------------------
+
+
+class DecodeAprsArgs(BaseModel):
+    """APRS decoder — AX.25 UI frames with APRS payload interpretation."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: float = Field(default=1200.0, gt=0)
+    invert: bool = Field(default=False)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
 # knowledge_list_topics
 # ---------------------------------------------------------------------------
 
@@ -563,6 +603,8 @@ ActionArgs = (
     | DecodePocsagArgs
     | DecodeAdsBArgs
     | DecodeRttyArgs
+    | DecodeAx25Args
+    | DecodeAprsArgs
     | KnowledgeListTopicsArgs
     | KnowledgeReadArgs
     | KnowledgeSearchArgs
@@ -595,6 +637,8 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "decode_pocsag": DecodePocsagArgs,
     "decode_ads_b": DecodeAdsBArgs,
     "decode_rtty": DecodeRttyArgs,
+    "decode_ax25": DecodeAx25Args,
+    "decode_aprs": DecodeAprsArgs,
     "knowledge_list_topics": KnowledgeListTopicsArgs,
     "knowledge_read": KnowledgeReadArgs,
     "knowledge_search": KnowledgeSearchArgs,

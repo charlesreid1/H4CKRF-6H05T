@@ -37,6 +37,8 @@ class CommandAction(str, Enum):  # noqa: UP042
     DECODE_POCSAG = "decode_pocsag"
     DECODE_ADS_B = "decode_ads_b"
     DECODE_RTTY = "decode_rtty"
+    DECODE_AX25 = "decode_ax25"
+    DECODE_APRS = "decode_aprs"
     # Knowledge tier — read-only corpus access. Hardcoded LOW risk.
     # See knowledge/ MANIFEST.md and plan-organization.md Phase 3.
     KNOWLEDGE_LIST_TOPICS = "knowledge_list_topics"

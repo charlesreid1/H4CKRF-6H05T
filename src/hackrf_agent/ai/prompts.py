@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v5"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v6"
 
 TOOL_NAME: str = "execute_command"
 
@@ -175,6 +175,17 @@ touch libhackrf. Feed them files produced by ``capture_iq``.
   over 2FSK. Returns decoded text with LTRS/FIGS shift-state tracking
   plus framing-error count. Try ``invert=true`` if the decoded text is
   nonsense but ``num_characters`` is nonzero.
+- **decode_ax25** — args: iq_path (str), sample_rate_hz (int),
+  baud (float, default 1200), invert (bool). AX.25 packet-radio decoder
+  (HDLC over Bell 202 AFSK-1200 or direct FSK-9600). Returns per-frame
+  destination/source/digipeaters, control, PID, info bytes (hex +
+  ASCII), and CRC-16-CCITT status.
+- **decode_aprs** — same args as decode_ax25. Decodes AX.25 UI frames
+  then interprets the info-field as APRS. Recognized data-type
+  identifiers: ``!``/``=`` (position without timestamp), ``/``/``@``
+  (position with timestamp), ``>`` (status), ``:`` (message), ``;``
+  (object), ``T`` (telemetry). Adds parsed lat/lon or message body per
+  frame under ``aprs``.
 
 Analysis verbs are the composition layer between raw IQ and a decoded
 bitstream. A typical CTF flow: ``capture_iq`` -> ``analyze_iq_modulation``

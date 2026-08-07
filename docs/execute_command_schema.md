@@ -296,6 +296,38 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Returns decoded text (with LTRS/FIGS shift-state tracking) plus framing_errors count. Try invert=true if the decoded text is nonsense but num_characters is nonzero — some transmitters swap MARK/SPACE polarity.
 
+## `decode_ax25`
+
+**Purpose.** AX.25 packet-radio decoder (HDLC over Bell 202 AFSK-1200 or direct FSK-9600).
+
+**Args.** iq_path (str), sample_rate_hz (int), baud (float, default 1200), invert (bool, default false).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_ax25", "args": {"iq_path": "...", "sample_rate_hz": 48000, "baud": 1200}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns per-frame destination/source/digipeaters, control, PID, info bytes, and CRC-16-CCITT status. NRZI + bit-unstuffing handled internally.
+
+## `decode_aprs`
+
+**Purpose.** APRS decoder - AX.25 UI frames with APRS payload interpretation.
+
+**Args.** iq_path (str), sample_rate_hz (int), baud (float, default 1200), invert (bool, default false).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_aprs", "args": {"iq_path": "...", "sample_rate_hz": 48000}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Recognized DTIs: !/= (position no-ts), //@  (position ts), > (status), : (message), ; (object), T (telemetry). Position reports return lat/lon in decimal degrees.
+
 ## `knowledge_list_topics`
 
 **Purpose.** Enumerate every topic dir under knowledge/ and its markdown files.

@@ -24,6 +24,8 @@
             "decode_pocsag",
             "decode_ads_b",
             "decode_rtty",
+            "decode_ax25",
+            "decode_aprs",
             "knowledge_list_topics",
             "knowledge_read",
             "knowledge_search",

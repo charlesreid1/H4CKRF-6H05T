@@ -27,6 +27,8 @@ from hackrf_agent.domain.args import (
     AuditQueryArgs,
     CaptureIqArgs,
     DecodeAdsBArgs,
+    DecodeAprsArgs,
+    DecodeAx25Args,
     DecodeManchesterArgs,
     DecodeNrzArgs,
     DecodeOokArgs,
@@ -55,6 +57,12 @@ from hackrf_agent.hw.analysis import (
 )
 from hackrf_agent.hw.analysis import (
     decode_ads_b as _decode_ads_b,
+)
+from hackrf_agent.hw.analysis import (
+    decode_aprs as _decode_aprs,
+)
+from hackrf_agent.hw.analysis import (
+    decode_ax25 as _decode_ax25,
 )
 from hackrf_agent.hw.analysis import (
     decode_manchester as _decode_manchester,
@@ -492,6 +500,44 @@ async def _handle_decode_rtty(
     }
 
 
+async def _handle_decode_ax25(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodeAx25Args(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_ax25(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        baud=parsed.baud,
+        invert=parsed.invert,
+    )
+    return {
+        "kind": "decode_ax25",
+        "iq_path": str(iq_path),
+        **result,
+    }
+
+
+async def _handle_decode_aprs(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodeAprsArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_aprs(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        baud=parsed.baud,
+        invert=parsed.invert,
+    )
+    return {
+        "kind": "decode_aprs",
+        "iq_path": str(iq_path),
+        **result,
+    }
+
+
 async def _handle_decode_nrz(
     ctx: HandlerContext, args: dict[str, Any]
 ) -> dict[str, Any]:
@@ -634,4 +680,6 @@ HANDLERS: dict[
     CommandAction.DECODE_POCSAG: _handle_decode_pocsag,
     CommandAction.DECODE_ADS_B: _handle_decode_ads_b,
     CommandAction.DECODE_RTTY: _handle_decode_rtty,
+    CommandAction.DECODE_AX25: _handle_decode_ax25,
+    CommandAction.DECODE_APRS: _handle_decode_aprs,
 }

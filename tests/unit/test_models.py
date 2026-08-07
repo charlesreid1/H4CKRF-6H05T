@@ -200,6 +200,8 @@ class TestCommandAction:
             "decode_pocsag",
             "decode_ads_b",
             "decode_rtty",
+            "decode_ax25",
+            "decode_aprs",
             # Knowledge tier (Phase 3)
             "knowledge_list_topics",
             "knowledge_read",

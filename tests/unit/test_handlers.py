@@ -336,6 +336,76 @@ class TestAnalysisHandlers:
         )
         assert sum(result["bits"]) == 0
 
+    async def test_decode_ax25_and_aprs(self, ctx: HandlerContext) -> None:
+        import numpy as np
+        # Build an AX.25 UI frame with an APRS position payload.
+        def make_addr(cs, ssid, last):
+            padded = cs.ljust(6)
+            b = bytearray()
+            for c in padded:
+                b.append(ord(c) << 1)
+            b.append(((ssid & 0x0F) << 1) | 0x60 | (0x01 if last else 0))
+            return bytes(b)
+        from hackrf_agent.hw.analysis import _ax25_crc16
+        payload = (
+            make_addr("APRS", 0, False)
+            + make_addr("KG7ABC", 1, True)
+            + bytes([0x03, 0xF0])
+            + b"!4903.50N/07201.75W-CTF"
+        )
+        fcs = _ax25_crc16(payload)
+        frame = payload + bytes([fcs & 0xFF, (fcs >> 8) & 0xFF])
+        bits = [(b >> i) & 1 for b in frame for i in range(8)]
+        stuffed: list[int] = []
+        ones = 0
+        for b in bits:
+            stuffed.append(b)
+            if b == 1:
+                ones += 1
+                if ones == 5:
+                    stuffed.append(0)
+                    ones = 0
+            else:
+                ones = 0
+        flag = [0, 1, 1, 1, 1, 1, 1, 0]
+        full = flag * 4 + stuffed + flag * 4
+        nrzi: list[int] = []
+        state = 1
+        for b in full:
+            if b == 0:
+                state = 1 - state
+            nrzi.append(state)
+        fs = 48_000
+        baud = 1200
+        sps = fs // baud
+        inst_freq = np.empty(len(nrzi) * sps, dtype=np.float32)
+        for i, b in enumerate(nrzi):
+            inst_freq[i * sps : (i + 1) * sps] = 2200.0 if b else 1200.0
+        phase = np.cumsum(2 * np.pi * inst_freq / fs)
+        iq = np.exp(1j * phase).astype(np.complex64)
+        i8 = (iq.real * 127).astype(np.int8)
+        q8 = (iq.imag * 127).astype(np.int8)
+        interleaved = np.empty(2 * i8.size, dtype=np.int8)
+        interleaved[0::2] = i8
+        interleaved[1::2] = q8
+        iq_path = ctx.session_paths.new_iq_path("aprs-test")
+        iq_path.parent.mkdir(parents=True, exist_ok=True)
+        iq_path.write_bytes(interleaved.tobytes())
+
+        ax25_result = await HANDLERS[CommandAction.DECODE_AX25](
+            ctx, {"iq_path": str(iq_path), "sample_rate_hz": fs, "baud": baud}
+        )
+        assert ax25_result["num_crc_ok"] >= 1
+        assert ax25_result["frames"][0]["destination"]["callsign"] == "APRS"
+
+        aprs_result = await HANDLERS[CommandAction.DECODE_APRS](
+            ctx, {"iq_path": str(iq_path), "sample_rate_hz": fs, "baud": baud}
+        )
+        assert aprs_result["num_aprs_frames"] >= 1
+        aprs = aprs_result["frames"][0]["aprs"]
+        assert aprs["kind"] == "position"
+        assert abs(aprs["lat"] - 49.058333) < 1e-4
+
     async def test_decode_rtty(self, ctx: HandlerContext) -> None:
         import numpy as np
         from hackrf_agent.hw.analysis import _ITA2_LTRS

@@ -1157,6 +1157,429 @@ def decode_rtty(
 
 
 # ---------------------------------------------------------------------------
+# AX.25 (HDLC over Bell 202 AFSK or direct FSK)
+# ---------------------------------------------------------------------------
+
+_AX25_FLAG_BYTE: int = 0x7E  # 01111110
+
+
+def _ax25_nrzi_decode(bits: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    """AX.25 NRZI: a transition (0->1 or 1->0) is a 0, no transition is a 1.
+
+    This is the opposite polarity from the generic ``decode_nrzi`` verb.
+    AX.25 chose "0 = transition" so that a long run of 1s produces no
+    transitions, which makes the bit-stuffing rule (stuff a 0 after five
+    consecutive 1s) automatically prevent 6-in-a-row flag patterns from
+    appearing in payloads.
+
+    Returns a bit array of length ``len(bits)``. The first bit's decoded
+    value is undefined (there's no prior sample to compare to); we take
+    it as 1 by convention.
+    """
+    if bits.size == 0:
+        return bits
+    out = np.zeros(bits.size, dtype=np.uint8)
+    prev = int(bits[0])
+    out[0] = 1
+    for i in range(1, bits.size):
+        cur = int(bits[i])
+        out[i] = 0 if cur != prev else 1
+        prev = cur
+    return out
+
+
+def _ax25_bit_unstuff(bits: list[int]) -> tuple[list[int], int]:
+    """Reverse AX.25 bit stuffing.
+
+    After five consecutive 1s the transmitter inserts a 0; on receive we
+    drop that 0. Returns ``(unstuffed_bits, num_removed_stuff_bits)``.
+    If a run of six or more 1s is observed (invalid inside a frame; also
+    the HDLC flag) we return early — the caller has misaligned.
+    """
+    out: list[int] = []
+    ones = 0
+    removed = 0
+    for b in bits:
+        if b == 1:
+            out.append(1)
+            ones += 1
+            if ones == 6:
+                # six consecutive 1s → framing error inside payload
+                return out, removed
+        else:
+            if ones == 5:
+                # This 0 was inserted by the transmitter; drop it.
+                removed += 1
+            else:
+                out.append(0)
+            ones = 0
+    return out, removed
+
+
+def _ax25_bits_to_bytes(bits: list[int]) -> list[int]:
+    """Pack an AX.25 bit stream (LSB-first within each byte) to bytes."""
+    n = len(bits) // 8
+    out: list[int] = []
+    for i in range(n):
+        byte = 0
+        for j in range(8):
+            byte |= (bits[i * 8 + j] & 1) << j
+        out.append(byte)
+    return out
+
+
+def _ax25_crc16(data: bytes) -> int:
+    """CRC-16-CCITT for AX.25 FCS.
+
+    Polynomial 0x1021, initial value 0xFFFF, LSB-first bit ordering,
+    final one's-complement.
+    """
+    crc = 0xFFFF
+    for byte in data:
+        for i in range(8):
+            bit = (byte >> i) & 1
+            xor_flag = ((crc & 1) ^ bit) != 0
+            crc >>= 1
+            if xor_flag:
+                crc ^= 0x8408  # reflected 0x1021
+    return crc ^ 0xFFFF
+
+
+def _ax25_find_flag_positions(bits: npt.NDArray[np.uint8]) -> list[int]:
+    """Return every bit-index where the HDLC flag ``01111110`` appears."""
+    if bits.size < 8:
+        return []
+    flag = np.array([0, 1, 1, 1, 1, 1, 1, 0], dtype=np.uint8)
+    hits: list[int] = []
+    for i in range(bits.size - 8 + 1):
+        if np.array_equal(bits[i : i + 8], flag):
+            hits.append(i)
+    return hits
+
+
+def _ax25_parse_address(byte7: bytes) -> dict[str, object]:
+    """Parse a 7-byte AX.25 address field.
+
+    Bytes 0-5: callsign, 6-bit ASCII shifted left by 1 (so a 0-bit LSB
+    remains for the address-extension flag). Byte 6: SSID + flags —
+    bits 5-1 = SSID, bit 7 = command/response, bit 0 = last-address flag.
+    """
+    callsign_bytes = byte7[:6]
+    callsign_chars = "".join(chr(b >> 1) for b in callsign_bytes).rstrip(" ")
+    ssid_byte = byte7[6]
+    ssid = (ssid_byte >> 1) & 0x0F
+    last = bool(ssid_byte & 0x01)
+    return {
+        "callsign": callsign_chars,
+        "ssid": ssid,
+        "last": last,
+    }
+
+
+def _ax25_parse_frame(frame_bytes: bytes) -> dict[str, object] | None:
+    """Parse a raw AX.25 frame (post-unstuffing, without the delimiting flags).
+
+    Returns ``None`` on obvious framing errors (too short, address field
+    truncated). The caller does the CRC check separately.
+    """
+    if len(frame_bytes) < 15:  # 14 addr + 1 ctrl (min)
+        return None
+    # Walk the address field until we find one with bit 0 = 1.
+    addrs: list[dict[str, object]] = []
+    i = 0
+    while i + 7 <= len(frame_bytes):
+        addr = _ax25_parse_address(frame_bytes[i : i + 7])
+        addrs.append(addr)
+        i += 7
+        if addr["last"]:
+            break
+        if len(addrs) > 10:
+            # AX.25 allows up to 8 digipeaters + 2 endpoints; give up.
+            return None
+    if i >= len(frame_bytes):
+        return None
+    if len(addrs) < 2:
+        # Need at least destination + source.
+        return None
+    control = frame_bytes[i]
+    i += 1
+    pid: int | None = None
+    # UI frames have PID; supervisory frames don't.
+    is_ui = (control & 0xEF) == 0x03
+    if is_ui and i < len(frame_bytes):
+        pid = frame_bytes[i]
+        i += 1
+    info = frame_bytes[i:]
+    return {
+        "destination": addrs[0],
+        "source": addrs[1],
+        "digipeaters": addrs[2:],
+        "control": control,
+        "pid": pid,
+        "is_ui": is_ui,
+        "info_bytes": bytes(info),
+    }
+
+
+def decode_ax25(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    baud: float = 1200.0,
+    invert: bool = False,
+) -> dict[str, object]:
+    """AX.25 packet-radio decoder.
+
+    Handles both Bell 202 AFSK (1200 baud, 1200/2200 Hz audio tones —
+    typical for 2 m packet) and direct FSK-9600. In either case the
+    input is treated as complex baseband (audio can be reinterpreted as
+    real-envelope-as-magnitude; RF captures pass through directly).
+
+    Pipeline:
+
+    1. 2FSK demod → raw bit stream at ``baud``.
+    2. AX.25 NRZI decode (0 = transition, 1 = no transition).
+    3. Scan for HDLC flag byte ``0x7E`` (bit-aligned).
+    4. Between every flag pair, un-stuff bits (drop the 0 after five
+       consecutive 1s).
+    5. Pack to bytes (LSB-first within each byte).
+    6. Compute CRC-16-CCITT over addresses+control+pid+info; the FCS is
+       the last two bytes.
+    7. Parse the address field, control byte, PID (for UI frames), and
+       info bytes.
+
+    Args:
+        iq: complex64 samples.
+        sample_rate_hz: capture rate.
+        baud: 1200 (Bell 202) or 9600 (direct FSK). Others accepted for
+            experimentation.
+        invert: swap the FSK polarity if the decoded frames have bad CRC
+            but the flag pattern is present.
+
+    Returns:
+        ``{"baud", "num_flags", "num_frames", "num_crc_ok",
+        "frames": [{destination, source, digipeaters, control, pid,
+                    is_ui, info_bytes_hex, info_ascii, crc_ok}, ...]}``.
+    """
+    raw = fsk_bit_stream(iq, sample_rate_hz, baud, invert=invert)
+    if raw.size < 16:
+        return {
+            "baud": baud,
+            "num_flags": 0,
+            "num_frames": 0,
+            "num_crc_ok": 0,
+            "frames": [],
+        }
+    nrzi_bits = _ax25_nrzi_decode(raw)
+    flags = _ax25_find_flag_positions(nrzi_bits)
+    frames: list[dict[str, object]] = []
+    num_crc_ok = 0
+    for i in range(len(flags) - 1):
+        start = flags[i] + 8
+        end = flags[i + 1]
+        span = nrzi_bits[start:end]
+        if span.size < 32:
+            continue
+        unstuffed, _ = _ax25_bit_unstuff(span.tolist())
+        # Trim to whole bytes.
+        n_bytes = len(unstuffed) // 8
+        if n_bytes < 17:  # 14 addr + 1 ctrl + 2 FCS
+            continue
+        packed = bytes(_ax25_bits_to_bytes(unstuffed[: n_bytes * 8]))
+        if len(packed) < 3:
+            continue
+        payload = packed[:-2]
+        fcs_bytes = packed[-2:]
+        fcs_transmitted = fcs_bytes[0] | (fcs_bytes[1] << 8)
+        fcs_computed = _ax25_crc16(payload)
+        crc_ok = fcs_computed == fcs_transmitted
+        parsed = _ax25_parse_frame(payload)
+        if parsed is None:
+            continue
+        info_bytes = parsed["info_bytes"]
+        info_ascii = "".join(
+            chr(b) if 32 <= b < 127 else "." for b in info_bytes
+        )
+        parsed_summary = {
+            "destination": parsed["destination"],
+            "source": parsed["source"],
+            "digipeaters": parsed["digipeaters"],
+            "control": parsed["control"],
+            "pid": parsed["pid"],
+            "is_ui": parsed["is_ui"],
+            "info_bytes_hex": info_bytes.hex().upper(),
+            "info_ascii": info_ascii,
+            "fcs_transmitted": fcs_transmitted,
+            "fcs_computed": fcs_computed,
+            "crc_ok": crc_ok,
+        }
+        frames.append(parsed_summary)
+        if crc_ok:
+            num_crc_ok += 1
+    return {
+        "baud": baud,
+        "num_flags": len(flags),
+        "num_frames": len(frames),
+        "num_crc_ok": num_crc_ok,
+        "frames": frames,
+    }
+
+
+# ---------------------------------------------------------------------------
+# APRS decoder (payload interpretation of AX.25 UI frames)
+# ---------------------------------------------------------------------------
+
+
+def _aprs_parse_position_uncompressed(
+    payload: str,
+) -> dict[str, object] | None:
+    """Parse an uncompressed APRS position report.
+
+    Format after the DTI byte:
+      DDMM.mmN|S SYM_TABLE DDDMM.mmE|W SYM_CODE [comment]
+
+    Latitude is 8 characters (``DDMM.mmH``), symbol table is 1, longitude
+    9 characters, symbol code 1, then optional comment.
+    """
+    if len(payload) < 19:
+        return None
+    lat_str = payload[0:8]
+    sym_table = payload[8]
+    lon_str = payload[9:18]
+    sym_code = payload[18]
+    comment = payload[19:]
+
+    def _parse_lat(s: str) -> float | None:
+        if len(s) != 8:
+            return None
+        try:
+            deg = int(s[0:2])
+            minutes = float(s[2:7])
+            hemi = s[7]
+        except ValueError:
+            return None
+        if hemi not in "NS":
+            return None
+        val = deg + minutes / 60.0
+        return -val if hemi == "S" else val
+
+    def _parse_lon(s: str) -> float | None:
+        if len(s) != 9:
+            return None
+        try:
+            deg = int(s[0:3])
+            minutes = float(s[3:8])
+            hemi = s[8]
+        except ValueError:
+            return None
+        if hemi not in "EW":
+            return None
+        val = deg + minutes / 60.0
+        return -val if hemi == "W" else val
+
+    lat = _parse_lat(lat_str)
+    lon = _parse_lon(lon_str)
+    if lat is None or lon is None:
+        return None
+    return {
+        "kind": "position",
+        "lat": lat,
+        "lon": lon,
+        "symbol_table": sym_table,
+        "symbol_code": sym_code,
+        "comment": comment,
+    }
+
+
+def _aprs_parse_payload(info_ascii: str) -> dict[str, object]:
+    """Interpret an AX.25 UI info-field payload as APRS.
+
+    Returns a dict with at minimum ``dti`` (data-type identifier — the
+    first byte). For recognized DTIs additional fields are surfaced.
+    """
+    if not info_ascii:
+        return {"kind": "empty"}
+    dti = info_ascii[0]
+    body = info_ascii[1:]
+    result: dict[str, object] = {"dti": dti}
+    if dti in ("!", "="):
+        # Position without timestamp (! = no messaging, = with messaging).
+        parsed = _aprs_parse_position_uncompressed(body)
+        if parsed is not None:
+            result.update(parsed)
+            result["has_messaging"] = dti == "="
+            return result
+    if dti in ("/", "@"):
+        # Position with timestamp. Skip the 7-byte timestamp then parse
+        # the same as an uncompressed position.
+        if len(body) >= 8:
+            timestamp = body[:7]
+            rest = body[7:]
+            parsed = _aprs_parse_position_uncompressed(rest)
+            if parsed is not None:
+                result.update(parsed)
+                result["timestamp"] = timestamp
+                result["has_messaging"] = dti == "@"
+                return result
+    if dti == ">":
+        result["kind"] = "status"
+        result["status"] = body
+        return result
+    if dti == ":":
+        # Message: 9-char addressee, colon, text
+        if len(body) >= 11 and body[9] == ":":
+            result["kind"] = "message"
+            result["addressee"] = body[:9].rstrip()
+            result["text"] = body[10:]
+            return result
+    if dti == ";":
+        result["kind"] = "object"
+        result["raw"] = body
+        return result
+    if dti == "T":
+        result["kind"] = "telemetry"
+        result["raw"] = body
+        return result
+    result["kind"] = "unknown"
+    result["raw"] = body
+    return result
+
+
+def decode_aprs(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    baud: float = 1200.0,
+    invert: bool = False,
+) -> dict[str, object]:
+    """APRS decoder — AX.25 UI frames with APRS payload interpretation.
+
+    Runs ``decode_ax25`` first, then interprets the info-field of every
+    UI frame as an APRS payload (position/status/message/etc.). Frames
+    that aren't UI, or that don't match a known APRS data-type identifier,
+    are still returned with a ``kind`` of ``unknown``.
+
+    Args are identical to ``decode_ax25``. Returns a superset dict:
+
+    ``{"baud", "num_flags", "num_frames", "num_crc_ok",
+       "num_aprs_frames", "frames": [{...ax25 fields..., "aprs": {...}}]}``.
+    """
+    ax25 = decode_ax25(iq, sample_rate_hz, baud=baud, invert=invert)
+    num_aprs = 0
+    for frame in ax25["frames"]:
+        aprs = _aprs_parse_payload(frame["info_ascii"]) if frame["is_ui"] else None
+        frame["aprs"] = aprs
+        if aprs is not None and aprs.get("kind") in (
+            "position",
+            "status",
+            "message",
+            "object",
+            "telemetry",
+        ):
+            num_aprs += 1
+    ax25["num_aprs_frames"] = num_aprs
+    return ax25
+
+
+# ---------------------------------------------------------------------------
 # ADS-B / Mode S decoder
 # ---------------------------------------------------------------------------
 

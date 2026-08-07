@@ -359,6 +359,33 @@ class TestAnalysisDispatch:
         assert cmd.args["baud"] == 45.45
         assert cmd.args["invert"] is False
 
+    def test_decode_ax25(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_ax25",
+            {
+                "iq_path": "/tmp/x.iq",
+                "sample_rate_hz": 48_000,
+                "baud": 1200.0,
+                "justification": "Decode packet",
+                "expected_effect": "Frame list",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_AX25
+        assert cmd.args["baud"] == 1200.0
+
+    def test_decode_aprs_defaults(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_aprs",
+            {
+                "iq_path": "/tmp/x.iq",
+                "justification": "Decode APRS",
+                "expected_effect": "Position/status/message",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_APRS
+        assert cmd.args["baud"] == 1200.0
+        assert cmd.args["sample_rate_hz"] == 2_000_000
+
     def test_decode_nrz_rejects_bad_variant(self) -> None:
         with pytest.raises(Exception):
             dispatch(
