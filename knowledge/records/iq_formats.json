@@ -129,7 +129,7 @@
     "era_bounds": ["2010-01-01", null],
     "still_effective_2026": true,
     "confidence": "community",
-    "citations": [],
+    "citations": ["sigmf-spec"],
     "technical_body": {
       "sample_type": "float32",
       "container": "RIFF/WAVE",
@@ -150,7 +150,7 @@
     "era_bounds": ["2010-01-01", null],
     "still_effective_2026": true,
     "confidence": "community",
-    "citations": [],
+    "citations": ["sigmf-spec"],
     "technical_body": {
       "sample_type": "int16",
       "container": "RIFF/WAVE",
