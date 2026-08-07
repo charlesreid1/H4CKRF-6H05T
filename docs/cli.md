@@ -157,6 +157,38 @@ hackrf-agent audit tail --limit 10
 
 ---
 
+### `lore` — Search the RF/SIGINT knowledge corpus
+
+Human-facing companion to the MCP `knowledge_*` verbs. Same read-only
+backend; no MCP host required.
+
+```
+hackrf-agent lore list
+hackrf-agent lore read <topic> [<name>]
+hackrf-agent lore search <query> [--max-results N]
+hackrf-agent lore lookup-band <freq_hz>
+hackrf-agent lore lookup-modulation <name>
+hackrf-agent lore lookup-protocol <name>
+hackrf-agent lore lookup-decoder <name>
+hackrf-agent lore lookup-keyfob [--vendor V] [--model M]
+```
+
+**Examples:**
+```bash
+hackrf-agent lore list                                  # enumerate topics
+hackrf-agent lore read ism-433 reference.md             # print one file
+hackrf-agent lore search "rolling code" --max-results 5 # grep the corpus
+hackrf-agent lore lookup-band 433920000                 # bands covering the freq
+hackrf-agent lore lookup-modulation OOK                 # modulations.json record
+hackrf-agent lore lookup-protocol POCSAG                # protocols.json record
+hackrf-agent lore lookup-keyfob --vendor Chamberlain    # keyfobs.json records
+```
+
+Exit code 0 on hit, 1 on "no match" (successful query, empty result),
+2 on error (bad path, missing corpus, etc.).
+
+---
+
 ## Global Options
 
 ### `--home-dir`

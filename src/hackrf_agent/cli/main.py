@@ -9,6 +9,7 @@ import typer
 from hackrf_agent.cli.audit_cmd import audit_app
 from hackrf_agent.cli.chat_cmd import chat
 from hackrf_agent.cli.doctor_cmd import doctor
+from hackrf_agent.cli.lore_cmd import lore_app
 from hackrf_agent.cli.mcp_cmd import mcp
 from hackrf_agent.cli.permissions_cmd import grant_app
 from hackrf_agent.cli.settings import DEFAULT_HOME, SettingsService
@@ -21,6 +22,7 @@ app = typer.Typer(
 
 app.add_typer(grant_app, name="grant")
 app.add_typer(audit_app, name="audit")
+app.add_typer(lore_app, name="lore")
 app.command("chat")(chat)
 app.command("doctor")(doctor)
 app.command("mcp")(mcp)
