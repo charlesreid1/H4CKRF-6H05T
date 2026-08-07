@@ -137,6 +137,26 @@ class TestCaptureIq:
         call_kwargs = ctx.driver.calls[0][1]
         assert call_kwargs["out_path"].is_file()
 
+    async def test_writes_sigmf_meta_sidecar(self, ctx: HandlerContext) -> None:
+        import json
+
+        await HANDLERS[CommandAction.CAPTURE_IQ](
+            ctx,
+            {"center_freq_hz": 433_000_000, "duration_s": 0.1},
+        )
+        call_kwargs = ctx.driver.calls[0][1]
+        iq_path = call_kwargs["out_path"]
+        meta_path = iq_path.with_suffix(iq_path.suffix + ".sigmf-meta")
+        assert meta_path.is_file(), f"SigMF sidecar missing at {meta_path}"
+
+        meta = json.loads(meta_path.read_text())
+        assert meta["global"]["core:datatype"] == "ci8_le"
+        assert meta["global"]["core:sample_rate"] == 2_000_000
+        assert meta["global"]["core:hw"] == "HackRF One"
+        assert meta["captures"][0]["core:frequency"] == 433_000_000
+        # ISO datetime present.
+        assert "T" in meta["captures"][0]["core:datetime"]
+
 
 class TestTransmitIq:
     async def test_path_outside_root_raises(self, ctx: HandlerContext) -> None:

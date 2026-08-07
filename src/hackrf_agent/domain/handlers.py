@@ -11,6 +11,8 @@ unit-testable with a mocked driver and nothing else.
 
 from __future__ import annotations
 
+import datetime as _datetime
+import json as _json
 import time as _time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -299,6 +301,7 @@ async def _handle_capture_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[
         effective_center_hz = parsed.target_freq_hz + offset_hz
     num_samples = int(parsed.sample_rate_hz * parsed.duration_s)
     out_path = ctx.session_paths.new_iq_path("capture")
+    start_ts = _time.time()
     written = await ctx.driver.capture_iq(
         center_hz=effective_center_hz,
         sample_rate_hz=parsed.sample_rate_hz,
@@ -308,6 +311,18 @@ async def _handle_capture_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[
         rf_amp_db=parsed.rf_amp_db,
         out_path=out_path,
     )
+    # SigMF sidecar. Every mainstream SDR tool (Inspectrum, URH, gqrx)
+    # reads the "<capture>.sigmf-meta" companion file alongside the raw
+    # cs8. Emit the minimum required fields — no new dependency, the
+    # metadata format is plain JSON.
+    _write_sigmf_meta(
+        written,
+        sample_rate_hz=parsed.sample_rate_hz,
+        center_hz=effective_center_hz,
+        capture_start_iso=_datetime.datetime.fromtimestamp(
+            start_ts, tz=_datetime.timezone.utc
+        ).isoformat(),
+    )
     return {
         "kind": "capture",
         "iq_path": written,
@@ -316,6 +331,42 @@ async def _handle_capture_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[
         "sample_rate_hz": parsed.sample_rate_hz,
         "num_samples": num_samples,
     }
+
+
+def _write_sigmf_meta(
+    iq_path: Path,
+    *,
+    sample_rate_hz: int,
+    center_hz: int,
+    capture_start_iso: str,
+) -> Path:
+    """Write a SigMF-meta sidecar next to *iq_path*.
+
+    The HackRF's cs8 format maps to SigMF ``datatype: ci8_le``
+    (interleaved complex int8, little-endian). Returns the sidecar path.
+    """
+    meta_path = iq_path.with_suffix(iq_path.suffix + ".sigmf-meta")
+    meta = {
+        "global": {
+            "core:datatype": "ci8_le",
+            "core:sample_rate": int(sample_rate_hz),
+            "core:hw": "HackRF One",
+            "core:recorder": "hackrf-agent",
+            "core:version": "1.0.0",
+        },
+        "captures": [
+            {
+                "core:sample_start": 0,
+                "core:frequency": int(center_hz),
+                "core:datetime": capture_start_iso,
+            }
+        ],
+        "annotations": [],
+    }
+    meta_path.write_text(
+        _json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return meta_path
 
 
 async def _handle_transmit_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
