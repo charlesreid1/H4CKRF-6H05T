@@ -352,6 +352,24 @@ class CommandExecutor:
                 sample_rate_hz=raw.get("sample_rate_hz", 2_000_000),
                 fft_size=raw.get("fft_size", 4096),
             )
+        if kind == "sweep_bulk":
+            sample_rate_hz = raw.get("sample_rate_hz", 2_000_000)
+            fft_size = raw.get("fft_size", 4096)
+            per_range = [
+                f.format_sweep(
+                    magnitude_db=s["magnitude_db"],
+                    freqs_hz=s["freqs_hz"],
+                    start_hz=s["start_hz"],
+                    stop_hz=s["stop_hz"],
+                    sample_rate_hz=sample_rate_hz,
+                    fft_size=fft_size,
+                )
+                for s in raw["sweeps"]
+            ]
+            return {
+                "num_ranges": len(per_range),
+                "sweeps": per_range,
+            }
         if kind == "capture":
             return f.format_capture(
                 iq_path=raw["iq_path"],

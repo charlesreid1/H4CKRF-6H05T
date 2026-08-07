@@ -54,6 +54,7 @@ from hackrf_agent.domain.args import (
     KnowledgeVerifyClaimArgs,
     ReadIqSummaryArgs,
     SweepSpectrumArgs,
+    SweepSpectrumBulkArgs,
     TransmitIqArgs,
 )
 from hackrf_agent.domain.audit_service import AuditService
@@ -234,6 +235,46 @@ async def _handle_sweep_spectrum(ctx: HandlerContext, args: dict[str, Any]) -> d
         "freqs_hz": freqs,
         "start_hz": parsed.start_freq_hz,
         "stop_hz": parsed.end_freq_hz,
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "fft_size": parsed.fft_size,
+    }
+
+
+async def _handle_sweep_spectrum_bulk(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    """Sweep multiple bands via repeated driver calls.
+
+    Each range dispatches as its own driver.sweep_spectrum call with
+    the shared sample_rate/gain/dwell/fft_size settings. The result
+    aggregates one entry per range with its magnitude array + freq
+    array. BLOCKED-band checks for individual ranges live in the
+    driver's own frequency_policy guard (unchanged).
+    """
+    parsed = SweepSpectrumBulkArgs(**args)
+    results: list[dict[str, Any]] = []
+    for r in parsed.ranges:
+        spec, freqs = await ctx.driver.sweep_spectrum(
+            start_hz=r.start_freq_hz,
+            stop_hz=r.end_freq_hz,
+            sample_rate_hz=parsed.sample_rate_hz,
+            lna_gain_db=parsed.lna_gain_db,
+            vga_gain_db=parsed.vga_gain_db,
+            rf_amp_db=parsed.rf_amp_db,
+            dwell_s=parsed.dwell_s,
+            fft_size=parsed.fft_size,
+        )
+        results.append(
+            {
+                "start_hz": r.start_freq_hz,
+                "stop_hz": r.end_freq_hz,
+                "magnitude_db": spec,
+                "freqs_hz": freqs,
+            }
+        )
+    return {
+        "kind": "sweep_bulk",
+        "sweeps": results,
         "sample_rate_hz": parsed.sample_rate_hz,
         "fft_size": parsed.fft_size,
     }
@@ -822,6 +863,7 @@ HANDLERS: dict[
 ] = {
     CommandAction.GET_DEVICE_INFO: _handle_get_device_info,
     CommandAction.SWEEP_SPECTRUM: _handle_sweep_spectrum,
+    CommandAction.SWEEP_SPECTRUM_BULK: _handle_sweep_spectrum_bulk,
     CommandAction.CAPTURE_IQ: _handle_capture_iq,
     CommandAction.TRANSMIT_IQ: _handle_transmit_iq,
     CommandAction.READ_IQ_SUMMARY: _handle_read_iq_summary,

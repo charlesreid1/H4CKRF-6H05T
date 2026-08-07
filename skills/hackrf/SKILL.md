@@ -80,6 +80,9 @@ There is one tool: `execute_command`. Every call is discriminated by
   full RiskAssessor/PermissionService/ApprovalPort/AuditService flow.
   No batching bypass; a TX inside a sequence still blocks on approval
   as if bare. play_sequence cannot nest inside itself.
+- `sweep_spectrum_bulk` — sweep 2-8 bands in one call. Shared
+  sample_rate/gain/dwell/fft_size settings. Simpler than a
+  play_sequence-of-sweeps when you already know all the ranges.
 
 TX actions go through `RiskAssessor` → optional
 `PermissionService.check` → optional `ApprovalPort.request`. TX in a

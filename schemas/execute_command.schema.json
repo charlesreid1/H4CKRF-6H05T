@@ -40,7 +40,8 @@
             "knowledge_explain_signal",
             "knowledge_cross_reference",
             "knowledge_verify_claim",
-            "play_sequence"
+            "play_sequence",
+            "sweep_spectrum_bulk"
           ],
           "type": "string"
         }

@@ -57,6 +57,7 @@ class CommandAction(str, Enum):  # noqa: UP042
     KNOWLEDGE_VERIFY_CLAIM = "knowledge_verify_claim"
     # Composition tier — chain sub-actions through the funnel.
     PLAY_SEQUENCE = "play_sequence"
+    SWEEP_SPECTRUM_BULK = "sweep_spectrum_bulk"
 
 
 class RiskLevel(str, Enum):  # noqa: UP042

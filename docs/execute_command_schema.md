@@ -568,3 +568,19 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Each sub-action re-enters CommandExecutor.execute() with its own risk assessment, permission check, approval flow, and audit trail. No batching bypass. play_sequence cannot nest inside itself. stop_on_error=false runs every step even after a failure.
 
+## `sweep_spectrum_bulk`
+
+**Purpose.** Sweep multiple bands in one call (2-8 ranges).
+
+**Args.** ranges (list of {start_freq_hz, end_freq_hz}, length 2-8), sample_rate_hz (int, default 2000000), lna_gain_db (int, default 16), vga_gain_db (int, default 20), rf_amp_db (int, default 0), dwell_s (float, default 1.0), fft_size (int, default 4096). Shared across all ranges.
+
+**Default risk tier.** LOW at dwell_s <= 2s; MEDIUM above
+
+**Example envelope.**
+
+```json
+{"action": "sweep_spectrum_bulk", "args": {"ranges": [{"start_freq_hz": 315000000, "end_freq_hz": 316000000}, {"start_freq_hz": 433000000, "end_freq_hz": 435000000}]}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns {num_ranges, sweeps} where each sweep entry has the same shape as sweep_spectrum's result. Per-range risk classification applies at the driver level.
+

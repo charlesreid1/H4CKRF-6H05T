@@ -777,6 +777,54 @@ class KnowledgeVerifyClaimArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# sweep_spectrum_bulk
+# ---------------------------------------------------------------------------
+
+
+class SweepRange(BaseModel):
+    """One (start, end) tuple inside a sweep_spectrum_bulk request."""
+
+    start_freq_hz: int = Field(..., description="Start of sweep band in Hz", gt=0)
+    end_freq_hz: int = Field(..., description="End of sweep band in Hz", gt=0)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _range_ordered(self) -> "SweepRange":
+        if self.start_freq_hz >= self.end_freq_hz:
+            raise ValueError(
+                f"start_freq_hz ({self.start_freq_hz}) must be < "
+                f"end_freq_hz ({self.end_freq_hz})"
+            )
+        return self
+
+
+class SweepSpectrumBulkArgs(BaseModel):
+    """Sweep multiple bands in one call.
+
+    Each range is dispatched as its own SweepSpectrumArgs invocation
+    through the driver. Per-range risk classification applies — a range
+    that overlaps a BLOCKED band is refused independently. All ranges
+    share the same sample_rate_hz/gain/dwell/fft_size settings.
+    """
+
+    ranges: list[SweepRange] = Field(
+        ...,
+        description="Ordered list of (start_freq_hz, end_freq_hz) pairs. Length 2-8.",
+        min_length=2,
+        max_length=8,
+    )
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    lna_gain_db: int = Field(default=16, description="LNA gain in dB (0-40)")
+    vga_gain_db: int = Field(default=20, description="VGA gain in dB (0-62)")
+    rf_amp_db: int = Field(default=0, description="RF amp gain in dB (0-14)")
+    dwell_s: float = Field(default=1.0, description="Dwell time per hop in seconds", gt=0)
+    fft_size: int = Field(default=4096, description="FFT bin count", gt=0)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
 # play_sequence
 # ---------------------------------------------------------------------------
 
@@ -876,6 +924,7 @@ ActionArgs = (
     | KnowledgeCrossReferenceArgs
     | KnowledgeVerifyClaimArgs
     | PlaySequenceArgs
+    | SweepSpectrumBulkArgs
 )
 
 
@@ -919,4 +968,5 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "knowledge_cross_reference": KnowledgeCrossReferenceArgs,
     "knowledge_verify_claim": KnowledgeVerifyClaimArgs,
     "play_sequence": PlaySequenceArgs,
+    "sweep_spectrum_bulk": SweepSpectrumBulkArgs,
 }

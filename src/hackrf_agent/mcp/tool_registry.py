@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 _TOOL_DESCRIPTIONS: dict[str, str] = {
     "get_device_info": "Read the attached HackRF's serial, firmware, and board revision. Always safe; no RF activity.",
     "sweep_spectrum": "RX-only sweep over a frequency band. Returns top-N peaks and noise floor. Safe for RX-allowed bands.",
+    "sweep_spectrum_bulk": "RX-only sweep over 2-8 bands in one call. Returns per-range peaks and noise floors. Shared sample_rate/gain/dwell/fft_size across ranges. Per-range risk classification applies via the driver's frequency_policy guard.",
     "capture_iq": "RX capture raw IQ samples to disk. Short captures (≤5s) are LOW risk; longer captures require approval.",
     "transmit_iq": "TX from an existing .iq file. Requires an active grant. HIGH risk in unclassified bands.",
     "read_iq_summary": "Re-summarize a previously captured .iq file. No hardware access; reads from disk only.",

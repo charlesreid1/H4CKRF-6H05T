@@ -57,6 +57,64 @@ class TestSweepSpectrum:
         assert ctx.driver.calls[0][0] == "sweep_spectrum"
 
 
+class TestSweepSpectrumBulk:
+    async def test_dispatches_all_ranges(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.SWEEP_SPECTRUM_BULK](
+            ctx,
+            {
+                "ranges": [
+                    {"start_freq_hz": 315_000_000, "end_freq_hz": 316_000_000},
+                    {"start_freq_hz": 433_000_000, "end_freq_hz": 435_000_000},
+                    {"start_freq_hz": 902_000_000, "end_freq_hz": 928_000_000},
+                ],
+            },
+        )
+        assert result["kind"] == "sweep_bulk"
+        assert len(result["sweeps"]) == 3
+        # Driver called once per range.
+        assert len([c for c in ctx.driver.calls if c[0] == "sweep_spectrum"]) == 3
+
+    async def test_shares_settings_across_ranges(
+        self, ctx: HandlerContext
+    ) -> None:
+        await HANDLERS[CommandAction.SWEEP_SPECTRUM_BULK](
+            ctx,
+            {
+                "ranges": [
+                    {"start_freq_hz": 315_000_000, "end_freq_hz": 316_000_000},
+                    {"start_freq_hz": 433_000_000, "end_freq_hz": 435_000_000},
+                ],
+                "sample_rate_hz": 4_000_000,
+                "dwell_s": 0.5,
+                "fft_size": 2048,
+            },
+        )
+        for name, kwargs in ctx.driver.calls:
+            if name == "sweep_spectrum":
+                assert kwargs["sample_rate_hz"] == 4_000_000
+                assert kwargs["dwell_s"] == 0.5
+                assert kwargs["fft_size"] == 2048
+
+    async def test_rejects_single_range(self, ctx: HandlerContext) -> None:
+        with pytest.raises(Exception):
+            await HANDLERS[CommandAction.SWEEP_SPECTRUM_BULK](
+                ctx,
+                {"ranges": [
+                    {"start_freq_hz": 433_000_000, "end_freq_hz": 434_000_000}
+                ]},
+            )
+
+    async def test_rejects_reversed_range(self, ctx: HandlerContext) -> None:
+        with pytest.raises(Exception):
+            await HANDLERS[CommandAction.SWEEP_SPECTRUM_BULK](
+                ctx,
+                {"ranges": [
+                    {"start_freq_hz": 434_000_000, "end_freq_hz": 433_000_000},
+                    {"start_freq_hz": 315_000_000, "end_freq_hz": 316_000_000},
+                ]},
+            )
+
+
 class TestCaptureIq:
     async def test_writes_to_session_iq_dir(self, ctx: HandlerContext) -> None:
         result = await HANDLERS[CommandAction.CAPTURE_IQ](

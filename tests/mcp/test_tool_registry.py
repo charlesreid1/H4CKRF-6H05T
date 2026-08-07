@@ -699,3 +699,48 @@ class TestPlaySequenceDispatch:
                     "expected_effect": "y",
                 },
             )
+
+
+class TestSweepSpectrumBulkDispatch:
+    def test_dispatch(self) -> None:
+        cmd = dispatch(
+            "hackrf_sweep_spectrum_bulk",
+            {
+                "ranges": [
+                    {"start_freq_hz": 315_000_000, "end_freq_hz": 316_000_000},
+                    {"start_freq_hz": 433_000_000, "end_freq_hz": 435_000_000},
+                ],
+                "justification": "Multi-band recon",
+                "expected_effect": "Peaks across both bands",
+            },
+        )
+        assert cmd.action == CommandAction.SWEEP_SPECTRUM_BULK
+        assert len(cmd.args["ranges"]) == 2
+        assert cmd.args["sample_rate_hz"] == 2_000_000  # default
+
+    def test_rejects_single_range(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_sweep_spectrum_bulk",
+                {
+                    "ranges": [
+                        {"start_freq_hz": 315_000_000, "end_freq_hz": 316_000_000}
+                    ],
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_rejects_reversed_range(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_sweep_spectrum_bulk",
+                {
+                    "ranges": [
+                        {"start_freq_hz": 435_000_000, "end_freq_hz": 433_000_000},
+                        {"start_freq_hz": 315_000_000, "end_freq_hz": 316_000_000},
+                    ],
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )

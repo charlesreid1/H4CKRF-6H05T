@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v9"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v10"
 
 TOOL_NAME: str = "execute_command"
 
@@ -103,6 +103,12 @@ Available actions and their required args:
 - **sweep_spectrum** — args: start_freq_hz (int), end_freq_hz (int), plus
   optional sample_rate_hz, lna_gain_db, vga_gain_db, rf_amp_db, dwell_s,
   fft_size. Returns magnitude spectrum with detected peaks.
+- **sweep_spectrum_bulk** — args: ranges (list of {start_freq_hz,
+  end_freq_hz}, length 2-8), plus the same optional sample_rate_hz /
+  lna_gain_db / vga_gain_db / rf_amp_db / dwell_s / fft_size (shared
+  across all ranges). Runs 2-8 sweeps back-to-back and returns
+  per-range peaks + noise floors. Per-range risk classification
+  applies via the driver's frequency_policy guard.
 - **capture_iq** — args: target_freq_hz (int — frequency of interest) OR
   center_freq_hz (int — raw tuner center), duration_s (float), plus
   optional sample_rate_hz, lna_gain_db, vga_gain_db, rf_amp_db. Captures raw

@@ -219,6 +219,7 @@ class TestCommandAction:
             "knowledge_verify_claim",
             # Composition tier
             "play_sequence",
+            "sweep_spectrum_bulk",
         }
         assert values == expected
 

@@ -119,6 +119,11 @@ class RiskAssessor:
         if action == CommandAction.SWEEP_SPECTRUM:
             return self._assess_sweep(args)
 
+        # B2. SWEEP_SPECTRUM_BULK — per-range dwell rules; any BLOCKED
+        # range in the list blocks the whole call.
+        if action == CommandAction.SWEEP_SPECTRUM_BULK:
+            return self._assess_sweep_bulk(args)
+
         # C. CAPTURE_IQ
         if action == CommandAction.CAPTURE_IQ:
             return self._assess_capture_iq(args)
@@ -204,6 +209,61 @@ class RiskAssessor:
         return RiskAssessment(
             level=RiskLevel.MEDIUM,
             reason="long RX sweep (dwell > 2 s)",
+            requires_confirmation=True,
+        )
+
+    def _assess_sweep_bulk(self, args: dict[str, Any]) -> RiskAssessment:
+        ranges = args.get("ranges")
+        if not isinstance(ranges, list) or len(ranges) < 2:
+            return RiskAssessment(
+                level=RiskLevel.BLOCKED,
+                reason="invalid ranges argument",
+                blocked_reason="sweep_spectrum_bulk needs a list of >=2 ranges",
+                requires_confirmation=False,
+            )
+        # Any range with malformed bounds → BLOCKED.
+        for r in ranges:
+            if not isinstance(r, dict):
+                return RiskAssessment(
+                    level=RiskLevel.BLOCKED,
+                    reason="malformed range entry",
+                    blocked_reason="range entries must be objects",
+                    requires_confirmation=False,
+                )
+            start = r.get("start_freq_hz")
+            end = r.get("end_freq_hz")
+            if not isinstance(start, int) or not isinstance(end, int):
+                return RiskAssessment(
+                    level=RiskLevel.BLOCKED,
+                    reason="malformed range entry",
+                    blocked_reason="each range needs integer start/end_freq_hz",
+                    requires_confirmation=False,
+                )
+            if start >= end:
+                return RiskAssessment(
+                    level=RiskLevel.BLOCKED,
+                    reason="malformed range entry",
+                    blocked_reason=f"range [{start}..{end}] has start >= end",
+                    requires_confirmation=False,
+                )
+
+        dwell_s = self._get_float(args, "dwell_s")
+        if dwell_s is None:
+            dwell_s = 1.0
+
+        # LOW when short-dwell (≤ 2s per range); MEDIUM otherwise. The
+        # aggregate wall-clock can still be long across many ranges,
+        # but each range dispatches as an independent sub-sweep — that
+        # is the parity we want with SWEEP_SPECTRUM.
+        if dwell_s <= self.LOW_SWEEP_DWELL_S:
+            return RiskAssessment(
+                level=RiskLevel.LOW,
+                reason="short-dwell bulk RX sweep",
+                requires_confirmation=False,
+            )
+        return RiskAssessment(
+            level=RiskLevel.MEDIUM,
+            reason="long-dwell bulk RX sweep (per-range dwell > 2 s)",
             requires_confirmation=True,
         )
 

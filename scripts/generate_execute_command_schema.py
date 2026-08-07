@@ -48,6 +48,24 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
         "default_tier": "LOW",
         "notes": "RX only. Always safe within legal RX-allowed bands.",
     },
+    CommandAction.SWEEP_SPECTRUM_BULK: {
+        "purpose": "Sweep multiple bands in one call (2-8 ranges).",
+        "args_doc": (
+            "ranges (list of {start_freq_hz, end_freq_hz}, length 2-8), "
+            "sample_rate_hz (int, default 2000000), lna_gain_db (int, "
+            "default 16), vga_gain_db (int, default 20), rf_amp_db (int, "
+            "default 0), dwell_s (float, default 1.0), fft_size (int, "
+            "default 4096). Shared across all ranges."
+        ),
+        "example": '{"action": "sweep_spectrum_bulk", "args": '
+                   '{"ranges": [{"start_freq_hz": 315000000, "end_freq_hz": 316000000}, '
+                   '{"start_freq_hz": 433000000, "end_freq_hz": 435000000}]}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW at dwell_s <= 2s; MEDIUM above",
+        "notes": "Returns {num_ranges, sweeps} where each sweep entry has "
+                 "the same shape as sweep_spectrum's result. Per-range "
+                 "risk classification applies at the driver level.",
+    },
     CommandAction.CAPTURE_IQ: {
         "purpose": "RX capture into an .iq file under the session directory.",
         "args_doc": (
