@@ -283,21 +283,48 @@ how approval works over MCP elicitation, resource URIs, and safety caveats.
 
 ## Documentation
 
-- **[docs/architecture.md](docs/architecture.md)** — how the pieces fit together.
-  The layer diagram, module map, risk-tier table, envelope schema, audit-log
-  schema, and data-flow for one command.
+**Getting started + reference**
+
+- **[docs/cli.md](docs/cli.md)** — user-facing command reference.
+- **[docs/mcp.md](docs/mcp.md)** — use HackRF from any MCP-aware host (Claude
+  Desktop, Claude Code, Cursor, OpenCode, `mcp-cli`, …). Tool list, host config
+  snippets, approval flow, resources, and safety caveats.
 - **[docs/safety.md](docs/safety.md)** — what the risk gate does, and does not,
   protect. FCC citations, plain-English risk tiers, the grant model, the kill
   switch, and incident response.
 - **[docs/execute_command_schema.md](docs/execute_command_schema.md)** — the
   LLM's one tool. One section per `CommandAction` with purpose, args, example,
   and risk tier. Auto-generated from the code.
-- **[docs/mcp.md](docs/mcp.md)** — use HackRF from any MCP-aware host (Claude
-  Desktop, Claude Code, Cursor, OpenCode, `mcp-cli`, …). Tool list, host config
-  snippets, approval flow, resources, and safety caveats.
+- **[docs/env_reference.md](docs/env_reference.md)** — every env var, every
+  `config.toml` key, every CLI flag in one table with precedence rules.
+
+**For CTF operators**
+
+- **[docs/ctf_playbook.md](docs/ctf_playbook.md)** — first-60-seconds triage
+  strategy for a mystery frequency or IQ file.
+- **[docs/ctf_recipes.md](docs/ctf_recipes.md)** — six end-to-end walkthroughs:
+  unknown keyfob, POCSAG page hunt, LoRa CSS, APRS packet, spectrogram stego,
+  mystery-modulation IQ.
+- **[docs/rf_cheatsheet.md](docs/rf_cheatsheet.md)** — one-page band and
+  modulation reference.
+- **[docs/field_kit.md](docs/field_kit.md)** — DEF CON prep: what to bring,
+  home rehearsal, offline fallback when venue wifi dies.
+- **[docs/prompting.md](docs/prompting.md)** — how to talk to the co-pilot
+  productively: templates, steering, anti-patterns.
+- **[docs/iq_handling.md](docs/iq_handling.md)** — IQ file formats, size math,
+  handoffs to Inspectrum / URH / GQRX / SigMF.
+- **[docs/warmup.md](docs/warmup.md)** — smoke-test sequence to verify the
+  stack is healthy before an event.
+- **[docs/troubleshooting.md](docs/troubleshooting.md)** — symptom → fix FAQ
+  for when something breaks mid-event.
+
+**Contributors**
+
+- **[docs/architecture.md](docs/architecture.md)** — how the pieces fit together.
+  The layer diagram, module map, risk-tier table, envelope schema, audit-log
+  schema, and data-flow for one command.
 - **[docs/development.md](docs/development.md)** — contributor guide. Setup,
   test tiers, "add a new CommandAction" checklist, CI runners, release process.
-- **[docs/cli.md](docs/cli.md)** — user-facing command reference.
 - **[docs/ai-package.md](docs/ai-package.md)** — contributor reference for the
   `hackrf_agent.ai` package.
 - **[docs/tests.md](docs/tests.md)** — how to run each test tier, and what the
