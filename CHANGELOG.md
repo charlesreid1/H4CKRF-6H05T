@@ -4,6 +4,18 @@
 
 ### Added
 
+- **Analysis tier — seven new `CommandAction` verbs.** Offline DSP on
+  already-captured `.iq` files, hardcoded `LOW` risk. Verbs:
+  `analyze_iq_modulation` (moment-based classifier),
+  `analyze_iq_symbols` (edge-interval symbol-rate estimator),
+  `analyze_iq_spectrogram` (compact per-slice peak-frequency + power
+  summary; never the full FFT matrix), `decode_manchester`,
+  `decode_pwm`, `decode_ppm`, `decode_nrz` (with NRZI variant).
+  Handlers refuse `iq_path` outside session root; no `pyhackrf` import.
+- New DSP module `hackrf_agent.hw.analysis` — `load_iq_file` (1 GiB
+  cap), `classify_modulation`, `estimate_symbol_rate`,
+  `spectrogram_summary`, plus line-code decoders sharing a `slice_ook`
+  pipeline.
 - **Knowledge tier — six new `CommandAction` verbs.** Read-only corpus
   access, hardcoded `LOW` risk, funnels through the existing
   `CommandExecutor` chokepoint. Verbs: `knowledge_list_topics`,
