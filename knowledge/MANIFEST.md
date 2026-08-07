@@ -79,6 +79,8 @@ Tier 2 — Common bands and signals (write next):
 - `ism-2400/` — Bluetooth Classic + BLE (observation only), Zigbee.
 - `ads-b/` — Mode S extended squitter at 1090 MHz. **RX-only.**
 - `pocsag-flex/` — POCSAG 512/1200/2400 and FLEX paging.
+- `aprs/` — Automatic Packet Reporting System (AX.25 over Bell 202
+  AFSK-1200); paired with the `decode_aprs` MCP verb.
 - `keyfobs/` — fixed vs rolling, Keeloq, HITAG2, Passive Keyless Entry.
 - `garage-doors/` — Genie, Chamberlain, LiftMaster generations.
 - `weather-stations/` — Acurite, Fine Offset, La Crosse, Oregon Scientific.

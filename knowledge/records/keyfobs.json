@@ -1,0 +1,198 @@
+[
+  {
+    "id": "keyfob-generic-fixed-code",
+    "name": "Generic fixed-code keyfob (pre-2000 vehicles, some garage openers)",
+    "aliases": ["fixed-code", "static-code"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["1990-01-01", "2005-12-31"],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rtl-433-github"],
+    "technical_body": {
+      "carrier_options_hz": [315000000, 433920000],
+      "modulation": "OOK",
+      "symbol_encoding": "Manchester or PWM",
+      "symbol_rate_bps": [2000, 4000],
+      "packet_length_bits": "24-40 typical",
+      "rolling_code": false,
+      "replay_verdict": "trivial replay"
+    },
+    "hackrf_role": "rx-and-tx-replay",
+    "flag_pattern_hint": "identical payload across every press",
+    "see_also": ["keyfob-chamberlain-security-plus-1", "modulation-ook"]
+  },
+  {
+    "id": "keyfob-chamberlain-security-plus-1",
+    "name": "Chamberlain Security+ 1.0",
+    "aliases": ["Chamberlain S+1.0", "LiftMaster S+1.0"],
+    "category": "keyfob_system",
+    "region": "US",
+    "era_bounds": ["1996-01-01", "2011-12-31"],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz": 315000000,
+      "modulation": "OOK",
+      "symbol_encoding": "Manchester",
+      "symbol_rate_bps": 2000,
+      "rolling_code": false,
+      "replay_verdict": "trivial replay"
+    },
+    "hackrf_role": "rx-and-tx-replay",
+    "flag_pattern_hint": "fixed 3-byte identifier + 2-byte serial",
+    "see_also": ["keyfob-chamberlain-security-plus-2", "keyfob-generic-fixed-code"]
+  },
+  {
+    "id": "keyfob-chamberlain-security-plus-2",
+    "name": "Chamberlain Security+ 2.0",
+    "aliases": ["Chamberlain S+2.0", "LiftMaster Security+ 2.0"],
+    "category": "keyfob_system",
+    "region": "US",
+    "era_bounds": ["2011-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz_options": [310000000, 315000000, 390000000],
+      "modulation": "OOK",
+      "symbol_encoding": "Manchester",
+      "symbol_rate_bps": 4000,
+      "rolling_code": true,
+      "rolljam_verdict": "vulnerable in principle (Kamkar 2015 disclosure)",
+      "replay_verdict": "fresh replay defeated by rolling counter"
+    },
+    "hackrf_role": "rx-analyze",
+    "flag_pattern_hint": "if you see increment-by-1 payloads across presses -> confirmed rolling",
+    "see_also": ["keyfob-chamberlain-security-plus-1", "keyfob-genie-intellicode"]
+  },
+  {
+    "id": "keyfob-genie-intellicode",
+    "name": "Genie Intellicode",
+    "aliases": ["Intellicode 1", "Intellicode 2"],
+    "category": "keyfob_system",
+    "region": "US",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz_options": [315000000, 433920000],
+      "modulation": "OOK",
+      "symbol_encoding": "Manchester",
+      "rolling_code": true,
+      "crypto": "Keeloq",
+      "replay_verdict": "fresh replay defeated by counter"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-chamberlain-security-plus-2", "crypto-keeloq"]
+  },
+  {
+    "id": "keyfob-genie-dip-switch",
+    "name": "Genie DIP-switch (legacy)",
+    "aliases": ["Excelerator", "mechanical DIP-switch opener"],
+    "category": "keyfob_system",
+    "region": "US",
+    "era_bounds": ["1975-01-01", "1995-12-31"],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz_options": [27000000, 300000000, 390000000],
+      "modulation": "OOK",
+      "code_bits": [8, 9, 10, 12],
+      "brute_force_space": "256 to 4096 codes",
+      "replay_verdict": "trivial replay OR trivial brute-force"
+    },
+    "hackrf_role": "rx-and-tx-replay",
+    "see_also": ["keyfob-chamberlain-security-plus-1"]
+  },
+  {
+    "id": "keyfob-generic-keeloq",
+    "name": "Generic Keeloq keyfob (Ford, GM, Chrysler, VW, many others)",
+    "aliases": ["Keeloq", "HCS200/300/301/360/410"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz_options": [315000000, 433920000, 868350000],
+      "modulation": "OOK",
+      "symbol_encoding": "Manchester",
+      "symbol_rate_bps": [2000, 4000],
+      "rolling_code": true,
+      "crypto": "Keeloq NLFSR (64-bit key, 32-bit block)",
+      "counter_bits": 16,
+      "vendor_code_bits": 28,
+      "function_bits": 4,
+      "replay_verdict": "defeated by counter",
+      "rolljam_verdict": "vulnerable"
+    },
+    "hackrf_role": "rx-analyze",
+    "flag_pattern_hint": "32-bit encrypted counter that increments by 1 per press",
+    "see_also": ["keyfob-generic-hitag2", "crypto-keeloq"]
+  },
+  {
+    "id": "keyfob-generic-hitag2",
+    "name": "Generic HITAG2 keyfob (some Asian-market vehicles)",
+    "aliases": ["HITAG2"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["2000-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz_options": [315000000, 433920000],
+      "modulation": "OOK or 2FSK",
+      "rolling_code": true,
+      "crypto": "HITAG2 (48-bit key)",
+      "key_recovery_verdict": "practical (~1000-2000 captured presses per Verdult/Garcia et al.)"
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-generic-keeloq", "crypto-hitag2"]
+  },
+  {
+    "id": "keyfob-passive-keyless-entry",
+    "name": "Passive Keyless Entry (PKE) — generic",
+    "aliases": ["PKE", "keyless start"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["2007-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": [],
+    "technical_body": {
+      "lf_challenge_hz": 125000,
+      "uhf_response_hz_options": [315000000, 433920000],
+      "modulation_uhf": "OOK or 2FSK",
+      "rolling_code": true,
+      "vulnerability": "relay attack",
+      "hackrf_support_verdict": "cannot receive 125 kHz LF challenge; PKE is out of HackRF single-band reach"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["keyfob-generic-keeloq"]
+  },
+  {
+    "id": "keyfob-tesla-model-3",
+    "name": "Tesla Model 3 keyfob",
+    "aliases": ["Tesla Model 3 remote"],
+    "category": "keyfob_system",
+    "region": "universal",
+    "era_bounds": ["2017-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz": 433920000,
+      "modulation": "OOK",
+      "additional_auth": "primary auth is phone-key via BLE; fob is fallback",
+      "rolling_code": true
+    },
+    "hackrf_role": "rx-analyze",
+    "see_also": ["keyfob-generic-keeloq"]
+  }
+]

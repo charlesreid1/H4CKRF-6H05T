@@ -1,0 +1,188 @@
+[
+  {
+    "id": "signal-ism-315-keyfob-ook",
+    "name": "OOK keyfob burst at 315 MHz",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": [],
+    "technical_body": {
+      "center_hz": 315000000,
+      "bandwidth_hz": 40000,
+      "modulation": "OOK",
+      "symbol_rate_hz_range": [1500, 4500],
+      "burst_duration_ms": [30, 100],
+      "burst_repetition_count": [3, 5],
+      "burst_gap_ms": 20,
+      "typical_source": "automobile keyfob or garage door opener"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "3-5 identical or increment-by-1 bursts per press",
+    "see_also": ["band-ism-315", "keyfob-generic-keeloq"]
+  },
+  {
+    "id": "signal-ism-433-weather-station",
+    "name": "OOK weather-station burst at 433.92 MHz",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["1998-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rtl-433-github"],
+    "technical_body": {
+      "center_hz": 433920000,
+      "bandwidth_hz": 40000,
+      "modulation": "OOK",
+      "symbol_rate_hz_range": [1000, 4000],
+      "burst_duration_ms": [15, 100],
+      "burst_repetition_count": [4, 8],
+      "typical_source": "Acurite / Fine Offset / Oregon Scientific"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "temperature+humidity payload; vendor sync word varies",
+    "see_also": ["band-ism-433", "protocol-pocsag-1200"]
+  },
+  {
+    "id": "signal-ism-433-tpm-ook",
+    "name": "TPMS burst at 433.92 MHz",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["2007-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": [],
+    "technical_body": {
+      "center_hz": 433920000,
+      "modulation": "OOK",
+      "symbol_rate_hz_range": [2400, 9600],
+      "burst_duration_ms": [10, 50],
+      "burst_repetition_seconds": 90,
+      "typical_source": "TPMS sensor"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "32-bit sensor ID + pressure/temperature",
+    "see_also": ["band-ism-433"]
+  },
+  {
+    "id": "signal-adsb-1090",
+    "name": "Mode S extended-squitter burst at 1090 MHz",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "center_hz": 1090000000,
+      "bandwidth_hz": 2000000,
+      "modulation": "PPM",
+      "chip_width_us": 0.5,
+      "long_frame_duration_us": 120,
+      "typical_source": "aircraft Mode S transponder"
+    },
+    "hackrf_role": "rx-only",
+    "flag_pattern_hint": "ICAO24 in bits 8-31; callsign in DF17 type 1-4",
+    "see_also": ["band-ads-b", "protocol-mode-s-ads-b"]
+  },
+  {
+    "id": "signal-pocsag-vhf-uhf",
+    "name": "POCSAG paging burst",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1982-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr"],
+    "technical_body": {
+      "carrier_hz_typical_ranges": [
+        [138000000, 174000000],
+        [415000000, 470000000],
+        [929000000, 932000000]
+      ],
+      "channel_bandwidth_hz": 12500,
+      "modulation": "2FSK",
+      "deviation_hz": 4500,
+      "symbol_rate_bps": [512, 1200, 2400]
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["protocol-pocsag-1200"]
+  },
+  {
+    "id": "signal-aprs-vhf",
+    "name": "APRS packet on 144.390 MHz (US)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["1992-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": [],
+    "technical_body": {
+      "center_hz": 144390000,
+      "channel_bandwidth_hz": 16000,
+      "modulation": "Bell 202 AFSK-1200",
+      "typical_source": "amateur APRS tracker / weather station"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "operator callsign + APRS DTI byte + position/status",
+    "see_also": ["protocol-aprs", "protocol-ax25"]
+  },
+  {
+    "id": "signal-wifi-24-ofdm",
+    "name": "WiFi 2.4 GHz OFDM channel",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1999-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": [],
+    "technical_body": {
+      "center_hz_typical": [2412000000, 2437000000, 2462000000],
+      "channel_bandwidth_hz": 20000000,
+      "modulation": "OFDM",
+      "typical_source": "802.11n/ac/ax AP or client"
+    },
+    "hackrf_role": "rx-observe-only",
+    "flag_pattern_hint": "for decoding, use monitor-mode adapter or P1N3NUT5",
+    "see_also": ["band-ism-2400"]
+  },
+  {
+    "id": "signal-ble-adv",
+    "name": "BLE advertising channels 37/38/39",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": [],
+    "technical_body": {
+      "carriers_hz": [2402000000, 2426000000, 2480000000],
+      "channel_bandwidth_hz": 2000000,
+      "modulation": "GFSK (BT=0.5)",
+      "symbol_rate_bps": 1000000,
+      "typical_source": "BLE beacon (AirTag, Tile, iBeacon-style, fitness tracker)"
+    },
+    "hackrf_role": "rx-observe-only",
+    "see_also": ["band-ism-2400", "modulation-gfsk"]
+  },
+  {
+    "id": "signal-lora-chirp",
+    "name": "LoRa CSS chirp at 868 or 915 MHz",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": [],
+    "technical_body": {
+      "carrier_hz_typical": [868100000, 903900000, 923200000],
+      "bandwidth_hz_options": [125000, 250000, 500000],
+      "modulation": "CSS",
+      "spreading_factors": [7, 8, 9, 10, 11, 12],
+      "spectral_signature": "diagonal chirp streaks on a waterfall"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-lora-css", "protocol-lorawan-eu868", "protocol-lorawan-us915"]
+  }
+]
