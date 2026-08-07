@@ -4,6 +4,23 @@
 
 ### Added
 
+- **Reviewer's checklist for adding a `CommandAction`.** The 10-item
+  short list in `docs/development.md` becomes a 14-item authoritative
+  checklist: enum → args → risk → handler → executor pass-through →
+  MCP tool → prompt → schema regen → unit test → handler test → MCP
+  registry test → integration test (if applicable) → CHANGELOG →
+  no-pyhackrf-outside-`hw/` guard. Includes corpus-side additions
+  and decoder-specific guidance (round-trip synthesized-signal tests
+  + `records/protocols.json` updates).
+- **SKILL.md refreshed** with all 20 new verbs organized into three
+  tiers (Know / Analyze / Act). Adds explicit corpus-depth cues and
+  a playbook mirroring `docs/ctf_playbook.md`.
+- **Tier-2 corpus topics (14 topics).** ISM 315/433/868-915/2400,
+  ADS-B, POCSAG/FLEX, keyfobs (with full attack model), garage-doors,
+  weather-stations, TPMS, LoRa, Zigbee/802.15.4, DMR, TETRA, P25,
+  airband, marine VHF/AIS, satellite, APRS. Backing records:
+  `protocols.json` (15 records), `keyfobs.json` (9), and
+  `known_signals.json` (9 canonical signatures).
 - **RTTY, AX.25, and APRS decoders.** Three new LOW-risk verbs.
   - `decode_rtty`: Baudot ITA2 5-bit over 2FSK with LTRS/FIGS shift
     tracking, framing = 1 start + 5 data + 1 stop.
