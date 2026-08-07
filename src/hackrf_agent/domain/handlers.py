@@ -21,9 +21,16 @@ import numpy as np
 import numpy.typing as npt
 
 from hackrf_agent.domain.args import (
+    AnalyzeIqModulationArgs,
+    AnalyzeIqSpectrogramArgs,
+    AnalyzeIqSymbolsArgs,
     AuditQueryArgs,
     CaptureIqArgs,
+    DecodeManchesterArgs,
+    DecodeNrzArgs,
     DecodeOokArgs,
+    DecodePpmArgs,
+    DecodePwmArgs,
     GetDeviceInfoArgs,
     GrantListArgs,
     KnowledgeListTopicsArgs,
@@ -39,6 +46,33 @@ from hackrf_agent.domain.args import (
 from hackrf_agent.domain.audit_service import AuditService
 from hackrf_agent.domain.knowledge import (
     default_paths as _default_knowledge_paths,
+)
+from hackrf_agent.hw.analysis import (
+    classify_modulation as _classify_modulation,
+)
+from hackrf_agent.hw.analysis import (
+    decode_manchester as _decode_manchester,
+)
+from hackrf_agent.hw.analysis import (
+    decode_nrz as _decode_nrz,
+)
+from hackrf_agent.hw.analysis import (
+    decode_nrzi as _decode_nrzi,
+)
+from hackrf_agent.hw.analysis import (
+    decode_ppm as _decode_ppm,
+)
+from hackrf_agent.hw.analysis import (
+    decode_pwm as _decode_pwm,
+)
+from hackrf_agent.hw.analysis import (
+    estimate_symbol_rate as _estimate_symbol_rate,
+)
+from hackrf_agent.hw.analysis import (
+    load_iq_file as _load_iq_file,
+)
+from hackrf_agent.hw.analysis import (
+    spectrogram_summary as _spectrogram_summary,
 )
 from hackrf_agent.domain.knowledge import (
     list_topics as _knowledge_list_topics,
@@ -248,6 +282,178 @@ async def _handle_audit_query(ctx: HandlerContext, args: dict[str, Any]) -> dict
 
 
 # ---------------------------------------------------------------------------
+# Analysis-tier handlers — offline DSP on already-captured .iq files.
+#
+# Every handler here rejects paths that escape the session root (same rule
+# transmit_iq enforces) and rejects files that don't exist. None of them
+# touches libhackrf; the DSP primitives live in hackrf_agent.hw.analysis
+# and use only NumPy.
+# ---------------------------------------------------------------------------
+
+
+def _resolve_iq_path(ctx: HandlerContext, iq_path_str: str) -> Path:
+    """Resolve and validate an iq_path argument for analysis handlers."""
+    iq_path = Path(iq_path_str)
+    if not ctx.session_paths.is_within(iq_path):
+        raise ValueError(
+            f"iq_path {iq_path} escapes session root {ctx.session_paths.root}"
+        )
+    if not iq_path.is_file():
+        raise ValueError(f"iq_path {iq_path} does not exist or is not a file")
+    return iq_path
+
+
+async def _handle_analyze_iq_modulation(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = AnalyzeIqModulationArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    candidates = _classify_modulation(iq)
+    return {
+        "kind": "analyze_iq_modulation",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "num_samples": int(iq.size),
+        "candidates": [
+            {"family": c.family, "confidence": c.confidence, "note": c.note}
+            for c in candidates
+        ],
+    }
+
+
+async def _handle_analyze_iq_symbols(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = AnalyzeIqSymbolsArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _estimate_symbol_rate(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        min_rate_hz=parsed.min_rate_hz,
+        max_rate_hz=parsed.max_rate_hz,
+    )
+    return {
+        "kind": "analyze_iq_symbols",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "num_samples": int(iq.size),
+        **result,
+    }
+
+
+async def _handle_analyze_iq_spectrogram(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = AnalyzeIqSpectrogramArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    summary = _spectrogram_summary(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        fft_size=parsed.fft_size,
+        overlap=parsed.overlap,
+        max_slices=parsed.max_slices,
+    )
+    return {
+        "kind": "analyze_iq_spectrogram",
+        "iq_path": str(iq_path),
+        "num_samples": int(iq.size),
+        **summary,
+    }
+
+
+async def _handle_decode_manchester(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodeManchesterArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_manchester(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        symbol_rate_hz=parsed.symbol_rate_hz,
+        polarity=parsed.polarity,
+    )
+    return {
+        "kind": "decode_manchester",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "symbol_rate_hz": parsed.symbol_rate_hz,
+        **result,
+    }
+
+
+async def _handle_decode_pwm(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodePwmArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_pwm(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        short_us=parsed.short_us,
+        long_us=parsed.long_us,
+    )
+    return {
+        "kind": "decode_pwm",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        **result,
+    }
+
+
+async def _handle_decode_ppm(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodePpmArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_ppm(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        pulse_us=parsed.pulse_us,
+    )
+    return {
+        "kind": "decode_ppm",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        **result,
+    }
+
+
+async def _handle_decode_nrz(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodeNrzArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    if parsed.variant == "nrz":
+        result = _decode_nrz(
+            iq,
+            sample_rate_hz=parsed.sample_rate_hz,
+            symbol_rate_hz=parsed.symbol_rate_hz,
+            inverted=parsed.inverted,
+        )
+    else:
+        result = _decode_nrzi(
+            iq,
+            sample_rate_hz=parsed.sample_rate_hz,
+            symbol_rate_hz=parsed.symbol_rate_hz,
+        )
+    return {
+        "kind": "decode_nrz",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "symbol_rate_hz": parsed.symbol_rate_hz,
+        "variant": parsed.variant,
+        **result,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Knowledge-tier handlers — read-only corpus access.
 #
 # All six route through hackrf_agent.domain.knowledge, which enforces path
@@ -350,4 +556,11 @@ HANDLERS: dict[
     CommandAction.KNOWLEDGE_LOOKUP_BAND: _handle_knowledge_lookup_band,
     CommandAction.KNOWLEDGE_LOOKUP_MODULATION: _handle_knowledge_lookup_modulation,
     CommandAction.KNOWLEDGE_VERIFY_CLAIM: _handle_knowledge_verify_claim,
+    CommandAction.ANALYZE_IQ_MODULATION: _handle_analyze_iq_modulation,
+    CommandAction.ANALYZE_IQ_SYMBOLS: _handle_analyze_iq_symbols,
+    CommandAction.ANALYZE_IQ_SPECTROGRAM: _handle_analyze_iq_spectrogram,
+    CommandAction.DECODE_MANCHESTER: _handle_decode_manchester,
+    CommandAction.DECODE_PWM: _handle_decode_pwm,
+    CommandAction.DECODE_PPM: _handle_decode_ppm,
+    CommandAction.DECODE_NRZ: _handle_decode_nrz,
 }

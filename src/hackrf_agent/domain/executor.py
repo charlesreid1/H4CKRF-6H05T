@@ -294,9 +294,16 @@ class CommandExecutor:
             "knowledge_lookup_band",
             "knowledge_lookup_modulation",
             "knowledge_verify_claim",
+            "analyze_iq_modulation",
+            "analyze_iq_symbols",
+            "analyze_iq_spectrogram",
+            "decode_manchester",
+            "decode_pwm",
+            "decode_ppm",
+            "decode_nrz",
         ):
-            # Knowledge handlers return JSON-primitive payloads directly.
-            # Strip the internal "kind" marker before returning.
+            # Knowledge + analysis handlers return JSON-primitive payloads
+            # directly. Strip the internal "kind" marker before returning.
             out = dict(raw)
             out.pop("kind", None)
             out["risk_tier"] = RiskLevel.LOW.value

@@ -83,6 +83,31 @@ class TestReadOnlyActions:
         assert result.requires_confirmation is False
 
 
+class TestAnalysisActions:
+    """Analysis-tier actions are hardcoded LOW. Cannot cause RF emission."""
+
+    @pytest.mark.parametrize(
+        "action",
+        [
+            CommandAction.ANALYZE_IQ_MODULATION,
+            CommandAction.ANALYZE_IQ_SYMBOLS,
+            CommandAction.ANALYZE_IQ_SPECTROGRAM,
+            CommandAction.DECODE_MANCHESTER,
+            CommandAction.DECODE_PWM,
+            CommandAction.DECODE_PPM,
+            CommandAction.DECODE_NRZ,
+        ],
+    )
+    def test_always_low_no_approval(
+        self,
+        assessor: RiskAssessor,
+        action: CommandAction,
+    ) -> None:
+        result = assessor.assess(make_command(action), [])
+        assert result.level == RiskLevel.LOW
+        assert result.requires_confirmation is False
+
+
 class TestKnowledgeActions:
     """Knowledge-tier actions are hardcoded LOW. Cannot cause RF emission."""
 

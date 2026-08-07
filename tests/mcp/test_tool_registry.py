@@ -184,6 +184,129 @@ class TestDispatch:
         assert cmd.args == {}
 
 
+class TestAnalysisDispatch:
+    """Dispatch surface for the analysis tier — args round-trip."""
+
+    def test_analyze_iq_modulation(self) -> None:
+        cmd = dispatch(
+            "hackrf_analyze_iq_modulation",
+            {
+                "iq_path": "/tmp/x.iq",
+                "sample_rate_hz": 4_000_000,
+                "justification": "Identify the modulation",
+                "expected_effect": "Ranked candidates",
+            },
+        )
+        assert cmd.action == CommandAction.ANALYZE_IQ_MODULATION
+        assert cmd.args["iq_path"] == "/tmp/x.iq"
+        assert cmd.args["sample_rate_hz"] == 4_000_000
+
+    def test_analyze_iq_symbols_defaults(self) -> None:
+        cmd = dispatch(
+            "hackrf_analyze_iq_symbols",
+            {
+                "iq_path": "/tmp/x.iq",
+                "justification": "Find symbol rate",
+                "expected_effect": "Rate + confidence",
+            },
+        )
+        assert cmd.action == CommandAction.ANALYZE_IQ_SYMBOLS
+        assert cmd.args["sample_rate_hz"] == 2_000_000
+        assert cmd.args["min_rate_hz"] == 100.0
+
+    def test_analyze_iq_spectrogram(self) -> None:
+        cmd = dispatch(
+            "hackrf_analyze_iq_spectrogram",
+            {
+                "iq_path": "/tmp/x.iq",
+                "fft_size": 2048,
+                "justification": "Draw spectrogram",
+                "expected_effect": "Peak-per-slice array",
+            },
+        )
+        assert cmd.action == CommandAction.ANALYZE_IQ_SPECTROGRAM
+        assert cmd.args["fft_size"] == 2048
+
+    def test_decode_manchester(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_manchester",
+            {
+                "iq_path": "/tmp/x.iq",
+                "symbol_rate_hz": 2048.0,
+                "justification": "Decode keyfob",
+                "expected_effect": "Bit array",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_MANCHESTER
+        assert cmd.args["symbol_rate_hz"] == 2048.0
+        assert cmd.args["polarity"] == "ieee"
+
+    def test_decode_pwm_requires_both_widths(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_decode_pwm",
+                {
+                    "iq_path": "/tmp/x.iq",
+                    "short_us": 400,
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_decode_pwm_rejects_short_ge_long(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_decode_pwm",
+                {
+                    "iq_path": "/tmp/x.iq",
+                    "short_us": 800,
+                    "long_us": 400,
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_decode_ppm(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_ppm",
+            {
+                "iq_path": "/tmp/x.iq",
+                "pulse_us": 400.0,
+                "justification": "x",
+                "expected_effect": "y",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_PPM
+        assert cmd.args["pulse_us"] == 400.0
+
+    def test_decode_nrz_variant_nrzi(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_nrz",
+            {
+                "iq_path": "/tmp/x.iq",
+                "symbol_rate_hz": 9600.0,
+                "variant": "nrzi",
+                "justification": "x",
+                "expected_effect": "y",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_NRZ
+        assert cmd.args["variant"] == "nrzi"
+
+    def test_decode_nrz_rejects_bad_variant(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_decode_nrz",
+                {
+                    "iq_path": "/tmp/x.iq",
+                    "symbol_rate_hz": 9600.0,
+                    "variant": "not-a-thing",
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+
 class TestKnowledgeDispatch:
     """Dispatch surface for the knowledge tier — every verb round-trips."""
 

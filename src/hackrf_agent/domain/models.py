@@ -25,6 +25,15 @@ class CommandAction(str, Enum):  # noqa: UP042
     DECODE_OOK = "decode_ook"
     GRANT_LIST = "grant_list"
     AUDIT_QUERY = "audit_query"
+    # Analysis tier — offline DSP on already-captured .iq files.
+    # Hardcoded LOW risk. Cannot touch libhackrf.
+    ANALYZE_IQ_MODULATION = "analyze_iq_modulation"
+    ANALYZE_IQ_SYMBOLS = "analyze_iq_symbols"
+    ANALYZE_IQ_SPECTROGRAM = "analyze_iq_spectrogram"
+    DECODE_MANCHESTER = "decode_manchester"
+    DECODE_PWM = "decode_pwm"
+    DECODE_PPM = "decode_ppm"
+    DECODE_NRZ = "decode_nrz"
     # Knowledge tier — read-only corpus access. Hardcoded LOW risk.
     # See knowledge/ MANIFEST.md and plan-organization.md Phase 3.
     KNOWLEDGE_LIST_TOPICS = "knowledge_list_topics"

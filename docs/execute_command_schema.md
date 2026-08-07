@@ -136,6 +136,118 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Read-only.
 
+## `analyze_iq_modulation`
+
+**Purpose.** Moment-based modulation classifier over a captured .iq file.
+
+**Args.** iq_path (str), sample_rate_hz (int, default 2000000).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "analyze_iq_modulation", "args": {"iq_path": "...", "sample_rate_hz": 2000000}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Reads iq_path from the session dir; no libhackrf. Returns a ranked list of candidate families with heuristic confidence — treat as a starting point, not ML-verified.
+
+## `analyze_iq_symbols`
+
+**Purpose.** Estimate symbol rate via magnitude-squared autocorrelation.
+
+**Args.** iq_path (str), sample_rate_hz (int, default 2000000), min_rate_hz (float, default 100), max_rate_hz (float, optional; default sample_rate_hz/8).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "analyze_iq_symbols", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "min_rate_hz": 500}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns symbol_rate_hz + confidence + lag_samples.
+
+## `analyze_iq_spectrogram`
+
+**Purpose.** Compact per-slice spectrogram summary (peak freq + power).
+
+**Args.** iq_path (str), sample_rate_hz (int), fft_size (int, default 1024), overlap (float, default 0.5), max_slices (int, default 512).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "analyze_iq_spectrogram", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "fft_size": 1024}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns arrays of peak_freqs_hz + peak_dbfs — one entry per slice, subsampled to max_slices when needed. Never returns the full FFT matrix.
+
+## `decode_manchester`
+
+**Purpose.** Manchester line-code decoder over an OOK envelope.
+
+**Args.** iq_path (str), sample_rate_hz (int), symbol_rate_hz (float, required), polarity ('ieee'|'thomas', default 'ieee').
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_manchester", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "symbol_rate_hz": 2048.0}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns bits + invalid_pairs (symbol-timing errors). IEEE 802.3 polarity: 01->1, 10->0. G.E. Thomas: swap.
+
+## `decode_pwm`
+
+**Purpose.** Pulse-width-modulation decoder over an OOK envelope.
+
+**Args.** iq_path (str), sample_rate_hz (int), short_us (float, required), long_us (float, required).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_pwm", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "short_us": 400, "long_us": 800}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** 0 = short pulse, 1 = long pulse. Returns bits + pulse_widths_us + invalid_pulses.
+
+## `decode_ppm`
+
+**Purpose.** Pulse-position-modulation decoder over an OOK envelope.
+
+**Args.** iq_path (str), sample_rate_hz (int), pulse_us (float, required; symbol period is 2*pulse_us).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_ppm", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "pulse_us": 400}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Pulse in the first half of the symbol slot = 1; second half = 0.
+
+## `decode_nrz`
+
+**Purpose.** NRZ / NRZI line-code decoder.
+
+**Args.** iq_path (str), sample_rate_hz (int), symbol_rate_hz (float, required), variant ('nrz'|'nrzi', default 'nrz'), inverted (bool, default false).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_nrz", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "symbol_rate_hz": 9600}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** 'nrz' = level encodes bit directly; 'nrzi' = transition encodes a 1.
+
 ## `knowledge_list_topics`
 
 **Purpose.** Enumerate every topic dir under knowledge/ and its markdown files.

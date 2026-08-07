@@ -122,6 +122,93 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
         "default_tier": "LOW",
         "notes": "Read-only.",
     },
+    CommandAction.ANALYZE_IQ_MODULATION: {
+        "purpose": "Moment-based modulation classifier over a captured .iq file.",
+        "args_doc": "iq_path (str), sample_rate_hz (int, default 2000000).",
+        "example": '{"action": "analyze_iq_modulation", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Reads iq_path from the session dir; no libhackrf. Returns "
+                 "a ranked list of candidate families with heuristic "
+                 "confidence — treat as a starting point, not ML-verified.",
+    },
+    CommandAction.ANALYZE_IQ_SYMBOLS: {
+        "purpose": "Estimate symbol rate via magnitude-squared autocorrelation.",
+        "args_doc": "iq_path (str), sample_rate_hz (int, default 2000000), "
+                    "min_rate_hz (float, default 100), max_rate_hz (float, "
+                    "optional; default sample_rate_hz/8).",
+        "example": '{"action": "analyze_iq_symbols", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"min_rate_hz": 500}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns symbol_rate_hz + confidence + lag_samples.",
+    },
+    CommandAction.ANALYZE_IQ_SPECTROGRAM: {
+        "purpose": "Compact per-slice spectrogram summary (peak freq + power).",
+        "args_doc": "iq_path (str), sample_rate_hz (int), fft_size (int, "
+                    "default 1024), overlap (float, default 0.5), "
+                    "max_slices (int, default 512).",
+        "example": '{"action": "analyze_iq_spectrogram", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"fft_size": 1024}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns arrays of peak_freqs_hz + peak_dbfs — one entry "
+                 "per slice, subsampled to max_slices when needed. Never "
+                 "returns the full FFT matrix.",
+    },
+    CommandAction.DECODE_MANCHESTER: {
+        "purpose": "Manchester line-code decoder over an OOK envelope.",
+        "args_doc": "iq_path (str), sample_rate_hz (int), symbol_rate_hz "
+                    "(float, required), polarity ('ieee'|'thomas', "
+                    "default 'ieee').",
+        "example": '{"action": "decode_manchester", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"symbol_rate_hz": 2048.0}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns bits + invalid_pairs (symbol-timing errors). "
+                 "IEEE 802.3 polarity: 01->1, 10->0. G.E. Thomas: swap.",
+    },
+    CommandAction.DECODE_PWM: {
+        "purpose": "Pulse-width-modulation decoder over an OOK envelope.",
+        "args_doc": "iq_path (str), sample_rate_hz (int), short_us (float, "
+                    "required), long_us (float, required).",
+        "example": '{"action": "decode_pwm", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"short_us": 400, "long_us": 800}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "0 = short pulse, 1 = long pulse. Returns bits + "
+                 "pulse_widths_us + invalid_pulses.",
+    },
+    CommandAction.DECODE_PPM: {
+        "purpose": "Pulse-position-modulation decoder over an OOK envelope.",
+        "args_doc": "iq_path (str), sample_rate_hz (int), pulse_us (float, "
+                    "required; symbol period is 2*pulse_us).",
+        "example": '{"action": "decode_ppm", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"pulse_us": 400}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Pulse in the first half of the symbol slot = 1; second "
+                 "half = 0.",
+    },
+    CommandAction.DECODE_NRZ: {
+        "purpose": "NRZ / NRZI line-code decoder.",
+        "args_doc": "iq_path (str), sample_rate_hz (int), symbol_rate_hz "
+                    "(float, required), variant ('nrz'|'nrzi', default "
+                    "'nrz'), inverted (bool, default false).",
+        "example": '{"action": "decode_nrz", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"symbol_rate_hz": 9600}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "'nrz' = level encodes bit directly; 'nrzi' = transition "
+                 "encodes a 1.",
+    },
     CommandAction.KNOWLEDGE_LIST_TOPICS: {
         "purpose": "Enumerate every topic dir under knowledge/ and its markdown files.",
         "args_doc": "No arguments.",

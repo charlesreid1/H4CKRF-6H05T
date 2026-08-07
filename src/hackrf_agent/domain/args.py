@@ -186,6 +186,172 @@ class AuditQueryArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# analyze_iq_modulation
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqModulationArgs(BaseModel):
+    """Moment-based modulation classifier on a captured IQ file."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(
+        default=2_000_000, description="Sample rate the file was captured at", gt=0
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# analyze_iq_symbols
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqSymbolsArgs(BaseModel):
+    """Estimate symbol rate from a captured IQ file via autocorrelation."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    min_rate_hz: float = Field(
+        default=100.0, description="Lower bound for symbol-rate search (Hz)", gt=0
+    )
+    max_rate_hz: float | None = Field(
+        default=None,
+        description="Upper bound for symbol-rate search (Hz). Defaults to sample_rate_hz/8.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# analyze_iq_spectrogram
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqSpectrogramArgs(BaseModel):
+    """Compact per-slice spectrogram summary (peak freq + power)."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    fft_size: int = Field(default=1024, description="FFT bins per slice", ge=64, le=65536)
+    overlap: float = Field(default=0.5, description="Overlap fraction", ge=0.0, lt=0.95)
+    max_slices: int = Field(default=512, description="Cap on returned slices", ge=1, le=8192)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_manchester
+# ---------------------------------------------------------------------------
+
+
+class DecodeManchesterArgs(BaseModel):
+    """Manchester line-code decoder over an OOK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    symbol_rate_hz: float = Field(..., description="Bit rate in Hz", gt=0)
+    polarity: str = Field(
+        default="ieee",
+        description="Manchester polarity: 'ieee' (802.3, 01->1) or 'thomas' (G.E., 01->0).",
+        pattern="^(ieee|thomas)$",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_pwm
+# ---------------------------------------------------------------------------
+
+
+class DecodePwmArgs(BaseModel):
+    """Pulse-width-modulation decoder over an OOK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    short_us: float = Field(..., description="Nominal '0' pulse width in microseconds", gt=0)
+    long_us: float = Field(..., description="Nominal '1' pulse width in microseconds", gt=0)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _short_less_than_long(self) -> "DecodePwmArgs":
+        if self.short_us >= self.long_us:
+            raise ValueError(
+                f"short_us ({self.short_us}) must be < long_us ({self.long_us})"
+            )
+        return self
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_ppm
+# ---------------------------------------------------------------------------
+
+
+class DecodePpmArgs(BaseModel):
+    """Pulse-position-modulation decoder over an OOK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    pulse_us: float = Field(
+        ..., description="Nominal pulse width in microseconds; symbol period is 2*pulse_us", gt=0
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_nrz / decode_nrzi
+# ---------------------------------------------------------------------------
+
+
+class DecodeNrzArgs(BaseModel):
+    """NRZ / NRZI line-code decoder."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    symbol_rate_hz: float = Field(..., description="Bit rate in Hz", gt=0)
+    variant: str = Field(
+        default="nrz",
+        description="'nrz' (level = bit) or 'nrzi' (transition = 1)",
+        pattern="^(nrz|nrzi)$",
+    )
+    inverted: bool = Field(
+        default=False, description="Invert polarity (NRZ only)."
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
 # knowledge_list_topics
 # ---------------------------------------------------------------------------
 
@@ -307,6 +473,13 @@ ActionArgs = (
     | DecodeOokArgs
     | GrantListArgs
     | AuditQueryArgs
+    | AnalyzeIqModulationArgs
+    | AnalyzeIqSymbolsArgs
+    | AnalyzeIqSpectrogramArgs
+    | DecodeManchesterArgs
+    | DecodePwmArgs
+    | DecodePpmArgs
+    | DecodeNrzArgs
     | KnowledgeListTopicsArgs
     | KnowledgeReadArgs
     | KnowledgeSearchArgs
@@ -329,6 +502,13 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "decode_ook": DecodeOokArgs,
     "grant_list": GrantListArgs,
     "audit_query": AuditQueryArgs,
+    "analyze_iq_modulation": AnalyzeIqModulationArgs,
+    "analyze_iq_symbols": AnalyzeIqSymbolsArgs,
+    "analyze_iq_spectrogram": AnalyzeIqSpectrogramArgs,
+    "decode_manchester": DecodeManchesterArgs,
+    "decode_pwm": DecodePwmArgs,
+    "decode_ppm": DecodePpmArgs,
+    "decode_nrz": DecodeNrzArgs,
     "knowledge_list_topics": KnowledgeListTopicsArgs,
     "knowledge_read": KnowledgeReadArgs,
     "knowledge_search": KnowledgeSearchArgs,

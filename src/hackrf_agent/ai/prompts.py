@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v2"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v3"
 
 TOOL_NAME: str = "execute_command"
 
@@ -126,6 +126,42 @@ Available actions and their required args:
 - **grant_list** — args: {} — Lists currently active TX grants.
 - **audit_query** — args: optional session_id (str), limit (int). Reads the
   audit log for past commands in this session.
+
+== Analysis Tier (LOW risk, offline DSP) ==
+
+The following actions run offline DSP on already-captured ``.iq`` files.
+Every one is hardcoded LOW risk, cannot cause RF emission, and cannot
+touch libhackrf. Feed them files produced by ``capture_iq``.
+
+- **analyze_iq_modulation** — args: iq_path (str), sample_rate_hz (int,
+  default 2000000). Moment-based modulation classifier. Returns a ranked
+  list of candidate families (OOK / 2FSK / FM-PSK / AM-QAM) with a
+  heuristic confidence and a note. Not ML-trained — treat as a starting
+  point for the LLM's own reasoning, not a definitive verdict.
+- **analyze_iq_symbols** — args: iq_path (str), sample_rate_hz (int),
+  optional min_rate_hz + max_rate_hz. Estimate symbol rate via
+  magnitude-squared autocorrelation. Returns ``symbol_rate_hz`` and a
+  confidence score.
+- **analyze_iq_spectrogram** — args: iq_path (str), sample_rate_hz (int),
+  fft_size (int, default 1024), overlap (float, default 0.5), max_slices
+  (int, default 512). Returns per-slice peak-frequency + peak-power arrays
+  (never the full FFT matrix — that would flood the context).
+- **decode_manchester** — args: iq_path (str), sample_rate_hz (int),
+  symbol_rate_hz (float), polarity ('ieee' or 'thomas'). Manchester line
+  code over an OOK envelope. Returns bits + invalid-pair count.
+- **decode_pwm** — args: iq_path (str), sample_rate_hz (int), short_us
+  (float), long_us (float). Pulse-width-modulation decoder — bit 0 is a
+  ``short_us`` ON pulse, bit 1 is ``long_us``.
+- **decode_ppm** — args: iq_path (str), sample_rate_hz (int), pulse_us
+  (float). Pulse-position modulation — pulse in the first half of the
+  ``2*pulse_us`` symbol slot is 1; second half is 0.
+- **decode_nrz** — args: iq_path (str), sample_rate_hz (int),
+  symbol_rate_hz (float), variant ('nrz' or 'nrzi'), inverted (bool).
+  NRZ level-encoded bits, or NRZI where transitions = 1.
+
+Analysis verbs are the composition layer between raw IQ and a decoded
+bitstream. A typical CTF flow: ``capture_iq`` -> ``analyze_iq_modulation``
+-> ``analyze_iq_symbols`` -> the appropriate ``decode_*`` verb.
 
 == Knowledge Tier (LOW risk, read-only) ==
 

@@ -83,6 +83,24 @@ class RiskAssessor:
                 requires_confirmation=False,
             )
 
+        # A3. Analysis tier — offline DSP on already-captured .iq files.
+        # Always LOW. Cannot touch libhackrf. Handlers enforce that the
+        # iq_path is under the session root before opening.
+        if action in (
+            CommandAction.ANALYZE_IQ_MODULATION,
+            CommandAction.ANALYZE_IQ_SYMBOLS,
+            CommandAction.ANALYZE_IQ_SPECTROGRAM,
+            CommandAction.DECODE_MANCHESTER,
+            CommandAction.DECODE_PWM,
+            CommandAction.DECODE_PPM,
+            CommandAction.DECODE_NRZ,
+        ):
+            return RiskAssessment(
+                level=RiskLevel.LOW,
+                reason="offline IQ analysis; reads from session dir only",
+                requires_confirmation=False,
+            )
+
         # B. SWEEP_SPECTRUM
         if action == CommandAction.SWEEP_SPECTRUM:
             return self._assess_sweep(args)

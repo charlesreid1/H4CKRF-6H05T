@@ -189,6 +189,14 @@ class TestCommandAction:
             "decode_ook",
             "grant_list",
             "audit_query",
+            # Analysis tier (Phase 3)
+            "analyze_iq_modulation",
+            "analyze_iq_symbols",
+            "analyze_iq_spectrogram",
+            "decode_manchester",
+            "decode_pwm",
+            "decode_ppm",
+            "decode_nrz",
             # Knowledge tier (Phase 3)
             "knowledge_list_topics",
             "knowledge_read",

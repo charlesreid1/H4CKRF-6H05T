@@ -175,6 +175,206 @@ class TestDecodeOok:
         assert len(ctx.driver.calls) == 0
 
 
+class TestAnalysisHandlers:
+    """Analysis handlers read an .iq file from the session dir and produce
+    JSON-primitive summaries. None invokes the driver."""
+
+    async def _write_ook_iq(
+        self, ctx: HandlerContext, bits: list[int], symbol_rate: int, fs: int
+    ) -> str:
+        """Author an int8-interleaved OOK IQ file under session root."""
+        import numpy as np
+
+        sps = fs // symbol_rate
+        env = np.repeat(np.array(bits, dtype=np.float32), sps) * 0.9 + 0.05
+        # HackRF native format: int8 interleaved I/Q.
+        i_samples = (env * 127).astype(np.int8)
+        q_samples = np.zeros_like(i_samples)
+        interleaved = np.empty(2 * i_samples.size, dtype=np.int8)
+        interleaved[0::2] = i_samples
+        interleaved[1::2] = q_samples
+        iq_path = ctx.session_paths.new_iq_path("ook-test")
+        iq_path.parent.mkdir(parents=True, exist_ok=True)
+        iq_path.write_bytes(interleaved.tobytes())
+        return str(iq_path)
+
+    async def test_analyze_iq_modulation(self, ctx: HandlerContext) -> None:
+        path = await self._write_ook_iq(
+            ctx, bits=[1, 0, 1, 1, 0, 0, 1, 0] * 30, symbol_rate=1000, fs=1_000_000
+        )
+        result = await HANDLERS[CommandAction.ANALYZE_IQ_MODULATION](
+            ctx, {"iq_path": path, "sample_rate_hz": 1_000_000}
+        )
+        assert result["candidates"]
+        assert result["candidates"][0]["family"] == "OOK"
+        assert len(ctx.driver.calls) == 0
+
+    async def test_analyze_iq_modulation_rejects_outside_root(
+        self, ctx: HandlerContext
+    ) -> None:
+        with pytest.raises(ValueError, match="escapes session root"):
+            await HANDLERS[CommandAction.ANALYZE_IQ_MODULATION](
+                ctx, {"iq_path": "/tmp/outside.iq", "sample_rate_hz": 1_000_000}
+            )
+
+    async def test_analyze_iq_symbols(self, ctx: HandlerContext) -> None:
+        import numpy as np
+        rng = np.random.default_rng(1)
+        bits = rng.integers(0, 2, 400).tolist()
+        path = await self._write_ook_iq(
+            ctx, bits=bits, symbol_rate=1000, fs=1_000_000
+        )
+        result = await HANDLERS[CommandAction.ANALYZE_IQ_SYMBOLS](
+            ctx, {"iq_path": path, "sample_rate_hz": 1_000_000}
+        )
+        assert abs(result["symbol_rate_hz"] - 1000) < 50
+        assert result["confidence"] > 0.5
+        assert len(ctx.driver.calls) == 0
+
+    async def test_analyze_iq_spectrogram(self, ctx: HandlerContext) -> None:
+        # Need enough samples for a 1024-point FFT. 8 kbps at 1 MSps for
+        # 200 bits = 200 * 125 = 25000 samples — plenty.
+        path = await self._write_ook_iq(
+            ctx, bits=[1, 0] * 100, symbol_rate=8000, fs=1_000_000
+        )
+        result = await HANDLERS[CommandAction.ANALYZE_IQ_SPECTROGRAM](
+            ctx,
+            {
+                "iq_path": path,
+                "sample_rate_hz": 1_000_000,
+                "fft_size": 1024,
+                "overlap": 0.5,
+                "max_slices": 32,
+            },
+        )
+        assert result["num_slices"] > 0
+        assert len(result["peak_freqs_hz"]) == result["num_slices"]
+
+    async def test_decode_manchester(self, ctx: HandlerContext) -> None:
+        # Manchester at 1 kbps means half-symbols at 2 kHz.
+        bits = [1, 0, 1, 1, 0, 0, 1, 0] * 10
+        pairs: list[int] = []
+        for b in bits:
+            pairs.extend([0, 1] if b == 1 else [1, 0])
+        path = await self._write_ook_iq(
+            ctx, bits=pairs, symbol_rate=2000, fs=1_000_000
+        )
+        result = await HANDLERS[CommandAction.DECODE_MANCHESTER](
+            ctx,
+            {
+                "iq_path": path,
+                "sample_rate_hz": 1_000_000,
+                "symbol_rate_hz": 1000.0,
+                "polarity": "ieee",
+            },
+        )
+        recovered = result["bits"][: len(bits) - 1]
+        assert recovered == bits[: len(bits) - 1]
+
+    async def test_decode_pwm(self, ctx: HandlerContext) -> None:
+        import numpy as np
+        fs = 1_000_000
+        short_samples = 400  # 400 us at 1 MSps
+        long_samples = 800
+        gap_samples = 400
+        bits_ref = [0, 1, 0, 1, 1, 0, 1, 0]
+        env_parts = []
+        for b in bits_ref:
+            width = long_samples if b == 1 else short_samples
+            env_parts.append(np.ones(width, dtype=np.float32))
+            env_parts.append(np.zeros(gap_samples, dtype=np.float32))
+        env = np.concatenate(env_parts)
+        i8 = (env * 0.9 * 127).astype(np.int8)
+        q8 = np.zeros_like(i8)
+        interleaved = np.empty(2 * i8.size, dtype=np.int8)
+        interleaved[0::2] = i8
+        interleaved[1::2] = q8
+        iq_path = ctx.session_paths.new_iq_path("pwm-test")
+        iq_path.parent.mkdir(parents=True, exist_ok=True)
+        iq_path.write_bytes(interleaved.tobytes())
+        result = await HANDLERS[CommandAction.DECODE_PWM](
+            ctx,
+            {
+                "iq_path": str(iq_path),
+                "sample_rate_hz": fs,
+                "short_us": 400,
+                "long_us": 800,
+            },
+        )
+        assert result["bits"] == bits_ref
+
+    async def test_decode_nrz(self, ctx: HandlerContext) -> None:
+        bits = [1, 0, 1, 1, 0, 0, 1, 0] * 30
+        path = await self._write_ook_iq(
+            ctx, bits=bits, symbol_rate=1000, fs=1_000_000
+        )
+        result = await HANDLERS[CommandAction.DECODE_NRZ](
+            ctx,
+            {
+                "iq_path": path,
+                "sample_rate_hz": 1_000_000,
+                "symbol_rate_hz": 1000.0,
+                "variant": "nrz",
+            },
+        )
+        assert result["bits"][: len(bits) - 2] == bits[: len(bits) - 2]
+
+    async def test_decode_nrz_variant_nrzi(self, ctx: HandlerContext) -> None:
+        # Constant HIGH → NRZI produces zeros.
+        levels = [1] * 100
+        path = await self._write_ook_iq(
+            ctx, bits=levels, symbol_rate=1000, fs=1_000_000
+        )
+        result = await HANDLERS[CommandAction.DECODE_NRZ](
+            ctx,
+            {
+                "iq_path": path,
+                "sample_rate_hz": 1_000_000,
+                "symbol_rate_hz": 1000.0,
+                "variant": "nrzi",
+            },
+        )
+        assert sum(result["bits"]) == 0
+
+    async def test_decode_ppm(self, ctx: HandlerContext) -> None:
+        import numpy as np
+        fs = 1_000_000
+        pulse_us = 400
+        narrow_us = 100
+        half = int(pulse_us * fs / 1_000_000)
+        narrow = int(narrow_us * fs / 1_000_000)
+        idle = half - narrow
+        bits_ref = [1, 0, 1, 1, 0, 0, 1, 0]
+        env_parts = []
+        for b in bits_ref:
+            if b == 1:
+                env_parts.append(np.ones(narrow, dtype=np.float32))
+                env_parts.append(np.zeros(idle, dtype=np.float32))
+                env_parts.append(np.zeros(half, dtype=np.float32))
+            else:
+                env_parts.append(np.zeros(half, dtype=np.float32))
+                env_parts.append(np.ones(narrow, dtype=np.float32))
+                env_parts.append(np.zeros(idle, dtype=np.float32))
+        env = np.concatenate(env_parts)
+        i8 = (env * 0.9 * 127).astype(np.int8)
+        q8 = np.zeros_like(i8)
+        interleaved = np.empty(2 * i8.size, dtype=np.int8)
+        interleaved[0::2] = i8
+        interleaved[1::2] = q8
+        iq_path = ctx.session_paths.new_iq_path("ppm-test")
+        iq_path.parent.mkdir(parents=True, exist_ok=True)
+        iq_path.write_bytes(interleaved.tobytes())
+        result = await HANDLERS[CommandAction.DECODE_PPM](
+            ctx,
+            {
+                "iq_path": str(iq_path),
+                "sample_rate_hz": fs,
+                "pulse_us": pulse_us,
+            },
+        )
+        assert result["bits"] == bits_ref
+
+
 class TestKnowledgeHandlers:
     """Every knowledge handler is read-only and never invokes the driver."""
 
