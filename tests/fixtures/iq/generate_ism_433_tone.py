@@ -1,7 +1,8 @@
-"""Generate tests/fixtures/iq/ism_433_tone.iq — synthetic placeholder.
+"""Generate tests/fixtures/iq/ism_433_tone.iq — synthetic (deterministic).
 
 Simulates a CW tone at +200 kHz from center (433.92 MHz + 200 kHz = 434.12 MHz).
-Replace with a real keyfob capture when HackRF hardware is available.
+Deterministic — the same output every run — so tests can assert exact
+frequency and amplitude.
 """
 
 from __future__ import annotations

@@ -1,12 +1,12 @@
 # `ism_433_tone.iq` — provenance
 
-- **Source:** Synthesised by `tests/fixtures/iq/generate_ism_433_tone.py` (placeholder).
+- **Source:** Synthesised by `tests/fixtures/iq/generate_ism_433_tone.py` (deterministic).
 - **Center frequency:** 433.92 MHz.
 - **Sample rate:** 2 Msps.
 - **Signal:** One CW tone at +200 kHz offset (434.12 MHz).
 - **Duration:** 50,000 samples (25 ms).
 - **Gain settings:** N/A (synthetic).
-- **Recording date:** N/A — synthetic placeholder.
+- **Recording date:** N/A — synthetic (deterministic).
 - **Machine:** Any; no HackRF required.
 - **Capture recipe (real hardware):**
   ```

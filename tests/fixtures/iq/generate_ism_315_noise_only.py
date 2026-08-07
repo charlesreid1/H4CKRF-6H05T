@@ -1,7 +1,7 @@
-"""Generate tests/fixtures/iq/ism_315_noise_only.iq — synthetic placeholder.
+"""Generate tests/fixtures/iq/ism_315_noise_only.iq — synthetic (deterministic).
 
-Simulates noise floor at 315 MHz center. Replace with a real capture
-from a quiet indoor environment when HackRF hardware is available.
+Simulates noise floor at 315 MHz center. Seeded RNG makes the output
+byte-identical across runs so tests can assert exact statistics.
 """
 
 from __future__ import annotations
