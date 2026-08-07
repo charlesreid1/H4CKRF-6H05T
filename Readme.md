@@ -1,10 +1,56 @@
 # H4CKRF-6H05T
 
-AI control plane for HackRF One — the LLM proposes RF actions; a deterministic
-host-side gate authorizes or refuses each one; every step is audited.
+H4CKRF-6H05T is a HackRF co-pilot: an RF/SIGINT knowledge corpus *and* a
+safety-gated control plane exposed over MCP. It knows the canon (modulation
+families, common ISM/UNII bands, keyfob and paging protocols, decoder pipelines)
+and it can act — safely — on the HackRF One. Every RF action funnels through
+one deterministic `execute_command` chokepoint that classifies risk, checks
+grants, asks for approval, and audits the result. The LLM never touches
+libhackrf.
 
 Inspired by [M0MA-V3SP3R](https://github.com/charlesreid1/M0MA-V3SP3R) but for
 HackRF, with a laptop running Python instead of an Android app on a phone.
+
+---
+
+## What can it do?
+
+Three tiers, from knowing to analyzing to acting:
+
+- **Know** — corpus tools (`knowledge_list_topics`, `knowledge_read`,
+  `knowledge_search`, `knowledge_lookup_band`, `knowledge_lookup_modulation`,
+  `knowledge_lookup_protocol`, `knowledge_verify_claim`). All read-only, all
+  `LOW` risk, cannot cause RF emission. *[planned — see
+  [plan-organization.md](plan-organization.md)]*
+- **Analyze** — DSP tools that operate on already-captured `.iq` files
+  (`read_iq_summary` today; `analyze_iq_modulation`, `analyze_iq_symbols`,
+  `decode_manchester`, `decode_pwm`, `decode_pocsag`, `decode_ads_b` planned).
+  Cannot touch hardware.
+- **Act** — the existing HackRF surface (`get_device_info`, `sweep_spectrum`,
+  `capture_iq`, `transmit_iq`, `grant_list`, `audit_query`, `decode_ook`).
+  Every action goes through the funnel below.
+
+---
+
+## Safety funnel
+
+Everything that could conceivably cause RF energy to leave the HackRF, or that
+opens the USB handle, or that reads raw IQ from the device, funnels through
+one deterministic chain:
+
+```
+ExecuteCommand → CommandExecutor.execute()
+                    → RiskAssessor.assess()
+                    → PermissionService.check() (for TX)
+                    → ApprovalPort.request() (for MEDIUM/HIGH)
+                    → HackrfDriver / HackrfSubprocess
+```
+
+There is no second MCP tool that reaches libhackrf. The LLM sees exactly one
+tool, `execute_command`, discriminated by `action`. Knowledge and analysis
+verbs land as new `CommandAction` values with fixed `LOW` risk — they inherit
+the full audit trail and cannot bypass the gate. The funnel invariant is
+stated in full in [plan-organization.md](plan-organization.md).
 
 ---
 
@@ -14,6 +60,23 @@ HackRF, with a laptop running Python instead of an Android app on a phone.
 guarantee legality — you are responsible for FCC compliance (or your local
 regulator) in your jurisdiction. Read
 **[docs/safety.md](docs/safety.md)** before your first TX.
+
+---
+
+## Repo map
+
+```
+src/hackrf_agent/    the safety-gated MCP + CLI (installable Python package)
+knowledge/           the RF/SIGINT corpus (markdown + records/*.json)
+skills/hackrf/       the SKILL.md that tells an assistant to use the MCP
+scripts/             user-facing shell/Python helpers (schema regen, fixtures)
+docs/                long-form guides (architecture, safety, MCP host setup)
+schemas/             JSON Schema for the execute_command envelope + records
+tests/               unit + integration + mcp + e2e
+```
+
+See [plan-organization.md](plan-organization.md) for the reorganization plan
+and [plan-knowledge.md](plan-knowledge.md) for the corpus contents.
 
 ---
 

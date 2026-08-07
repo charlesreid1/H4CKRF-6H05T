@@ -61,6 +61,22 @@ command funnels through the same deterministic chokepoint.
 
 ---
 
+## Knowledge tier `[planned]`
+
+A read-only corpus tier — knowledge retrieval + typed record lookups —
+is planned but not yet implemented. It lands as new `CommandAction` values
+(`knowledge_list_topics`, `knowledge_read`, `knowledge_search`,
+`knowledge_lookup_band`, `knowledge_lookup_modulation`,
+`knowledge_lookup_protocol`, `knowledge_verify_claim`, …) with fixed `LOW`
+risk. It reads files under `knowledge/` on disk and does not touch
+libhackrf. The plan lives in
+[`../plan-organization.md`](../plan-organization.md); the corpus contents
+plan lives in [`../plan-knowledge.md`](../plan-knowledge.md). The safety
+funnel is unchanged — new verbs land as new enum values, not as a second
+tool.
+
+---
+
 ## Risk-tier table
 
 Every `ExecuteCommand` is classified by the `RiskAssessor` into one of four tiers:
