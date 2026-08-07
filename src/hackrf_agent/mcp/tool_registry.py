@@ -51,6 +51,13 @@ _TOOL_DESCRIPTIONS: dict[str, str] = {
     "knowledge_search": "Case-insensitive substring search across every corpus markdown file. Read-only.",
     "knowledge_lookup_band": "Given freq_hz, return the bands.json record(s) covering that frequency. Read-only.",
     "knowledge_lookup_modulation": "Given a modulation name/alias, return the modulations.json record. Read-only.",
+    "knowledge_lookup_protocol": "Given a protocol name/alias (e.g. 'POCSAG', 'AX.25'), return the protocols.json record. Read-only.",
+    "knowledge_lookup_keyfob": "Given a vendor and/or model substring, return matching keyfobs.json records with fixed/rolling and crypto details. Read-only.",
+    "knowledge_lookup_decoder": "Given a decoder-family name (Manchester, NRZ, PWM, PPM, ...), return the decoders.json record with parameter ranges and the paired analyze_iq_*/decode_* verb. Read-only.",
+    "knowledge_bibliography": "Return one bibliography record by cite_id, or the full bibliography if cite_id is omitted. Read-only.",
+    "knowledge_random": "Return one random markdown file from the corpus (surprise-me verb). Optional seed for determinism. Read-only.",
+    "knowledge_explain_signal": "Rank candidate signals from known_signals.json given a partial description (freq_hz, bw_hz, modulation_guess). At least one hint required. Read-only.",
+    "knowledge_cross_reference": "Given a record_id, resolve its see_also list across every records/*.json file. Read-only.",
     "knowledge_verify_claim": "Grade a factual claim against the trap catalog (true/false/needs_qualification/unverified). Read-only.",
 }
 

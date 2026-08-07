@@ -34,10 +34,24 @@ There is one tool: `execute_command`. Every call is discriminated by
 - `knowledge_list_topics` — enumerate every topic dir + its files
 - `knowledge_read` — return one `<topic>/<name>.md` file
 - `knowledge_search` — case-insensitive substring across the corpus
+- `knowledge_random` — surprise-me: one random markdown file (optional
+  deterministic seed)
 - `knowledge_lookup_band` — given `freq_hz`, return the `bands.json`
   record(s)
 - `knowledge_lookup_modulation` — given a family name, return the
   `modulations.json` record
+- `knowledge_lookup_protocol` — given a protocol name (POCSAG, AX.25,
+  LoRaWAN, …), return the `protocols.json` record
+- `knowledge_lookup_keyfob` — given vendor and/or model, return
+  matching keyfob-system records with fixed/rolling + crypto notes
+- `knowledge_lookup_decoder` — given a decoder-family name (Manchester,
+  NRZ, PWM, PPM), return the `decoders.json` record with the paired
+  `analyze_iq_*` / `decode_*` verb
+- `knowledge_bibliography` — resolve one citation, or list all
+- `knowledge_explain_signal` — given freq/bw/modulation hints, rank
+  candidates from `known_signals.json`
+- `knowledge_cross_reference` — walk `see_also` across every records
+  file, returning the root + resolved references
 - `knowledge_verify_claim` — grade a claim against the trap catalog
 
 ### Analyze — offline DSP (all LOW risk, cannot touch libhackrf)

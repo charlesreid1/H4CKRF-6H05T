@@ -408,6 +408,118 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Matches on name, id, or aliases (case-insensitive). Returns null when no record matches.
 
+## `knowledge_lookup_protocol`
+
+**Purpose.** Return the protocols.json record for a named protocol.
+
+**Args.** name (str, e.g. 'POCSAG', 'ADS-B', 'AX.25', 'LoRaWAN').
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_lookup_protocol", "args": {"name": "POCSAG"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Matches on name, id, or aliases (case-insensitive). Returns null when no record matches.
+
+## `knowledge_lookup_keyfob`
+
+**Purpose.** Return keyfob-system records matching vendor and/or model.
+
+**Args.** vendor (str, optional), model (str, optional). At least one must be provided.
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_lookup_keyfob", "args": {"vendor": "Chamberlain"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Substring matches, case-insensitive. Returns every matching record; the caller picks the closest generation.
+
+## `knowledge_lookup_decoder`
+
+**Purpose.** Return the decoders.json record for a named decoder family.
+
+**Args.** name (str, e.g. 'Manchester', 'NRZ', 'PWM', 'PPM').
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_lookup_decoder", "args": {"name": "Manchester"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Each record links to the paired analyze_iq_* / decode_* verb via tools_downstream.
+
+## `knowledge_bibliography`
+
+**Purpose.** Return one bibliography citation by id, or the full list.
+
+**Args.** cite_id (str, optional). Omit to list every citation.
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_bibliography", "args": {"cite_id": "fcc-part-15"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns an empty list when cite_id has no match.
+
+## `knowledge_random`
+
+**Purpose.** Return one random markdown file from the corpus.
+
+**Args.** seed (int, optional) for deterministic selection.
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_random", "args": {}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Uses SystemRandom when seed is unset; the same seed always picks the same file.
+
+## `knowledge_explain_signal`
+
+**Purpose.** Rank candidate signals from known_signals.json given hints.
+
+**Args.** freq_hz (int, optional), bw_hz (int, optional), modulation_guess (str, optional), max_results (int, default 5). At least one hint required.
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_explain_signal", "args": {"freq_hz": 433920000, "modulation_guess": "OOK"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Score is the sum of matched hints (each contributes 1.0). Ties broken by record id.
+
+## `knowledge_cross_reference`
+
+**Purpose.** Traverse see_also across every records/*.json file.
+
+**Args.** record_id (str, e.g. 'protocol-pocsag-1200').
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_cross_reference", "args": {"record_id": "protocol-pocsag-1200"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns {record, related, unresolved}. unresolved holds ids that no records file exports.
+
 ## `knowledge_verify_claim`
 
 **Purpose.** Grade a factual claim against the trap catalog.

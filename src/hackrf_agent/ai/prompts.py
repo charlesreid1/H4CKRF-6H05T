@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v6"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v7"
 
 TOOL_NAME: str = "execute_command"
 
@@ -214,6 +214,34 @@ a factual RF question can be answered from the corpus.
   ``modulations.json`` record for a named modulation family (OOK, 2FSK,
   GFSK, MSK, GMSK, BPSK, QPSK, QAM, OFDM, LoRa-CSS, …). Use for demod
   pipeline lookup.
+- **knowledge_lookup_protocol** — args: name (str). Return the
+  ``protocols.json`` record for a named protocol (POCSAG, FLEX, Mode S,
+  AX.25, APRS, LoRaWAN, DMR, TETRA, P25, Zigbee/802.15.4, RTTY, …). Use
+  when the operator asks about framing, timing, or which decoder verb
+  to run.
+- **knowledge_lookup_keyfob** — args: vendor (str, optional), model (str,
+  optional). At least one must be provided. Returns keyfob-system
+  records with fixed/rolling status, Keeloq generation, replay-research
+  notes. Use when triaging a captured keyfob burst.
+- **knowledge_lookup_decoder** — args: name (str). Return the
+  ``decoders.json`` record for a decoder family (Manchester,
+  differential Manchester, NRZ, NRZI, PWM, PPM, PCM). Each record
+  points at the corresponding analyze_iq_* / decode_* verb.
+- **knowledge_bibliography** — args: cite_id (str, optional). Resolve
+  one bibliography record, or list them all when omitted. Every
+  knowledge citation resolves through this shared bibliography.
+- **knowledge_random** — args: seed (int, optional). Return one random
+  markdown file. Useful when the assistant needs a starting point or
+  wants to check corpus breadth. Optional deterministic seed for tests.
+- **knowledge_explain_signal** — args: freq_hz (int, optional), bw_hz
+  (int, optional), modulation_guess (str, optional), max_results (int,
+  default 5). At least one hint required. Ranks candidates from
+  ``known_signals.json``. Feed it the output of a sweep or spectrogram
+  summary to get "here's what this probably is."
+- **knowledge_cross_reference** — args: record_id (str). Traverse the
+  ``see_also`` field across every records/*.json file. Returns the root
+  record plus every referenced record, with any unresolved ids called
+  out. Use to follow the corpus's own cross-links.
 - **knowledge_verify_claim** — args: text (str). Grade a factual claim as
   ``true``/``false``/``needs_qualification``/``unverified`` against a trap
   catalog. Caveat ``unverified`` claims to the operator — the corpus does

@@ -562,6 +562,177 @@ class KnowledgeLookupModulationArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# knowledge_lookup_protocol
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupProtocolArgs(BaseModel):
+    """Given a protocol name/alias, return the protocols.json record."""
+
+    name: str = Field(
+        ...,
+        description="Protocol name or alias (e.g. 'POCSAG', 'ADS-B', 'AX.25', 'LoRaWAN').",
+        min_length=1,
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_keyfob
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupKeyfobArgs(BaseModel):
+    """Given a keyfob vendor+/or model, return the keyfobs.json record(s)."""
+
+    vendor: str | None = Field(
+        default=None,
+        description=(
+            "Vendor / manufacturer substring (e.g. 'Chamberlain', 'Genie', 'Tesla'). "
+            "At least one of vendor or model must be provided."
+        ),
+        max_length=64,
+    )
+    model: str | None = Field(
+        default=None,
+        description=(
+            "Model / product substring (e.g. 'Security+', 'Intellicode', 'HITAG2'). "
+            "At least one of vendor or model must be provided."
+        ),
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _at_least_one(self) -> "KnowledgeLookupKeyfobArgs":
+        if not (self.vendor or "").strip() and not (self.model or "").strip():
+            raise ValueError("must supply at least one of vendor or model")
+        return self
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_decoder
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupDecoderArgs(BaseModel):
+    """Given a decoder-family name/alias, return the decoders.json record."""
+
+    name: str = Field(
+        ...,
+        description="Decoder family (Manchester, NRZ, NRZI, PWM, PPM, PCM, differential Manchester).",
+        min_length=1,
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_bibliography
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeBibliographyArgs(BaseModel):
+    """Return one bibliography citation by id, or the full list if unset."""
+
+    cite_id: str | None = Field(
+        default=None,
+        description="Optional bibliography record id (e.g. 'fcc-part-15'). "
+                    "If omitted, returns the full bibliography.",
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_random
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeRandomArgs(BaseModel):
+    """Return one random markdown file from the corpus (surprise-me verb)."""
+
+    seed: int | None = Field(
+        default=None,
+        description=(
+            "Optional deterministic seed. When set, the same seed always picks "
+            "the same file (useful for tests and reproducibility)."
+        ),
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_explain_signal
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeExplainSignalArgs(BaseModel):
+    """Rank candidate signals from known_signals.json given partial hints."""
+
+    freq_hz: int | None = Field(
+        default=None,
+        description="Approximate center frequency of interest, in Hz.",
+        gt=0,
+        le=6_000_000_000,
+    )
+    bw_hz: int | None = Field(
+        default=None,
+        description="Approximate signal bandwidth, in Hz.",
+        gt=0,
+    )
+    modulation_guess: str | None = Field(
+        default=None,
+        description="Best-guess modulation family (e.g. 'OOK', '2FSK', 'GFSK', 'LoRa-CSS').",
+        max_length=64,
+    )
+    max_results: int = Field(
+        default=5,
+        description="Maximum candidates to return (1-20).",
+        ge=1,
+        le=20,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _at_least_one_hint(self) -> "KnowledgeExplainSignalArgs":
+        if (
+            self.freq_hz is None
+            and self.bw_hz is None
+            and not (self.modulation_guess or "").strip()
+        ):
+            raise ValueError(
+                "must supply at least one of freq_hz, bw_hz, modulation_guess"
+            )
+        return self
+
+
+# ---------------------------------------------------------------------------
+# knowledge_cross_reference
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeCrossReferenceArgs(BaseModel):
+    """Traverse ``see_also`` across every records/*.json file."""
+
+    record_id: str = Field(
+        ...,
+        description="Record id to start the traversal from (e.g. 'protocol-pocsag-1200').",
+        min_length=1,
+        max_length=128,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
 # knowledge_verify_claim
 # ---------------------------------------------------------------------------
 
@@ -610,6 +781,13 @@ ActionArgs = (
     | KnowledgeSearchArgs
     | KnowledgeLookupBandArgs
     | KnowledgeLookupModulationArgs
+    | KnowledgeLookupProtocolArgs
+    | KnowledgeLookupKeyfobArgs
+    | KnowledgeLookupDecoderArgs
+    | KnowledgeBibliographyArgs
+    | KnowledgeRandomArgs
+    | KnowledgeExplainSignalArgs
+    | KnowledgeCrossReferenceArgs
     | KnowledgeVerifyClaimArgs
 )
 
@@ -644,5 +822,12 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "knowledge_search": KnowledgeSearchArgs,
     "knowledge_lookup_band": KnowledgeLookupBandArgs,
     "knowledge_lookup_modulation": KnowledgeLookupModulationArgs,
+    "knowledge_lookup_protocol": KnowledgeLookupProtocolArgs,
+    "knowledge_lookup_keyfob": KnowledgeLookupKeyfobArgs,
+    "knowledge_lookup_decoder": KnowledgeLookupDecoderArgs,
+    "knowledge_bibliography": KnowledgeBibliographyArgs,
+    "knowledge_random": KnowledgeRandomArgs,
+    "knowledge_explain_signal": KnowledgeExplainSignalArgs,
+    "knowledge_cross_reference": KnowledgeCrossReferenceArgs,
     "knowledge_verify_claim": KnowledgeVerifyClaimArgs,
 }

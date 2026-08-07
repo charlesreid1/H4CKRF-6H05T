@@ -208,6 +208,13 @@ class TestCommandAction:
             "knowledge_search",
             "knowledge_lookup_band",
             "knowledge_lookup_modulation",
+            "knowledge_lookup_protocol",
+            "knowledge_lookup_keyfob",
+            "knowledge_lookup_decoder",
+            "knowledge_bibliography",
+            "knowledge_random",
+            "knowledge_explain_signal",
+            "knowledge_cross_reference",
             "knowledge_verify_claim",
         }
         assert values == expected

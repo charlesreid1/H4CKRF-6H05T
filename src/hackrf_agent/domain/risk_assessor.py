@@ -75,6 +75,13 @@ class RiskAssessor:
             CommandAction.KNOWLEDGE_SEARCH,
             CommandAction.KNOWLEDGE_LOOKUP_BAND,
             CommandAction.KNOWLEDGE_LOOKUP_MODULATION,
+            CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL,
+            CommandAction.KNOWLEDGE_LOOKUP_KEYFOB,
+            CommandAction.KNOWLEDGE_LOOKUP_DECODER,
+            CommandAction.KNOWLEDGE_BIBLIOGRAPHY,
+            CommandAction.KNOWLEDGE_RANDOM,
+            CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL,
+            CommandAction.KNOWLEDGE_CROSS_REFERENCE,
             CommandAction.KNOWLEDGE_VERIFY_CLAIM,
         ):
             return RiskAssessment(

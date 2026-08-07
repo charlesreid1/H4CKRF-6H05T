@@ -46,6 +46,13 @@ class CommandAction(str, Enum):  # noqa: UP042
     KNOWLEDGE_SEARCH = "knowledge_search"
     KNOWLEDGE_LOOKUP_BAND = "knowledge_lookup_band"
     KNOWLEDGE_LOOKUP_MODULATION = "knowledge_lookup_modulation"
+    KNOWLEDGE_LOOKUP_PROTOCOL = "knowledge_lookup_protocol"
+    KNOWLEDGE_LOOKUP_KEYFOB = "knowledge_lookup_keyfob"
+    KNOWLEDGE_LOOKUP_DECODER = "knowledge_lookup_decoder"
+    KNOWLEDGE_BIBLIOGRAPHY = "knowledge_bibliography"
+    KNOWLEDGE_RANDOM = "knowledge_random"
+    KNOWLEDGE_EXPLAIN_SIGNAL = "knowledge_explain_signal"
+    KNOWLEDGE_CROSS_REFERENCE = "knowledge_cross_reference"
     KNOWLEDGE_VERIFY_CLAIM = "knowledge_verify_claim"
 
 

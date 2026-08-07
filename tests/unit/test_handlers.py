@@ -637,6 +637,101 @@ class TestKnowledgeHandlers:
         assert result["verdict"] == "unverified"
 
 
+class TestExtendedKnowledgeHandlers:
+    """Handlers for the seven additional Phase 3 knowledge verbs."""
+
+    async def test_lookup_protocol_pocsag(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL](
+            ctx, {"name": "POCSAG"}
+        )
+        assert result["kind"] == "knowledge_lookup_protocol"
+        assert result["record"] is not None
+        assert "pocsag" in result["record"]["id"]
+        assert len(ctx.driver.calls) == 0
+
+    async def test_lookup_protocol_miss(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL](
+            ctx, {"name": "not-a-real-protocol"}
+        )
+        assert result["record"] is None
+
+    async def test_lookup_decoder_manchester(
+        self, ctx: HandlerContext
+    ) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_DECODER](
+            ctx, {"name": "Manchester"}
+        )
+        assert result["kind"] == "knowledge_lookup_decoder"
+        assert result["record"] is not None
+        assert "manchester" in result["record"]["id"]
+
+    async def test_lookup_keyfob_by_vendor(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_KEYFOB](
+            ctx, {"vendor": "Chamberlain"}
+        )
+        assert result["kind"] == "knowledge_lookup_keyfob"
+        assert isinstance(result["matches"], list)
+        # Real corpus has Chamberlain records.
+        assert result["matches"]
+
+    async def test_lookup_keyfob_requires_a_hint(
+        self, ctx: HandlerContext
+    ) -> None:
+        with pytest.raises(Exception):
+            await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_KEYFOB](ctx, {})
+
+    async def test_bibliography_by_id(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_BIBLIOGRAPHY](
+            ctx, {"cite_id": "fcc-part-15"}
+        )
+        assert result["kind"] == "knowledge_bibliography"
+        assert len(result["records"]) == 1
+        assert result["records"][0]["id"] == "fcc-part-15"
+
+    async def test_bibliography_full_list(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_BIBLIOGRAPHY](ctx, {})
+        assert len(result["records"]) >= 2
+
+    async def test_random_deterministic(self, ctx: HandlerContext) -> None:
+        a = await HANDLERS[CommandAction.KNOWLEDGE_RANDOM](ctx, {"seed": 7})
+        b = await HANDLERS[CommandAction.KNOWLEDGE_RANDOM](ctx, {"seed": 7})
+        assert a["topic"] == b["topic"]
+        assert a["name"] == b["name"]
+
+    async def test_explain_signal_by_freq(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL](
+            ctx, {"freq_hz": 433_920_000, "modulation_guess": "OOK"}
+        )
+        assert result["kind"] == "knowledge_explain_signal"
+        assert isinstance(result["candidates"], list)
+        assert result["candidates"]
+
+    async def test_explain_signal_requires_a_hint(
+        self, ctx: HandlerContext
+    ) -> None:
+        with pytest.raises(Exception):
+            await HANDLERS[CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL](ctx, {})
+
+    async def test_cross_reference_pocsag(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_CROSS_REFERENCE](
+            ctx, {"record_id": "protocol-pocsag-1200"}
+        )
+        assert result["kind"] == "knowledge_cross_reference"
+        assert result["record"] is not None
+        # POCSAG record cross-references its 512/2400 siblings and 2FSK
+        # modulation record — at least one should resolve.
+        assert result["related"], "expected at least one resolved see_also"
+
+    async def test_cross_reference_unknown_record(
+        self, ctx: HandlerContext
+    ) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_CROSS_REFERENCE](
+            ctx, {"record_id": "no-such-record-id"}
+        )
+        assert result["record"] is None
+        assert result["related"] == []
+
+
 class TestDispatchTable:
     def test_every_action_has_handler(self) -> None:
         """set(HANDLERS) == set(CommandAction) — every action mapped."""

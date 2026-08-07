@@ -486,3 +486,130 @@ class TestKnowledgeDispatch:
                     "expected_effect": "y",
                 },
             )
+
+    def test_lookup_protocol(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_lookup_protocol",
+            {
+                "name": "POCSAG",
+                "justification": "Look up POCSAG framing",
+                "expected_effect": "protocols.json record",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL
+        assert cmd.args["name"] == "POCSAG"
+
+    def test_lookup_keyfob(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_lookup_keyfob",
+            {
+                "vendor": "Chamberlain",
+                "justification": "Identify keyfob generation",
+                "expected_effect": "keyfobs.json records",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_LOOKUP_KEYFOB
+        assert cmd.args["vendor"] == "Chamberlain"
+        assert cmd.args["model"] is None
+
+    def test_lookup_keyfob_requires_a_hint(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_knowledge_lookup_keyfob",
+                {
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_lookup_decoder(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_lookup_decoder",
+            {
+                "name": "Manchester",
+                "justification": "Look up Manchester params",
+                "expected_effect": "decoders.json record",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_LOOKUP_DECODER
+        assert cmd.args["name"] == "Manchester"
+
+    def test_bibliography_defaults(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_bibliography",
+            {
+                "justification": "List citations",
+                "expected_effect": "Full bibliography",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_BIBLIOGRAPHY
+        assert cmd.args["cite_id"] is None
+
+    def test_bibliography_by_id(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_bibliography",
+            {
+                "cite_id": "fcc-part-15",
+                "justification": "Resolve one cite",
+                "expected_effect": "One bibliography record",
+            },
+        )
+        assert cmd.args["cite_id"] == "fcc-part-15"
+
+    def test_random_defaults(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_random",
+            {
+                "justification": "Show me anything",
+                "expected_effect": "One random file",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_RANDOM
+        assert cmd.args["seed"] is None
+
+    def test_random_with_seed(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_random",
+            {
+                "seed": 42,
+                "justification": "Deterministic pick",
+                "expected_effect": "Stable file for tests",
+            },
+        )
+        assert cmd.args["seed"] == 42
+
+    def test_explain_signal(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_explain_signal",
+            {
+                "freq_hz": 433_920_000,
+                "modulation_guess": "OOK",
+                "justification": "Triage a mystery burst",
+                "expected_effect": "Ranked candidates",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL
+        assert cmd.args["freq_hz"] == 433_920_000
+        assert cmd.args["modulation_guess"] == "OOK"
+
+    def test_explain_signal_requires_a_hint(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_knowledge_explain_signal",
+                {
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
+    def test_cross_reference(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_cross_reference",
+            {
+                "record_id": "protocol-pocsag-1200",
+                "justification": "Walk the see_also graph",
+                "expected_effect": "Related records",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_CROSS_REFERENCE
+        assert cmd.args["record_id"] == "protocol-pocsag-1200"

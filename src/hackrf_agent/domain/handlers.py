@@ -38,9 +38,16 @@ from hackrf_agent.domain.args import (
     DecodeRttyArgs,
     GetDeviceInfoArgs,
     GrantListArgs,
+    KnowledgeBibliographyArgs,
+    KnowledgeCrossReferenceArgs,
+    KnowledgeExplainSignalArgs,
     KnowledgeListTopicsArgs,
     KnowledgeLookupBandArgs,
+    KnowledgeLookupDecoderArgs,
+    KnowledgeLookupKeyfobArgs,
     KnowledgeLookupModulationArgs,
+    KnowledgeLookupProtocolArgs,
+    KnowledgeRandomArgs,
     KnowledgeReadArgs,
     KnowledgeSearchArgs,
     KnowledgeVerifyClaimArgs,
@@ -95,13 +102,34 @@ from hackrf_agent.hw.analysis import (
     spectrogram_summary as _spectrogram_summary,
 )
 from hackrf_agent.domain.knowledge import (
+    cross_reference as _knowledge_cross_reference,
+)
+from hackrf_agent.domain.knowledge import (
+    explain_signal as _knowledge_explain_signal,
+)
+from hackrf_agent.domain.knowledge import (
+    get_bibliography as _knowledge_get_bibliography,
+)
+from hackrf_agent.domain.knowledge import (
     list_topics as _knowledge_list_topics,
 )
 from hackrf_agent.domain.knowledge import (
     lookup_band as _knowledge_lookup_band,
 )
 from hackrf_agent.domain.knowledge import (
+    lookup_decoder as _knowledge_lookup_decoder,
+)
+from hackrf_agent.domain.knowledge import (
+    lookup_keyfob as _knowledge_lookup_keyfob,
+)
+from hackrf_agent.domain.knowledge import (
     lookup_modulation as _knowledge_lookup_modulation,
+)
+from hackrf_agent.domain.knowledge import (
+    lookup_protocol as _knowledge_lookup_protocol,
+)
+from hackrf_agent.domain.knowledge import (
+    random_file as _knowledge_random_file,
 )
 from hackrf_agent.domain.knowledge import (
     read_file as _knowledge_read_file,
@@ -636,6 +664,102 @@ async def _handle_knowledge_lookup_modulation(
     }
 
 
+async def _handle_knowledge_lookup_protocol(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeLookupProtocolArgs(**args)
+    paths = _default_knowledge_paths()
+    record = _knowledge_lookup_protocol(paths, parsed.name)
+    return {
+        "kind": "knowledge_lookup_protocol",
+        "name": parsed.name,
+        "record": record,
+    }
+
+
+async def _handle_knowledge_lookup_keyfob(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeLookupKeyfobArgs(**args)
+    paths = _default_knowledge_paths()
+    matches = _knowledge_lookup_keyfob(paths, parsed.vendor, parsed.model)
+    return {
+        "kind": "knowledge_lookup_keyfob",
+        "vendor": parsed.vendor,
+        "model": parsed.model,
+        "matches": matches,
+    }
+
+
+async def _handle_knowledge_lookup_decoder(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeLookupDecoderArgs(**args)
+    paths = _default_knowledge_paths()
+    record = _knowledge_lookup_decoder(paths, parsed.name)
+    return {
+        "kind": "knowledge_lookup_decoder",
+        "name": parsed.name,
+        "record": record,
+    }
+
+
+async def _handle_knowledge_bibliography(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeBibliographyArgs(**args)
+    paths = _default_knowledge_paths()
+    records = _knowledge_get_bibliography(paths, parsed.cite_id)
+    return {
+        "kind": "knowledge_bibliography",
+        "cite_id": parsed.cite_id,
+        "records": records,
+    }
+
+
+async def _handle_knowledge_random(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeRandomArgs(**args)
+    paths = _default_knowledge_paths()
+    payload = _knowledge_random_file(paths, seed=parsed.seed)
+    return {"kind": "knowledge_random", **payload}
+
+
+async def _handle_knowledge_explain_signal(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeExplainSignalArgs(**args)
+    paths = _default_knowledge_paths()
+    candidates = _knowledge_explain_signal(
+        paths,
+        freq_hz=parsed.freq_hz,
+        bw_hz=parsed.bw_hz,
+        modulation_guess=parsed.modulation_guess,
+        max_results=parsed.max_results,
+    )
+    return {
+        "kind": "knowledge_explain_signal",
+        "freq_hz": parsed.freq_hz,
+        "bw_hz": parsed.bw_hz,
+        "modulation_guess": parsed.modulation_guess,
+        "candidates": candidates,
+    }
+
+
+async def _handle_knowledge_cross_reference(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeCrossReferenceArgs(**args)
+    paths = _default_knowledge_paths()
+    result = _knowledge_cross_reference(paths, parsed.record_id)
+    return {
+        "kind": "knowledge_cross_reference",
+        "record_id": parsed.record_id,
+        **result,
+    }
+
+
 async def _handle_knowledge_verify_claim(
     ctx: HandlerContext, args: dict[str, Any]
 ) -> dict[str, Any]:
@@ -669,6 +793,13 @@ HANDLERS: dict[
     CommandAction.KNOWLEDGE_SEARCH: _handle_knowledge_search,
     CommandAction.KNOWLEDGE_LOOKUP_BAND: _handle_knowledge_lookup_band,
     CommandAction.KNOWLEDGE_LOOKUP_MODULATION: _handle_knowledge_lookup_modulation,
+    CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL: _handle_knowledge_lookup_protocol,
+    CommandAction.KNOWLEDGE_LOOKUP_KEYFOB: _handle_knowledge_lookup_keyfob,
+    CommandAction.KNOWLEDGE_LOOKUP_DECODER: _handle_knowledge_lookup_decoder,
+    CommandAction.KNOWLEDGE_BIBLIOGRAPHY: _handle_knowledge_bibliography,
+    CommandAction.KNOWLEDGE_RANDOM: _handle_knowledge_random,
+    CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL: _handle_knowledge_explain_signal,
+    CommandAction.KNOWLEDGE_CROSS_REFERENCE: _handle_knowledge_cross_reference,
     CommandAction.KNOWLEDGE_VERIFY_CLAIM: _handle_knowledge_verify_claim,
     CommandAction.ANALYZE_IQ_MODULATION: _handle_analyze_iq_modulation,
     CommandAction.ANALYZE_IQ_SYMBOLS: _handle_analyze_iq_symbols,

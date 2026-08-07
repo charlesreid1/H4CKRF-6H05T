@@ -321,6 +321,77 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
         "notes": "Matches on name, id, or aliases (case-insensitive). "
                  "Returns null when no record matches.",
     },
+    CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL: {
+        "purpose": "Return the protocols.json record for a named protocol.",
+        "args_doc": "name (str, e.g. 'POCSAG', 'ADS-B', 'AX.25', 'LoRaWAN').",
+        "example": '{"action": "knowledge_lookup_protocol", "args": '
+                   '{"name": "POCSAG"}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Matches on name, id, or aliases (case-insensitive). "
+                 "Returns null when no record matches.",
+    },
+    CommandAction.KNOWLEDGE_LOOKUP_KEYFOB: {
+        "purpose": "Return keyfob-system records matching vendor and/or model.",
+        "args_doc": "vendor (str, optional), model (str, optional). "
+                    "At least one must be provided.",
+        "example": '{"action": "knowledge_lookup_keyfob", "args": '
+                   '{"vendor": "Chamberlain"}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Substring matches, case-insensitive. Returns every matching "
+                 "record; the caller picks the closest generation.",
+    },
+    CommandAction.KNOWLEDGE_LOOKUP_DECODER: {
+        "purpose": "Return the decoders.json record for a named decoder family.",
+        "args_doc": "name (str, e.g. 'Manchester', 'NRZ', 'PWM', 'PPM').",
+        "example": '{"action": "knowledge_lookup_decoder", "args": '
+                   '{"name": "Manchester"}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Each record links to the paired analyze_iq_* / decode_* verb "
+                 "via tools_downstream.",
+    },
+    CommandAction.KNOWLEDGE_BIBLIOGRAPHY: {
+        "purpose": "Return one bibliography citation by id, or the full list.",
+        "args_doc": "cite_id (str, optional). Omit to list every citation.",
+        "example": '{"action": "knowledge_bibliography", "args": '
+                   '{"cite_id": "fcc-part-15"}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns an empty list when cite_id has no match.",
+    },
+    CommandAction.KNOWLEDGE_RANDOM: {
+        "purpose": "Return one random markdown file from the corpus.",
+        "args_doc": "seed (int, optional) for deterministic selection.",
+        "example": '{"action": "knowledge_random", "args": {}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Uses SystemRandom when seed is unset; the same seed always "
+                 "picks the same file.",
+    },
+    CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL: {
+        "purpose": "Rank candidate signals from known_signals.json given hints.",
+        "args_doc": "freq_hz (int, optional), bw_hz (int, optional), "
+                    "modulation_guess (str, optional), max_results (int, "
+                    "default 5). At least one hint required.",
+        "example": '{"action": "knowledge_explain_signal", "args": '
+                   '{"freq_hz": 433920000, "modulation_guess": "OOK"}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Score is the sum of matched hints (each contributes 1.0). "
+                 "Ties broken by record id.",
+    },
+    CommandAction.KNOWLEDGE_CROSS_REFERENCE: {
+        "purpose": "Traverse see_also across every records/*.json file.",
+        "args_doc": "record_id (str, e.g. 'protocol-pocsag-1200').",
+        "example": '{"action": "knowledge_cross_reference", "args": '
+                   '{"record_id": "protocol-pocsag-1200"}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns {record, related, unresolved}. unresolved holds ids "
+                 "that no records file exports.",
+    },
     CommandAction.KNOWLEDGE_VERIFY_CLAIM: {
         "purpose": "Grade a factual claim against the trap catalog.",
         "args_doc": "text (str, 1-1000 chars).",

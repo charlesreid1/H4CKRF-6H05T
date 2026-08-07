@@ -11,11 +11,18 @@ from hackrf_agent.domain.knowledge import (
     KnowledgeError,
     KnowledgePaths,
     clear_cache,
+    cross_reference,
     default_paths,
+    explain_signal,
+    get_bibliography,
     list_topics,
     load_records,
     lookup_band,
+    lookup_decoder,
+    lookup_keyfob,
     lookup_modulation,
+    lookup_protocol,
+    random_file,
     read_file,
     search,
     verify_claim,
@@ -332,3 +339,308 @@ class TestDefaultPaths:
         assert paths.root.resolve() == tmp_path.resolve()
         # Clean up for the next test.
         clear_cache()
+
+
+# ---------------------------------------------------------------------------
+# Extended corpus fixture for the seven new knowledge verbs.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def extended_corpus(tmp_path: Path) -> KnowledgePaths:
+    """Corpus with every records file the new verbs bind to."""
+    root = tmp_path / "knowledge"
+    (root / "records").mkdir(parents=True)
+    (root / "dsp").mkdir()
+    (root / "modulation").mkdir()
+    (root / "MANIFEST.md").write_text("# manifest\n", encoding="utf-8")
+    (root / "dsp" / "README.md").write_text("# dsp\n", encoding="utf-8")
+    (root / "modulation" / "README.md").write_text("# modulation\n", encoding="utf-8")
+
+    (root / "records" / "protocols.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "protocol-test-pocsag",
+                    "name": "POCSAG paging (test)",
+                    "aliases": ["POCSAG", "CCIR-1"],
+                    "category": "protocol_phy",
+                    "citations": ["fake"],
+                    "confidence": "primary",
+                    "technical_body": {"modulation": "2FSK", "baud": 1200},
+                    "see_also": ["mod-test-2fsk", "no-such-id"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (root / "records" / "keyfobs.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "kf-chamberlain-a",
+                    "name": "Chamberlain Security+ (test)",
+                    "aliases": ["Security+"],
+                    "category": "keyfob_system",
+                    "citations": ["fake"],
+                    "confidence": "primary",
+                    "technical_body": {"vendor": "Chamberlain", "rolling": True},
+                    "see_also": [],
+                },
+                {
+                    "id": "kf-genie-a",
+                    "name": "Genie Intellicode (test)",
+                    "category": "keyfob_system",
+                    "citations": ["fake"],
+                    "confidence": "primary",
+                    "technical_body": {"vendor": "Genie", "rolling": True},
+                    "see_also": [],
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (root / "records" / "decoders.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "decoder-test-manchester",
+                    "name": "Manchester (test)",
+                    "aliases": ["biphase-L"],
+                    "category": "decoder_family",
+                    "citations": ["fake"],
+                    "confidence": "primary",
+                    "technical_body": {"self_clocking": True},
+                    "see_also": [],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (root / "records" / "bibliography.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "bib-test-1",
+                    "name": "Fake reference (test)",
+                    "category": "bibliography",
+                    "citations": [],
+                    "confidence": "primary",
+                    "technical_body": {"url": "https://example.invalid/x"},
+                },
+                {
+                    "id": "bib-test-2",
+                    "name": "Another fake (test)",
+                    "category": "bibliography",
+                    "citations": [],
+                    "confidence": "secondary",
+                    "technical_body": {},
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (root / "records" / "known_signals.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "signal-test-ook-433",
+                    "name": "Test OOK burst",
+                    "category": "protocol_phy",
+                    "citations": ["fake"],
+                    "confidence": "secondary",
+                    "technical_body": {
+                        "center_hz": 433_920_000,
+                        "bandwidth_hz": 40_000,
+                        "modulation": "OOK",
+                    },
+                    "see_also": [],
+                },
+                {
+                    "id": "signal-test-adsb",
+                    "name": "Test ADS-B",
+                    "category": "protocol_phy",
+                    "citations": ["fake"],
+                    "confidence": "secondary",
+                    "technical_body": {
+                        "center_hz": 1_090_000_000,
+                        "bandwidth_hz": 2_000_000,
+                        "modulation": "PPM",
+                    },
+                    "see_also": [],
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    # Minimal companion index for cross-reference (root protocol has see_also
+    # that refers to a modulation-file id).
+    (root / "records" / "modulations.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "mod-test-2fsk",
+                    "name": "2FSK (test)",
+                    "category": "modulation_family",
+                    "citations": ["fake"],
+                    "confidence": "primary",
+                    "technical_body": {},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return KnowledgePaths(root=root)
+
+
+class TestLookupProtocol:
+    def test_by_alias(self, extended_corpus: KnowledgePaths) -> None:
+        rec = lookup_protocol(extended_corpus, "POCSAG")
+        assert rec is not None
+        assert rec["id"] == "protocol-test-pocsag"
+
+    def test_miss_returns_none(self, extended_corpus: KnowledgePaths) -> None:
+        assert lookup_protocol(extended_corpus, "not-a-real-thing") is None
+
+    def test_empty_rejected(self, extended_corpus: KnowledgePaths) -> None:
+        with pytest.raises(KnowledgeError):
+            lookup_protocol(extended_corpus, "   ")
+
+
+class TestLookupDecoder:
+    def test_by_alias(self, extended_corpus: KnowledgePaths) -> None:
+        rec = lookup_decoder(extended_corpus, "biphase-L")
+        assert rec is not None
+        assert rec["id"] == "decoder-test-manchester"
+
+    def test_miss_returns_none(self, extended_corpus: KnowledgePaths) -> None:
+        assert lookup_decoder(extended_corpus, "not-a-real-thing") is None
+
+
+class TestLookupKeyfob:
+    def test_by_vendor(self, extended_corpus: KnowledgePaths) -> None:
+        hits = lookup_keyfob(extended_corpus, "Chamberlain", None)
+        assert len(hits) == 1
+        assert hits[0]["id"] == "kf-chamberlain-a"
+
+    def test_by_model(self, extended_corpus: KnowledgePaths) -> None:
+        hits = lookup_keyfob(extended_corpus, None, "Intellicode")
+        assert len(hits) == 1
+        assert hits[0]["id"] == "kf-genie-a"
+
+    def test_requires_at_least_one(
+        self, extended_corpus: KnowledgePaths
+    ) -> None:
+        with pytest.raises(KnowledgeError):
+            lookup_keyfob(extended_corpus, None, None)
+
+    def test_no_match(self, extended_corpus: KnowledgePaths) -> None:
+        assert lookup_keyfob(extended_corpus, "Nonexistent", None) == []
+
+
+class TestBibliography:
+    def test_by_id(self, extended_corpus: KnowledgePaths) -> None:
+        hits = get_bibliography(extended_corpus, "bib-test-1")
+        assert len(hits) == 1
+        assert hits[0]["id"] == "bib-test-1"
+
+    def test_full_list(self, extended_corpus: KnowledgePaths) -> None:
+        hits = get_bibliography(extended_corpus, None)
+        assert len(hits) == 2
+
+    def test_missing_id_empty_list(
+        self, extended_corpus: KnowledgePaths
+    ) -> None:
+        assert get_bibliography(extended_corpus, "no-such-cite") == []
+
+
+class TestRandomFile:
+    def test_seed_determinism(self, extended_corpus: KnowledgePaths) -> None:
+        first = random_file(extended_corpus, seed=42)
+        second = random_file(extended_corpus, seed=42)
+        assert first["topic"] == second["topic"]
+        assert first["name"] == second["name"]
+
+    def test_returns_readable_content(
+        self, extended_corpus: KnowledgePaths
+    ) -> None:
+        rec = random_file(extended_corpus, seed=1)
+        assert "content" in rec
+        assert rec["name"].endswith(".md")
+
+    def test_empty_corpus_raises(self, tmp_path: Path) -> None:
+        root = tmp_path / "kb"
+        (root / "records").mkdir(parents=True)
+        (root / "MANIFEST.md").write_text("# manifest\n")
+        paths = KnowledgePaths(root=root)
+        with pytest.raises(KnowledgeError, match="no markdown files"):
+            random_file(paths)
+
+
+class TestExplainSignal:
+    def test_by_frequency(self, extended_corpus: KnowledgePaths) -> None:
+        hits = explain_signal(
+            extended_corpus,
+            freq_hz=433_920_000,
+            bw_hz=None,
+            modulation_guess=None,
+        )
+        assert hits
+        assert hits[0]["record"]["id"] == "signal-test-ook-433"
+
+    def test_modulation_hint_alone(
+        self, extended_corpus: KnowledgePaths
+    ) -> None:
+        hits = explain_signal(
+            extended_corpus,
+            freq_hz=None,
+            bw_hz=None,
+            modulation_guess="OOK",
+        )
+        assert hits
+        ids = [h["record"]["id"] for h in hits]
+        assert "signal-test-ook-433" in ids
+
+    def test_bw_narrows(self, extended_corpus: KnowledgePaths) -> None:
+        # freq 433.92 + bw 40 kHz should score higher than freq alone
+        hits = explain_signal(
+            extended_corpus,
+            freq_hz=433_920_000,
+            bw_hz=40_000,
+            modulation_guess="OOK",
+        )
+        assert hits
+        assert hits[0]["score"] == 3.0
+
+    def test_requires_a_hint(self, extended_corpus: KnowledgePaths) -> None:
+        with pytest.raises(KnowledgeError):
+            explain_signal(
+                extended_corpus, freq_hz=None, bw_hz=None, modulation_guess=None
+            )
+
+    def test_ranks_by_score(self, extended_corpus: KnowledgePaths) -> None:
+        hits = explain_signal(
+            extended_corpus, freq_hz=1_090_000_000, bw_hz=None, modulation_guess=None
+        )
+        assert hits[0]["record"]["id"] == "signal-test-adsb"
+
+
+class TestCrossReference:
+    def test_resolves_related(self, extended_corpus: KnowledgePaths) -> None:
+        result = cross_reference(extended_corpus, "protocol-test-pocsag")
+        assert result["record"]["id"] == "protocol-test-pocsag"
+        related_ids = [r["id"] for r in result["related"]]
+        assert "mod-test-2fsk" in related_ids
+        assert "no-such-id" in result["unresolved"]
+
+    def test_unknown_root_record(
+        self, extended_corpus: KnowledgePaths
+    ) -> None:
+        result = cross_reference(extended_corpus, "no-such-record")
+        assert result["record"] is None
+        assert result["related"] == []
+        assert result["unresolved"] == []
+
+    def test_empty_id_rejected(self, extended_corpus: KnowledgePaths) -> None:
+        with pytest.raises(KnowledgeError):
+            cross_reference(extended_corpus, "   ")

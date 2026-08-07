@@ -302,10 +302,26 @@ def lookup_modulation(
     """Return the first ``modulations.json`` record whose name/alias
     case-insensitively matches *name_or_alias*, or ``None`` if no hit.
     """
+    return _lookup_by_name(paths, "modulations.json", name_or_alias)
+
+
+def _lookup_by_name(
+    paths: KnowledgePaths, filename: str, name_or_alias: str
+) -> dict[str, Any] | None:
+    """Return the first record in *filename* whose name/id/alias
+    case-insensitively matches *name_or_alias*, or ``None`` if no hit.
+
+    Matching is tiered: an exact match on name/id/alias beats a
+    substring match. Iteration order is preserved on ties so the file's
+    canonical ordering picks the "primary" record when a family has
+    variants (e.g. POCSAG 512/1200/2400 → the 512 record wins on
+    "POCSAG" alone).
+    """
     if not name_or_alias.strip():
         raise KnowledgeError("name must be non-empty")
     needle = name_or_alias.strip().casefold()
-    for rec in load_records(paths, "modulations.json"):
+    substring_hit: dict[str, Any] | None = None
+    for rec in load_records(paths, filename):
         candidates: list[str] = []
         rec_name = rec.get("name")
         if isinstance(rec_name, str):
@@ -316,9 +332,258 @@ def lookup_modulation(
         for alias in rec.get("aliases", []):
             if isinstance(alias, str):
                 candidates.append(alias)
-        if any(c.casefold() == needle for c in candidates):
+        folded = [c.casefold() for c in candidates]
+        if any(c == needle for c in folded):
             return rec
-    return None
+        if substring_hit is None and any(needle in c for c in folded):
+            substring_hit = rec
+    return substring_hit
+
+
+def lookup_protocol(
+    paths: KnowledgePaths, name_or_alias: str
+) -> dict[str, Any] | None:
+    """Return the first ``protocols.json`` record whose name/id/alias
+    case-insensitively matches *name_or_alias*, or ``None`` if no hit.
+    """
+    return _lookup_by_name(paths, "protocols.json", name_or_alias)
+
+
+def lookup_decoder(
+    paths: KnowledgePaths, name_or_alias: str
+) -> dict[str, Any] | None:
+    """Return the first ``decoders.json`` record whose name/id/alias
+    case-insensitively matches *name_or_alias*, or ``None`` if no hit.
+    """
+    return _lookup_by_name(paths, "decoders.json", name_or_alias)
+
+
+def lookup_keyfob(
+    paths: KnowledgePaths, vendor: str | None, model: str | None
+) -> list[dict[str, Any]]:
+    """Return every ``keyfobs.json`` record matching the given vendor+/or model.
+
+    Match rules (case-insensitive substring):
+    - vendor is matched against technical_body.vendor when present, plus
+      the record's id/name/aliases (many records encode the vendor in
+      the id, e.g. "keyfob-chamberlain-security-plus-1").
+    - model is matched against id/name/aliases.
+    - When both are supplied, both must match; missing hints act as a
+      wildcard on that dimension.
+    - At least one of vendor/model must be non-empty.
+    """
+    vendor_norm = (vendor or "").strip().casefold()
+    model_norm = (model or "").strip().casefold()
+    if not vendor_norm and not model_norm:
+        raise KnowledgeError("must supply vendor and/or model")
+
+    hits: list[dict[str, Any]] = []
+    for rec in load_records(paths, "keyfobs.json"):
+        haystack: list[str] = []
+        body = rec.get("technical_body", {})
+        if isinstance(body, dict):
+            for key in ("vendor", "manufacturer"):
+                v = body.get(key)
+                if isinstance(v, str):
+                    haystack.append(v.casefold())
+        for key in ("id", "name"):
+            val = rec.get(key)
+            if isinstance(val, str):
+                haystack.append(val.casefold())
+        for alias in rec.get("aliases", []):
+            if isinstance(alias, str):
+                haystack.append(alias.casefold())
+
+        vendor_ok = (not vendor_norm) or any(vendor_norm in s for s in haystack)
+        model_ok = (not model_norm) or any(model_norm in s for s in haystack)
+        if vendor_ok and model_ok:
+            hits.append(rec)
+    return hits
+
+
+def get_bibliography(
+    paths: KnowledgePaths, cite_id: str | None
+) -> list[dict[str, Any]]:
+    """Return one bibliography record by id, or the full list if id is None.
+
+    A missing cite_id yields an empty list (not an error) so callers can
+    distinguish "no citation with that id" from "empty bibliography."
+    """
+    records = load_records(paths, "bibliography.json")
+    if cite_id is None:
+        return records
+    needle = cite_id.strip().casefold()
+    if not needle:
+        raise KnowledgeError("cite_id must be non-empty when provided")
+    for rec in records:
+        rid = rec.get("id")
+        if isinstance(rid, str) and rid.casefold() == needle:
+            return [rec]
+    return []
+
+
+def random_file(
+    paths: KnowledgePaths, seed: int | None = None
+) -> dict[str, Any]:
+    """Return one random markdown file from the corpus.
+
+    Deterministic when *seed* is provided (so tests can pin the choice).
+    Raises ``KnowledgeError`` if the corpus has no markdown files.
+    """
+    import random as _random
+
+    all_files: list[tuple[str, str]] = []
+    for entry in list_topics(paths):
+        topic = entry["topic"]
+        for name in entry["files"]:
+            all_files.append((topic, name))
+    if not all_files:
+        raise KnowledgeError("corpus has no markdown files")
+    rng = _random.Random(seed) if seed is not None else _random.SystemRandom()
+    topic, name = rng.choice(all_files)
+    return read_file(paths, topic, name)
+
+
+# Recognized "known-signals" scoring: freq must be inside the signal's
+# nominal bandwidth window; bw match must agree within an order of
+# magnitude; modulation is a string equal-fold match. Each hit yields a
+# score in [0, 3]; higher is a stronger match.
+def explain_signal(
+    paths: KnowledgePaths,
+    freq_hz: int | None,
+    bw_hz: int | None,
+    modulation_guess: str | None,
+    max_results: int = 5,
+) -> list[dict[str, Any]]:
+    """Rank candidate signals from ``known_signals.json`` given a partial
+    description.
+
+    Every provided hint contributes up to 1.0 to the score:
+    - ``freq_hz``: the signal's center_hz ± bandwidth_hz must contain it.
+    - ``bw_hz``: within a factor of 3x of the signal's bandwidth_hz.
+    - ``modulation_guess``: case-insensitive match against the signal's
+      technical_body.modulation.
+
+    Results are sorted score-descending; ties are broken by id.
+    Candidates that score 0 across every provided hint are dropped.
+    """
+    if freq_hz is None and bw_hz is None and not (modulation_guess or "").strip():
+        raise KnowledgeError(
+            "explain_signal requires at least one of freq_hz, bw_hz, modulation_guess"
+        )
+
+    mod_norm = (modulation_guess or "").strip().casefold()
+    records = load_records(paths, "known_signals.json")
+    scored: list[tuple[float, dict[str, Any]]] = []
+    for rec in records:
+        body = rec.get("technical_body", {})
+        if not isinstance(body, dict):
+            continue
+
+        score = 0.0
+        components: dict[str, float] = {}
+
+        rec_center = body.get("center_hz")
+        rec_bw = body.get("bandwidth_hz")
+        if freq_hz is not None and isinstance(rec_center, int) and isinstance(rec_bw, int):
+            half = max(rec_bw, 1) // 2
+            if abs(freq_hz - rec_center) <= max(half, 1):
+                components["freq"] = 1.0
+                score += 1.0
+
+        if bw_hz is not None and isinstance(rec_bw, int) and rec_bw > 0:
+            ratio = bw_hz / rec_bw
+            if 1 / 3 <= ratio <= 3:
+                components["bw"] = 1.0
+                score += 1.0
+
+        rec_mod = body.get("modulation")
+        if mod_norm and isinstance(rec_mod, str) and mod_norm == rec_mod.casefold():
+            components["modulation"] = 1.0
+            score += 1.0
+
+        if score <= 0:
+            continue
+        scored.append((score, {"score": score, "matched": components, "record": rec}))
+
+    scored.sort(key=lambda t: (-t[0], t[1]["record"].get("id", "")))
+    return [entry for _, entry in scored[:max_results]]
+
+
+# ---------------------------------------------------------------------------
+# Cross-reference traversal — chase see_also across all record files.
+# ---------------------------------------------------------------------------
+
+_ALL_RECORD_FILES: tuple[str, ...] = (
+    "bands.json",
+    "modulations.json",
+    "protocols.json",
+    "keyfobs.json",
+    "decoders.json",
+    "iq_formats.json",
+    "known_signals.json",
+    "regulatory.json",
+    "sdr_hardware.json",
+    "bibliography.json",
+)
+
+
+def _all_records_index(paths: KnowledgePaths) -> dict[str, dict[str, Any]]:
+    """Build an in-memory {record_id -> record} map across every records/*.json.
+
+    Silently skips record files that don't exist yet so this function stays
+    useful as the corpus grows. Records without an ``id`` field are also
+    skipped.
+    """
+    index: dict[str, dict[str, Any]] = {}
+    for filename in _ALL_RECORD_FILES:
+        resolved = paths.record_file(filename)
+        if not resolved.is_file():
+            continue
+        try:
+            data = json.loads(resolved.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(data, list):
+            continue
+        for rec in data:
+            if not isinstance(rec, dict):
+                continue
+            rid = rec.get("id")
+            if isinstance(rid, str):
+                index[rid] = rec
+    return index
+
+
+def cross_reference(
+    paths: KnowledgePaths, record_id: str
+) -> dict[str, Any]:
+    """Return the record with *record_id* plus its resolved ``see_also`` list.
+
+    The returned dict is:
+
+    ```
+    {"record": <record or None>,
+     "related": [<record>, ...],
+     "unresolved": ["<id-with-no-match>", ...]}
+    ```
+    """
+    if not record_id.strip():
+        raise KnowledgeError("record_id must be non-empty")
+    idx = _all_records_index(paths)
+    root = idx.get(record_id)
+    related: list[dict[str, Any]] = []
+    unresolved: list[str] = []
+    if root is not None:
+        for other in root.get("see_also", []):
+            if not isinstance(other, str):
+                continue
+            hit = idx.get(other)
+            if hit is None:
+                unresolved.append(other)
+            else:
+                related.append(hit)
+    return {"record": root, "related": related, "unresolved": unresolved}
 
 
 # ---------------------------------------------------------------------------
