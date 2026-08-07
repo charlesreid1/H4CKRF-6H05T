@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Validate every knowledge/records/*.json against its schema.
 
-Enforces the plan-knowledge.md acceptance criteria:
+The schema files in `schemas/knowledge/` are the authoritative contract.
+This validator enforces:
 
 - every record satisfies its per-file schema (which extends envelope.schema.json)
 - every non-bibliography record has non-empty citations[]

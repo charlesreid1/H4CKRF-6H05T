@@ -105,7 +105,7 @@
   README.md stubs; Tier-1 topics `dsp/`, `sdr-fundamentals/`,
   `modulation/`, `hackrf-hardware/`, `iq-formats/`, `regulatory/`
   authored to full `reference.md` / `walkthrough.md` / `recognition.md`
-  depth. See `plan-organization.md` and `plan-knowledge.md`.
+  depth.
 - `skills/hackrf/SKILL.md` — assistant guidance for when + how to
   reach the MCP.
 - `docs/rf_cheatsheet.md`, `docs/ctf_playbook.md` — quick-reference

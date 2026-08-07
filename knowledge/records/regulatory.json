@@ -7,8 +7,7 @@
     "citations": ["hackrf-agent-repo"],
     "technical_body": {
       "purpose": "regulatory.json mirrors the hardcoded truth in src/hackrf_agent/domain/frequency_policy.py:BLOCKED_BANDS and ISM_BANDS so an assistant can retrieve regulatory context without reading Python source. It is NOT configuration. RiskAssessor never loads this file; changing an entry here does not unblock a band.",
-      "authoritative_source": "src/hackrf_agent/domain/frequency_policy.py",
-      "why_the_split": "Phase 6 of plan-organization.md: coupling the gate to editable JSON is the exact bypass the plan wants to prevent. If we ever consolidate, that lands as a separate proposal with bidirectional-consistency tests and an audit-review requirement."
+      "authoritative_source": "src/hackrf_agent/domain/frequency_policy.py"
     },
     "see_also": []
   },

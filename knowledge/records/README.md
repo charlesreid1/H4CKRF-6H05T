@@ -6,9 +6,10 @@ knowledge-retrieval MCP verbs (`knowledge_lookup_band`,
 `knowledge_lookup_modulation`, `knowledge_lookup_protocol`, …) load these
 files at runtime and return records verbatim.
 
-The authoritative schema and sample records live in
-[../../plan-knowledge.md § Records ontology](../../plan-knowledge.md). This
-README is the short version for a reader landing here first.
+The authoritative machine-readable schemas live in
+[`schemas/knowledge/`](../../schemas/knowledge/); the validator that
+runs on every push is `scripts/validate_knowledge_records.py`. This
+README documents the shared envelope and the per-file record types.
 
 ## Envelope
 
@@ -58,7 +59,6 @@ Notable rules:
 - `symbol_encodings.json` — line codings (`symbol_encoding`).
 - `protocols.json` — RF protocols (`protocol_phy`).
 - `iq_formats.json` — capture container formats (`iq_format`).
-  *(Note the underscore — matches plan-knowledge.md.)*
 - `decoders.json` — decoder families (`decoder_family`).
 - `fec_codes.json` — CRC/Hamming/BCH/RS (`fec_code`).
 - `crypto_in_rf.json` — Keeloq, HITAG2, GSM A5/*, TETRA TEA*

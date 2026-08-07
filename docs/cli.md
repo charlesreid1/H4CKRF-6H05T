@@ -375,5 +375,5 @@ hackrf-agent (main.py Typer app)
 
 - **`docs/development.md`** — Project layout, hardware setup, quality tooling
 - **`docs/safety.md`** — BLOCKED bands, risk tiers, FCC citations
-- **`docs/tests.md`** — Test documentation including Part 7 CLI tests
-- **`docs/ai-package.md`** — LLM integration architecture (Part 6)
+- **`docs/tests.md`** — Test documentation including CLI tests
+- **`docs/ai-package.md`** — LLM integration architecture

@@ -2,7 +2,7 @@
 
 This directory is the *reference* half of H4CKRF-6H05T. The MCP server in
 `src/hackrf_agent/` is the *acting* half; the safety funnel between them is
-described in [../plan-organization.md](../plan-organization.md).
+described in [../docs/architecture.md](../docs/architecture.md#the-safety-funnel).
 
 The corpus is data, not code. It is read at runtime by the knowledge
 handlers in `hackrf_agent.domain.handlers` from a canonical path resolved
@@ -12,11 +12,10 @@ as `package_data`.
 ## What this corpus is for
 
 An RF co-pilot needs to know the canon before it acts. The MCP tools that
-back this corpus (see Phase 3 of `../plan-organization.md`) let the assistant
-answer questions like "what's on 433.92 MHz?" or "is this an OOK keyfob?"
-from files on disk instead of from model weights. That matters because model
-weights are unaccountable and out of date; the corpus is cited, versioned,
-and reviewable in a PR.
+back this corpus let the assistant answer questions like "what's on
+433.92 MHz?" or "is this an OOK keyfob?" from files on disk instead of
+from model weights. That matters because model weights are unaccountable
+and out of date; the corpus is cited, versioned, and reviewable in a PR.
 
 ## How files are exposed
 
@@ -37,8 +36,9 @@ lookups are preferred whenever a `knowledge_lookup_*` verb exists.
 - Every claim carries `era_bounds`, `region`, and `confidence` in
   `{primary, secondary, community, folklore}`.
 - The BLOCKED band table stays hardcoded in `RiskAssessor`. The
-  `records/regulatory.json` file is *documentation*, not configuration
-  — the gate never reads it. See Phase 6 of `../plan-organization.md`.
+  `records/regulatory.json` file is *documentation*, not configuration —
+  the gate never reads it. This is intentional: the BLOCKED table is
+  Python, not JSON.
 
 ## Per-topic file convention
 

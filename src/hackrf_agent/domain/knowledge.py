@@ -591,8 +591,7 @@ def cross_reference(
 # ---------------------------------------------------------------------------
 
 #
-# Seeded from plan-knowledge.md "Explicitly disputed / ambiguous entries"
-# and the funnel-invariant claims in plan-organization.md. Each entry:
+# Trap-catalog: substring rules for verify_claim. Each entry:
 #
 #   patterns: substrings (case-insensitive) that must ALL appear in the
 #             normalized claim for the trap to fire.

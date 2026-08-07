@@ -102,16 +102,10 @@ Three tests run:
    fires `stop_event.set()` after 100 ms, asserts `KillSwitchTriggered` within 2 s.
 
 **Never TX in automated tests.** No `transmit_iq` test exists; manual TX smoke
-testing is covered by the Part 8 runbook.
+testing is documented in `docs/safety.md`.
 
 CI skips all `@pytest.mark.hardware` tests by default. The `--hardware` flag is
-gated by a `pytest_addoption` hook (to be added in `tests/conftest.py` when CI
-infrastructure is set up).
-
-**Current status (2026-08-03):** HackRF One is not connected to this development
-machine. `hackrf_info` verification is deferred. The `pyhackrf` package imports as
-`import hackrf` but will fail at `CDLL('libhackrf.so.0')` until libhackrf is installed
-via Homebrew (`brew install hackrf`).
+gated by a `pytest_addoption` hook in `tests/conftest.py`.
 
 ---
 
@@ -122,15 +116,15 @@ hackrf-agent/
 ├── pyproject.toml                         # Build config, deps, tool settings
 ├── README.md                              # Entry point for new users
 ├── docs/
-│   ├── architecture.md                    # Architecture reference (Part 8)
+│   ├── architecture.md                    # Architecture reference
 │   ├── safety.md                          # FCC citations, band policy, risk tiers
 │   ├── development.md                     # This file
-│   └── execute_command_schema.md          # Tool schema reference (Part 7)
+│   └── execute_command_schema.md          # Tool schema reference
 ├── schemas/
 │   └── execute_command.schema.json        # Machine-readable JSON Schema
 ├── src/hackrf_agent/
 │   ├── __init__.py
-│   ├── ai/                                # LLM plumbing (Part 6 — COMPLETE)
+│   ├── ai/                                # LLM plumbing
 │   │   ├── agent.py                       # HackrfAgent — conversation loop
 │   │   ├── llm_client.py                  # LLMClient protocol + OpenRouterClient + FakeLLMClient
 │   │   └── prompts.py                     # SYSTEM_PROMPT + EXECUTE_COMMAND_TOOL_SCHEMA
@@ -141,16 +135,16 @@ hackrf-agent/
 │   │   ├── frequency_policy.py            # BLOCKED_BANDS, ISM_BANDS
 │   │   ├── permission_service.py          # Scoped, time-limited grants
 │   │   ├── audit_service.py               # SQLite-backed audit log
-│   │   ├── approval.py                    # ApprovalPort protocol + test doubles (prod impl in Part 7)
+│   │   ├── approval.py                    # ApprovalPort protocol + test doubles
 │   │   ├── handlers.py                    # One async callable per CommandAction
 │   │   ├── result_formatter.py            # bytes → compact JSON summaries
 │   │   └── session.py                     # SessionPaths + new_session factory
-│   ├── hw/                                # HackRF drivers (Part 4 — COMPLETE)
+│   ├── hw/                                # HackRF drivers
 │   │   ├── hackrf_driver.py               # pyhackrf wrapper (primary)
 │   │   ├── hackrf_subprocess.py           # CLI escape hatch
 │   │   ├── dsp.py                         # FFT, peak detect, IQ conversion
 │   │   └── exceptions.py                  # HackrfError hierarchy
-│   ├── cli/                               # Terminal interface (Part 7 — COMPLETE)
+│   ├── cli/                               # Terminal interface
 │   │   ├── main.py                         # Typer app; mounts all subcommands
 │   │   ├── parsing.py                      # Band, duration, gain parsers
 │   │   ├── settings.py                     # SettingsService (config.toml + OPENROUTER_API_KEY env)
@@ -161,7 +155,7 @@ hackrf-agent/
 │   │   ├── doctor_cmd.py                   # doctor
 │   │   ├── chat_cmd.py                     # chat REPL, event rendering
 │   │   └── __init__.py
-│   └── data/                              # Persistence (Part 3 — COMPLETE)
+│   └── data/                              # Persistence
 │       ├── db.py                           # ensure_schema + open_connection
 │       └── schema.sql                     # DDL for audit + grants
 ├── tests/
@@ -181,10 +175,10 @@ hackrf-agent/
 │   │   ├── test_handlers.py              # handler dispatch + arg extraction
 │   │   ├── test_result_formatter.py      # format helpers for each action
 │   │   ├── test_session.py               # SessionPaths + new_session
-│   │   ├── test_cli_parsing.py           # 23 tests — band/duration/gain parsers (Part 7)
-│   │   ├── test_cli_settings.py          # SettingsService: config.toml + env-var api key (Part 7)
-│   │   ├── test_cli_kill_switch.py       # 7 tests — SIGINT, double-Ctrl-C, revoke (Part 7)
-│   │   └── test_cli_approval.py          # 7 tests — MEDIUM/HIGH prompts (Part 7)
+│   │   ├── test_cli_parsing.py           # 23 tests — band/duration/gain parsers
+│   │   ├── test_cli_settings.py          # SettingsService: config.toml + env-var api key
+│   │   ├── test_cli_kill_switch.py       # 7 tests — SIGINT, double-Ctrl-C, revoke
+│   │   └── test_cli_approval.py          # 7 tests — MEDIUM/HIGH prompts
 │   ├── integration/                      # External deps (hardware, LLM, or fakes)
 │   │   ├── test_agent_loop.py            # 23 tests — full agent loop with FakeLLMClient
 │   │   ├── test_agent_live.py            # 1 @llm test — live Claude round-trip
@@ -192,11 +186,11 @@ hackrf-agent/
 │   │   ├── test_dsp_pipeline.py          # 2 tests — synthetic IQ through DSP
 │   │   ├── test_hackrf_driver.py         # 3 @hardware tests — real device RX-only
 │   │   ├── test_persistence_roundtrip.py # audit + grants round-trip
-│   │   ├── test_cli_permissions.py       # 9 tests — grant tx/list/revoke CLI (Part 7)
-│   │   ├── test_cli_audit.py             # 5 tests — audit tail CLI (Part 7)
-│   │   ├── test_cli_doctor.py            # 5 tests — doctor diagnostics CLI (Part 7)
-│   │   ├── test_cli_chat.py              # 1 @llm @hardware test — chat smoke (Part 7)
-│   │   └── test_cli_main.py              # 4 tests — --help, no_args_is_help (Part 7)
+│   │   ├── test_cli_permissions.py       # 9 tests — grant tx/list/revoke CLI
+│   │   ├── test_cli_audit.py             # 5 tests — audit tail CLI
+│   │   ├── test_cli_doctor.py            # 5 tests — doctor diagnostics CLI
+│   │   ├── test_cli_chat.py              # 1 @llm @hardware test — chat smoke
+│   │   └── test_cli_main.py              # 4 tests — --help, no_args_is_help
 │   ├── e2e/                              # Full workflow with fake LLM + mock HW
 │   └── fixtures/
 │       ├── iq/                            # Golden .iq files
@@ -357,8 +351,8 @@ is not landing.
    `src/hackrf_agent/domain/risk_assessor.py`. Knowledge and analysis
    verbs are hardcoded `LOW` (add to the read-only branches).
    TX-adjacent verbs go through the existing tier table. **The gate
-   never reads editable config** — coupling the risk tier to
-   `records/*.json` is forbidden by `plan-organization.md` Phase 6.
+   never reads editable config** — coupling the risk tier to editable
+   `records/*.json` is forbidden; the gate stays hardcoded in Python.
 4. **New handler function** in
    `src/hackrf_agent/domain/handlers.py`, dispatched from `HANDLERS`.
    Handlers return JSON-primitive dicts with a `kind` marker.
@@ -425,8 +419,8 @@ pre-commit run --all-files                          # linters + schema drift
 
 ## References
 
-- **`docs/ai-package.md`** — LLM integration architecture (Part 6), agent loop, prompts, tool schema
-- **`docs/cli.md`** — CLI reference (Part 7), all commands, approval flow, kill switch, config
+- **`docs/ai-package.md`** — LLM integration architecture, agent loop, prompts, tool schema
+- **`docs/cli.md`** — CLI reference, all commands, approval flow, kill switch, config
 - **`docs/tests.md`** — Complete test documentation, all tiers, all files, quality gates
 - **`docs/safety.md`** — FCC citations, band policy, risk tiers
 - **HackRF Wiki**: [github.com/greatscottgadgets/hackrf/wiki](https://github.com/greatscottgadgets/hackrf/wiki)

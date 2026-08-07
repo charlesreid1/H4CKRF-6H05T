@@ -82,5 +82,5 @@ gear.**
 ## Session capture-time budget
 
 `MAX_CAPTURE_MINUTES` bounds cumulative capture+TX time per session
-(see `plan-organization.md` Phase 8). Once exhausted, `transmit_iq`
-refuses further TX until session reset.
+(see `docs/safety.md`). Once exhausted, `transmit_iq` refuses further
+TX until session reset.

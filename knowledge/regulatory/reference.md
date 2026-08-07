@@ -2,8 +2,8 @@
 
 Machine-readable version lives in `../records/regulatory.json`. This
 file is the prose version. **Neither this file nor the JSON can override
-the hardcoded `RiskAssessor` BLOCKED table** — that coupling is
-explicitly forbidden by `../../plan-organization.md` Phase 6.
+the hardcoded `RiskAssessor` BLOCKED table** — this is intentional: the
+BLOCKED table is Python, not JSON.
 
 ## FCC Part 15 — unlicensed low-power
 
@@ -127,4 +127,4 @@ For the authoritative list of frequencies the gate refuses, read
 `src/hackrf_agent/domain/frequency_policy.py:BLOCKED_BANDS`. This
 document mirrors it in prose; the file mirrors it in JSON.
 `RiskAssessor` reads only the Python constant. That layering is
-intentional — see Phase 6 of `../../plan-organization.md`.
+intentional: the BLOCKED table is Python, not JSON.

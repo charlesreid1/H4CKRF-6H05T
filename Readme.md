@@ -50,7 +50,7 @@ There is no second MCP tool that reaches libhackrf. The LLM sees exactly one
 tool, `execute_command`, discriminated by `action`. Knowledge and analysis
 verbs land as new `CommandAction` values with fixed `LOW` risk — they inherit
 the full audit trail and cannot bypass the gate. The funnel invariant is
-stated in full in [plan-organization.md](plan-organization.md).
+stated in full in [docs/architecture.md](docs/architecture.md#the-safety-funnel).
 
 ---
 
@@ -75,8 +75,8 @@ schemas/             JSON Schema for the execute_command envelope + records
 tests/               unit + integration + mcp + e2e
 ```
 
-See [plan-organization.md](plan-organization.md) for the reorganization plan
-and [plan-knowledge.md](plan-knowledge.md) for the corpus contents.
+See [knowledge/MANIFEST.md](knowledge/MANIFEST.md) for the corpus contents
+and layout.
 
 ---
 

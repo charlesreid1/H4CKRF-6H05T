@@ -78,9 +78,9 @@ These tests wire multiple real components together but fake external dependencie
 
 Full workflow with scripted LLM + fake driver + real executor + real audit DB:
 
-- **`test_keyfob_workflow.py`** — the "Find my car's keyfob frequency" workflow from
-  `plan-bender.md`, encoded as an executable test. Asserts correct sequence of tool
-  calls, approval flow, and audit trail shape.
+- **`test_keyfob_workflow.py`** — end-to-end keyfob-hunt encoded as an executable
+  test: sweep → capture → analyze → decode → replay-approval-denied. Asserts
+  correct sequence of tool calls, approval flow, and audit trail shape.
 - **`test_full_funnel_matrix.py`** — table-driven: one row per `(action, tier)`
   combination. Catches regressions where a new action's risk classification drifts.
 

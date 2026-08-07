@@ -89,19 +89,6 @@ Useful when you want to poke tool calls without a full host:
 mcp-cli --stdio -- hackrf-agent-mcp
 ```
 
-## Knowledge tier `[planned]`
-
-The MCP surface is being extended with a read-only knowledge tier
-(`hackrf_knowledge_list_topics`, `hackrf_knowledge_read`,
-`hackrf_knowledge_search`, `hackrf_knowledge_lookup_band`,
-`hackrf_knowledge_lookup_modulation`, `hackrf_knowledge_lookup_protocol`,
-`hackrf_knowledge_verify_claim`, …). Each new tool corresponds to a new
-`CommandAction` value with a hardcoded `LOW` risk tier and reads files
-from `knowledge/` on disk. It cannot cause RF emission and cannot touch
-libhackrf. The plan lives in
-[`../plan-organization.md`](../plan-organization.md); the corpus contents
-plan lives in [`../plan-knowledge.md`](../plan-knowledge.md).
-
 ## Tools
 
 One MCP tool per `CommandAction`. Every tool requires two free-text fields:

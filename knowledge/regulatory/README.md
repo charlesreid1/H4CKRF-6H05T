@@ -6,6 +6,6 @@ aviation voice, marine distress, cellular downlink, emergency services).
 
 The machine-readable version lives in `records/regulatory.json`.
 **Reminder:** `RiskAssessor` never reads that file — the BLOCKED table
-stays hardcoded in Python. See Phase 6 of `../../plan-organization.md`.
-
-*Skeleton — Tier 1.*
+stays hardcoded in Python. This is intentional: coupling the gate to
+editable JSON would be a bypass; the split keeps the enforcement path
+short and auditable.
