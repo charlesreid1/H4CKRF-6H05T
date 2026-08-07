@@ -9,9 +9,9 @@
       "publisher": "US FCC",
       "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15",
       "section_index": {
-        "15.231": "Periodic operation in the band 40.66–40.70 MHz and above 70 MHz",
-        "15.247": "Operation within the bands 902–928 MHz, 2400–2483.5 MHz, and 5725–5850 MHz",
-        "15.249": "Operation within the bands 902–928 MHz, 2400–2483.5 MHz, and 5725–5850 MHz — narrowband"
+        "15.231": "Periodic operation in the band 40.66-40.70 MHz and above 70 MHz",
+        "15.247": "Operation within the bands 902-928 MHz, 2400-2483.5 MHz, and 5725-5850 MHz",
+        "15.249": "Operation within the bands 902-928 MHz, 2400-2483.5 MHz, and 5725-5850 MHz - narrowband"
       }
     }
   },
@@ -21,10 +21,7 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "US FCC",
-      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-22"
-    }
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-22"}
   },
   {
     "id": "fcc-part-24",
@@ -32,10 +29,7 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "US FCC",
-      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-24"
-    }
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-24"}
   },
   {
     "id": "fcc-part-27",
@@ -43,10 +37,7 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "US FCC",
-      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-27"
-    }
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-27"}
   },
   {
     "id": "fcc-part-80",
@@ -54,10 +45,7 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "US FCC",
-      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-80"
-    }
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-80"}
   },
   {
     "id": "fcc-part-87",
@@ -65,10 +53,7 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "US FCC",
-      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-87"
-    }
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-87"}
   },
   {
     "id": "fcc-part-90",
@@ -76,10 +61,7 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "US FCC",
-      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-90"
-    }
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-90"}
   },
   {
     "id": "fcc-part-97",
@@ -87,10 +69,23 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "US FCC",
-      "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-97"
-    }
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-97"}
+  },
+  {
+    "id": "fcc-part-74",
+    "name": "47 CFR Part 74 — Experimental, Auxiliary, and Special Broadcast",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-C/part-74"}
+  },
+  {
+    "id": "fcc-part-101",
+    "name": "47 CFR Part 101 — Fixed Microwave Services",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "US FCC", "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-101"}
   },
   {
     "id": "etsi-en-300-220",
@@ -98,10 +93,47 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "ETSI",
-      "url": "https://www.etsi.org/deliver/etsi_en/300200_300299/30022001/"
-    }
+    "technical_body": {"publisher": "ETSI", "url": "https://www.etsi.org/deliver/etsi_en/300200_300299/30022001/"}
+  },
+  {
+    "id": "etsi-en-300-328",
+    "name": "ETSI EN 300 328 — Wideband transmission in the 2.4 GHz ISM band",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "ETSI", "url": "https://www.etsi.org/deliver/etsi_en/300300_300399/300328/"}
+  },
+  {
+    "id": "etsi-ts-102-361",
+    "name": "ETSI TS 102 361 — DMR air interface",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "ETSI", "url": "https://www.etsi.org/standard/ts-102-361/"}
+  },
+  {
+    "id": "etsi-en-300-392",
+    "name": "ETSI EN 300 392 — TETRA air interface",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "ETSI", "url": "https://www.etsi.org/deliver/etsi_en/300300_300399/30039202/"}
+  },
+  {
+    "id": "cept-erc-rec-70-03",
+    "name": "CEPT ERC/REC 70-03 — European SRD allocations",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "CEPT ECC", "url": "https://docdb.cept.org/document/845"}
+  },
+  {
+    "id": "isec-rss-210",
+    "name": "Industry Canada RSS-210 — Licence-exempt Radio Apparatus",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "ISED Canada", "url": "https://ised-isde.canada.ca/site/spectrum-management-telecommunications/en/spectrum-allocation/radio-standards-specifications-rss/rss-210-licence-exempt-radio-apparatus"}
   },
   {
     "id": "itu-rr",
@@ -109,10 +141,15 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "International Telecommunication Union",
-      "url": "https://www.itu.int/pub/R-REG-RR"
-    }
+    "technical_body": {"publisher": "International Telecommunication Union", "url": "https://www.itu.int/pub/R-REG-RR"}
+  },
+  {
+    "id": "itu-r-m-584-2",
+    "name": "ITU-R M.584-2 — Codes and formats for radio paging",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "ITU-R", "url": "https://www.itu.int/rec/R-REC-M.584/en"}
   },
   {
     "id": "itu-ra-769",
@@ -120,10 +157,39 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "ITU-R",
-      "url": "https://www.itu.int/rec/R-REC-RA.769/en"
-    }
+    "technical_body": {"publisher": "ITU-R", "url": "https://www.itu.int/rec/R-REC-RA.769/en"}
+  },
+  {
+    "id": "rtca-do-260b",
+    "name": "RTCA DO-260B — ADS-B Mode S Extended Squitter MOPS",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "RTCA", "url": "https://www.rtca.org/"}
+  },
+  {
+    "id": "ieee-802-15-4",
+    "name": "IEEE 802.15.4 — Low-Rate Wireless PANs (LR-WPANs)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "IEEE", "url": "https://standards.ieee.org/ieee/802.15.4/"}
+  },
+  {
+    "id": "ieee-802-11",
+    "name": "IEEE 802.11 — Wireless LAN MAC and PHY",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "IEEE", "url": "https://standards.ieee.org/ieee/802.11/"}
+  },
+  {
+    "id": "lorawan-spec",
+    "name": "LoRaWAN specification 1.0.4 / 1.1",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "LoRa Alliance", "url": "https://lora-alliance.org/resource_hub/lorawan-specification-v1-1/"}
   },
   {
     "id": "hackrf-docs",
@@ -131,10 +197,23 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "Great Scott Gadgets",
-      "url": "https://hackrf.readthedocs.io/"
-    }
+    "technical_body": {"publisher": "Great Scott Gadgets", "url": "https://hackrf.readthedocs.io/"}
+  },
+  {
+    "id": "hackrf-github",
+    "name": "HackRF firmware and host tools",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "Great Scott Gadgets", "url": "https://github.com/greatscottgadgets/hackrf"}
+  },
+  {
+    "id": "hackrf-wiki",
+    "name": "HackRF wiki (installation, calibration, PortaPack)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "Great Scott Gadgets contributors", "url": "https://github.com/mossmann/hackrf/wiki"}
   },
   {
     "id": "sigmf-spec",
@@ -142,10 +221,7 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "SigMF working group",
-      "url": "https://github.com/sigmf/SigMF/blob/main/sigmf-spec.md"
-    }
+    "technical_body": {"publisher": "SigMF working group", "url": "https://github.com/sigmf/SigMF/blob/main/sigmf-spec.md"}
   },
   {
     "id": "proakis-digital-comm",
@@ -153,10 +229,47 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "McGraw-Hill",
-      "year": 2007
-    }
+    "technical_body": {"publisher": "McGraw-Hill", "year": 2007}
+  },
+  {
+    "id": "sklar-digital-comm",
+    "name": "Sklar, Digital Communications: Fundamentals and Applications (2nd ed.)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "Prentice Hall", "year": 2001}
+  },
+  {
+    "id": "rice-digital-comm",
+    "name": "Rice, Digital Communications: A Discrete-Time Approach",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "Prentice Hall", "year": 2008}
+  },
+  {
+    "id": "oppenheim-schafer-dsp",
+    "name": "Oppenheim & Schafer, Discrete-Time Signal Processing (3rd ed.)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "Pearson", "year": 2010}
+  },
+  {
+    "id": "smith-dsp-guide",
+    "name": "Steven W. Smith, The Scientist and Engineer's Guide to Digital Signal Processing",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "California Technical Publishing", "year": 1997, "url": "https://www.dspguide.com/"}
+  },
+  {
+    "id": "viterbi-coherent",
+    "name": "Viterbi, Principles of Coherent Communication",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "McGraw-Hill", "year": 1966}
   },
   {
     "id": "gnu-radio-wiki",
@@ -164,10 +277,15 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "GNU Radio project",
-      "url": "https://wiki.gnuradio.org/"
-    }
+    "technical_body": {"publisher": "GNU Radio project", "url": "https://wiki.gnuradio.org/"}
+  },
+  {
+    "id": "osmocom-wiki",
+    "name": "Osmocom wiki (rtl-sdr, gr-osmosdr, OpenBTS, GSM tools)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "Osmocom project", "url": "https://osmocom.org/"}
   },
   {
     "id": "rtl-433-github",
@@ -175,20 +293,334 @@
     "category": "bibliography",
     "citations": [],
     "confidence": "community",
-    "technical_body": {
-      "publisher": "merbanan / rtl_433 contributors",
-      "url": "https://github.com/merbanan/rtl_433"
-    }
+    "technical_body": {"publisher": "merbanan / rtl_433 contributors", "url": "https://github.com/merbanan/rtl_433"}
   },
   {
-    "id": "hackrf-agent-repo",
-    "name": "H4CKRF-6H05T repository — frequency_policy.py",
+    "id": "urh-github",
+    "name": "Universal Radio Hacker (URH)",
     "category": "bibliography",
     "citations": [],
     "confidence": "primary",
-    "technical_body": {
-      "publisher": "H4CKRF-6H05T project",
-      "path": "src/hackrf_agent/domain/frequency_policy.py"
-    }
+    "technical_body": {"publisher": "jopohl et al.", "url": "https://github.com/jopohl/urh"}
+  },
+  {
+    "id": "urh-paper-woot-2018",
+    "name": "Pohl & Noack, Universal Radio Hacker: A Suite for Analyzing and Attacking Stateful Wireless Protocols (USENIX WOOT 2018)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "USENIX WOOT", "year": 2018, "url": "https://www.usenix.org/conference/woot18/presentation/pohl"}
+  },
+  {
+    "id": "inspectrum-github",
+    "name": "inspectrum — spectrogram cursor tool",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "miek", "url": "https://github.com/miek/inspectrum"}
+  },
+  {
+    "id": "multimon-ng-github",
+    "name": "multimon-ng — legacy audio digital demodulators",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "EliasOenal", "url": "https://github.com/EliasOenal/multimon-ng"}
+  },
+  {
+    "id": "dump1090-readsb",
+    "name": "dump1090 / readsb — Mode S ADS-B decoder",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "flightaware / wiedehopf", "url": "https://github.com/wiedehopf/readsb"}
+  },
+  {
+    "id": "gr-air-modes",
+    "name": "gr-air-modes — ADS-B in GNU Radio",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "bistromath", "url": "https://github.com/bistromath/gr-air-modes"}
+  },
+  {
+    "id": "gr-ais",
+    "name": "gr-ais — AIS decoder in GNU Radio",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "bistromath", "url": "https://github.com/bistromath/gr-ais"}
+  },
+  {
+    "id": "gr-iridium",
+    "name": "gr-iridium — Iridium downlink in GNU Radio",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "muccc", "url": "https://github.com/muccc/gr-iridium"}
+  },
+  {
+    "id": "iridium-toolkit",
+    "name": "iridium-toolkit — Iridium frame decoder",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "muccc", "url": "https://github.com/muccc/iridium-toolkit"}
+  },
+  {
+    "id": "gr-lora-sdr",
+    "name": "gr-lora_sdr — LoRa PHY in GNU Radio",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "tapparelj", "url": "https://github.com/tapparelj/gr-lora_sdr"}
+  },
+  {
+    "id": "gr-pager",
+    "name": "gr-pager — POCSAG/FLEX in GNU Radio",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "argilo", "url": "https://github.com/argilo/gr-pager"}
+  },
+  {
+    "id": "satdump",
+    "name": "SatDump — polar-orbit weather satellite decoder",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "SatDump contributors", "url": "https://github.com/SatDump/SatDump"}
+  },
+  {
+    "id": "goestools",
+    "name": "goestools — GOES HRIT decoder",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "pietern", "url": "https://github.com/pietern/goestools"}
+  },
+  {
+    "id": "sdrtrunk-github",
+    "name": "SDRTrunk — trunk-tracking receiver",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "DSheirer", "url": "https://github.com/DSheirer/sdrtrunk"}
+  },
+  {
+    "id": "dsdplus",
+    "name": "DSD+ (DSDPlus) — DMR/P25/dPMR/NXDN voice decoder",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "DSDPlus authors", "url": "https://www.dsdplus.com/"}
+  },
+  {
+    "id": "sdrangel",
+    "name": "SDRAngel — multi-platform SDR framework",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "f4exb", "url": "https://github.com/f4exb/sdrangel"}
+  },
+  {
+    "id": "sdrpp",
+    "name": "SDR++ — modern GUI SDR",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "AlexandreRouma", "url": "https://github.com/AlexandreRouma/SDRPlusPlus"}
+  },
+  {
+    "id": "gqrx-github",
+    "name": "gqrx — GNU Radio-backed GUI receiver",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "csete", "url": "https://github.com/csete/gqrx"}
+  },
+  {
+    "id": "cubicsdr-github",
+    "name": "CubicSDR — cross-platform LiquidDSP-backed GUI receiver",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "cjcliffe", "url": "https://github.com/cjcliffe/CubicSDR"}
+  },
+  {
+    "id": "sigdigger-github",
+    "name": "SigDigger — GUI signal analysis suite",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "BatchDrake", "url": "https://github.com/BatchDrake/SigDigger"}
+  },
+  {
+    "id": "fissure-github",
+    "name": "Fissure — RF/SIGINT framework",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "ainfosec", "url": "https://github.com/ainfosec/Fissure"}
+  },
+  {
+    "id": "pothossdr",
+    "name": "PothosSDR — dataflow SDR framework",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "Pothos project", "url": "https://github.com/pothosware/PothosSDR"}
+  },
+  {
+    "id": "limesuite",
+    "name": "LimeSuite — LimeSDR host tools",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "MyriadRF", "url": "https://github.com/myriadrf/LimeSuite"}
+  },
+  {
+    "id": "kamkar-rolljam-2015",
+    "name": "Kamkar, \"Drive It Like You Hacked It\" (DEF CON 23, 2015) — RollJam",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "secondary",
+    "technical_body": {"publisher": "DEF CON 23", "year": 2015, "url": "https://samy.pl/defcon2015/"}
+  },
+  {
+    "id": "rolling-pwn-2022",
+    "name": "Kevin2600 / Wesley Li — Rolling PWN (Honda CVE-2022-27254)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "secondary",
+    "technical_body": {"publisher": "authors' disclosure", "year": 2022, "url": "https://rollingpwn.github.io/rolling-pwn/"}
+  },
+  {
+    "id": "rollback-blackhat-2022",
+    "name": "Csikor et al., RollBack: A New Time-Agnostic Replay Attack (Black Hat USA 2022)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "secondary",
+    "technical_body": {"publisher": "Black Hat USA", "year": 2022}
+  },
+  {
+    "id": "kasper-keeloq-2008",
+    "name": "Eisenbarth, Kasper, Moradi, Paar — On the Power of Power Analysis in the Real World (Keeloq slide attack, CHES 2008)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "CHES / Ruhr-Uni Bochum", "year": 2008}
+  },
+  {
+    "id": "verdult-hitag2-2012",
+    "name": "Verdult, Garcia, Balasch — Gone in 360 Seconds: Hijacking with Hitag2 (USENIX Security 2012)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "USENIX Security", "year": 2012}
+  },
+  {
+    "id": "verdult-megamos-2013",
+    "name": "Verdult, Garcia, Ege — Dismantling Megamos Crypto (USENIX Security 2013/2015)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "USENIX Security", "year": 2015}
+  },
+  {
+    "id": "francillon-pke-2011",
+    "name": "Francillon, Danev, Capkun — Relay Attacks on Passive Keyless Entry and Start Systems in Modern Cars (NDSS 2011)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "NDSS", "year": 2011}
+  },
+  {
+    "id": "rouf-tpms-2010",
+    "name": "Rouf et al., Security and Privacy Vulnerabilities of In-Car Wireless Networks: A TPMS Case Study (USENIX Security 2010)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "USENIX Security", "year": 2010}
+  },
+  {
+    "id": "tetra-burst-2023",
+    "name": "Midnight Blue — TETRA:BURST (5 CVEs in TETRA air-interface encryption)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "Midnight Blue", "year": 2023, "url": "https://tetraburst.com/"}
+  },
+  {
+    "id": "iridium-toolkit-sect-2016",
+    "name": "schneider et al., Iridium Toolkit (Sec-T 2016)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "secondary",
+    "technical_body": {"publisher": "Sec-T", "year": 2016}
+  },
+  {
+    "id": "ossmann-sdr-lectures",
+    "name": "Michael Ossmann, Software Defined Radio with HackRF (video series)",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "Great Scott Gadgets", "url": "https://greatscottgadgets.com/sdr/"}
+  },
+  {
+    "id": "defcon-rf-village",
+    "name": "DEF CON RF Village — talk archive",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "secondary",
+    "technical_body": {"publisher": "DEF CON RF Village", "url": "https://rfvillage.org/"}
+  },
+  {
+    "id": "rtl-sdr-blog",
+    "name": "RTL-SDR blog — project write-ups",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "rtl-sdr.com", "url": "https://www.rtl-sdr.com/"}
+  },
+  {
+    "id": "sigidwiki",
+    "name": "Sig ID Wiki — community signal identification catalog",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "sigidwiki.com", "url": "https://www.sigidwiki.com/"}
+  },
+  {
+    "id": "artemis",
+    "name": "Artemis — offline signal catalog GUI",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "community",
+    "technical_body": {"publisher": "AresValley", "url": "https://markslab.tech/wp/artemis/"}
+  },
+  {
+    "id": "aprs-spec",
+    "name": "APRS Protocol Specification v1.0.1",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "APRS Working Group", "year": 2000, "url": "http://www.aprs.org/doc/APRS101.PDF"}
+  },
+  {
+    "id": "ax25-spec",
+    "name": "AX.25 Amateur Packet Radio Link-Layer Protocol v2.2",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "TAPR", "year": 1998, "url": "https://www.tapr.org/pdf/AX25.2.2.pdf"}
+  },
+  {
+    "id": "hackrf-agent-repo",
+    "name": "H4CKRF-6H05T repository",
+    "category": "bibliography",
+    "citations": [],
+    "confidence": "primary",
+    "technical_body": {"publisher": "H4CKRF-6H05T project", "path": "src/hackrf_agent/"}
   }
 ]
