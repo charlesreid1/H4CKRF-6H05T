@@ -1,12 +1,12 @@
 # `ism_315_noise_only.iq` — provenance
 
-- **Source:** Synthesised by `tests/fixtures/iq/generate_ism_315_noise_only.py` (placeholder).
+- **Source:** Synthesised by `tests/fixtures/iq/generate_ism_315_noise_only.py` (deterministic).
 - **Center frequency:** 315 MHz (nominal).
 - **Sample rate:** 2 Msps.
 - **Signal:** Noise floor only — normally-distributed int8 samples.
 - **Duration:** 50,000 samples (25 ms).
 - **Gain settings:** N/A (synthetic).
-- **Recording date:** N/A — synthetic placeholder.
+- **Recording date:** N/A — synthetic (deterministic).
 - **Machine:** Any; no HackRF required.
 - **Capture recipe (real hardware):**
   ```

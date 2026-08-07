@@ -38,7 +38,7 @@ def active_grant(
     *,
     expired: bool = False,
 ) -> Grant:
-    expires_at = _utcnow() - timedelta(hours=1) if expired else _utcnow() + timedelta(hours=1)  # noqa: SIM108
+    expires_at = _utcnow() - timedelta(hours=1) if expired else _utcnow() + timedelta(hours=1)
     return Grant(
         band_start_hz=start_hz,
         band_stop_hz=stop_hz,
@@ -70,10 +70,63 @@ class TestReadOnlyActions:
             CommandAction.GRANT_LIST,
             CommandAction.AUDIT_QUERY,
             CommandAction.READ_IQ_SUMMARY,
-            CommandAction.DECODE_OOK,
         ],
     )
     def test_always_low(
+        self,
+        assessor: RiskAssessor,
+        action: CommandAction,
+    ) -> None:
+        result = assessor.assess(make_command(action), [])
+        assert result.level == RiskLevel.LOW
+        assert result.requires_confirmation is False
+
+
+class TestAnalysisActions:
+    """Analysis-tier actions are hardcoded LOW. Cannot cause RF emission."""
+
+    @pytest.mark.parametrize(
+        "action",
+        [
+            CommandAction.ANALYZE_IQ_MODULATION,
+            CommandAction.ANALYZE_IQ_SYMBOLS,
+            CommandAction.ANALYZE_IQ_SPECTROGRAM,
+            CommandAction.DECODE_MANCHESTER,
+            CommandAction.DECODE_PWM,
+            CommandAction.DECODE_PPM,
+            CommandAction.DECODE_NRZ,
+            CommandAction.DECODE_POCSAG,
+            CommandAction.DECODE_ADS_B,
+            CommandAction.DECODE_RTTY,
+            CommandAction.DECODE_AX25,
+            CommandAction.DECODE_APRS,
+        ],
+    )
+    def test_always_low_no_approval(
+        self,
+        assessor: RiskAssessor,
+        action: CommandAction,
+    ) -> None:
+        result = assessor.assess(make_command(action), [])
+        assert result.level == RiskLevel.LOW
+        assert result.requires_confirmation is False
+
+
+class TestKnowledgeActions:
+    """Knowledge-tier actions are hardcoded LOW. Cannot cause RF emission."""
+
+    @pytest.mark.parametrize(
+        "action",
+        [
+            CommandAction.KNOWLEDGE_LIST_TOPICS,
+            CommandAction.KNOWLEDGE_READ,
+            CommandAction.KNOWLEDGE_SEARCH,
+            CommandAction.KNOWLEDGE_LOOKUP_BAND,
+            CommandAction.KNOWLEDGE_LOOKUP_MODULATION,
+            CommandAction.KNOWLEDGE_VERIFY_CLAIM,
+        ],
+    )
+    def test_always_low_no_approval(
         self,
         assessor: RiskAssessor,
         action: CommandAction,
@@ -546,3 +599,75 @@ class TestUnknownAction:
         We keep the branch in the code as defense-in-depth against future
         enum changes or custom validation.
         """
+
+
+# ---------------------------------------------------------------------------
+# sweep_spectrum_bulk aggregate cost
+# ---------------------------------------------------------------------------
+
+
+class TestSweepSpectrumBulkAggregate:
+    """The per-range dwell is only one input to risk. n_ranges * dwell_s
+    (aggregate wall-clock) also matters — a hostile fan-out of 100 short
+    sweeps is still 100 s of RX and 100 s of holding the driver lock.
+    """
+
+    def _ranges(self, count: int) -> list[dict[str, int]]:
+        # Non-overlapping 1 MHz windows starting at 100 MHz.
+        return [
+            {"start_freq_hz": 100_000_000 + i * 2_000_000,
+             "end_freq_hz": 100_500_000 + i * 2_000_000}
+            for i in range(count)
+        ]
+
+    def test_15_ranges_x_1s_dwell_stays_low(self, assessor: RiskAssessor) -> None:
+        # 15 * 1 s = 15 s aggregate, ≤ 30 s cap → LOW.
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(15),
+                dwell_s=1.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.LOW
+
+    def test_16_ranges_x_2s_dwell_medium_by_aggregate(
+        self, assessor: RiskAssessor
+    ) -> None:
+        # per-range dwell = 2 s is at the LOW boundary, but 16 * 2 = 32 s
+        # aggregate exceeds the 30 s LOW cap → MEDIUM.
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(16),
+                dwell_s=2.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.MEDIUM
+        assert result.requires_confirmation is True
+        assert "aggregate" in result.reason.lower()
+
+    def test_2_ranges_x_1s_low(self, assessor: RiskAssessor) -> None:
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(2),
+                dwell_s=1.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.LOW
+
+    def test_long_per_range_dwell_medium(self, assessor: RiskAssessor) -> None:
+        # dwell > 2 s → MEDIUM regardless of aggregate.
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(2),
+                dwell_s=5.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.MEDIUM

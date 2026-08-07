@@ -10,9 +10,9 @@ Every model is ``frozen=True`` because handlers read args, never mutate them.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
-
 
 # ---------------------------------------------------------------------------
 # get_device_info
@@ -77,7 +77,7 @@ class CaptureIqArgs(BaseModel):
     rf_amp_db: int = Field(default=0, description="RF amp gain in dB (0-14)")
 
     @model_validator(mode="after")
-    def _one_of_center_or_target(self) -> "CaptureIqArgs":
+    def _one_of_center_or_target(self) -> CaptureIqArgs:
         have_center = self.center_freq_hz is not None
         have_target = self.target_freq_hz is not None
         if have_center == have_target:
@@ -140,25 +140,6 @@ class ReadIqSummaryArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# decode_ook
-# ---------------------------------------------------------------------------
-
-
-class DecodeOokArgs(BaseModel):
-    """Attempt OOK bit decoding of an .iq file (placeholder)."""
-
-    iq_path: str = Field(
-        ..., description="Path to .iq file (must be under session root)"
-    )
-
-    model_config = {"frozen": True, "extra": "forbid"}
-
-    @property
-    def iq_path_resolved(self) -> Path:
-        return Path(self.iq_path)
-
-
-# ---------------------------------------------------------------------------
 # grant_list
 # ---------------------------------------------------------------------------
 
@@ -186,6 +167,702 @@ class AuditQueryArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# analyze_iq_modulation
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqModulationArgs(BaseModel):
+    """Moment-based modulation classifier on a captured IQ file."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(
+        default=2_000_000, description="Sample rate the file was captured at", gt=0
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# analyze_iq_symbols
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqSymbolsArgs(BaseModel):
+    """Estimate symbol rate from a captured IQ file via autocorrelation."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    min_rate_hz: float = Field(
+        default=100.0, description="Lower bound for symbol-rate search (Hz)", gt=0
+    )
+    max_rate_hz: float | None = Field(
+        default=None,
+        description="Upper bound for symbol-rate search (Hz). Defaults to sample_rate_hz/8.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# analyze_iq_spectrogram
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqSpectrogramArgs(BaseModel):
+    """Compact per-slice spectrogram summary (peak freq + power)."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    fft_size: int = Field(default=1024, description="FFT bins per slice", ge=64, le=65536)
+    overlap: float = Field(default=0.5, description="Overlap fraction", ge=0.0, lt=0.95)
+    max_slices: int = Field(default=512, description="Cap on returned slices", ge=1, le=8192)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# analyze_iq_carrier_frequency
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqCarrierFrequencyArgs(BaseModel):
+    """Refine the actual carrier-frequency offset within a capture."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    fft_size: int = Field(
+        default=8192,
+        description="FFT bin count. Larger = finer freq resolution, slower.",
+        ge=256,
+        le=65536,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_manchester
+# ---------------------------------------------------------------------------
+
+
+class DecodeManchesterArgs(BaseModel):
+    """Manchester line-code decoder over an OOK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    symbol_rate_hz: float = Field(..., description="Bit rate in Hz", gt=0)
+    polarity: str = Field(
+        default="ieee",
+        description="Manchester polarity: 'ieee' (802.3, 01->1) or 'thomas' (G.E., 01->0).",
+        pattern="^(ieee|thomas)$",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_pwm
+# ---------------------------------------------------------------------------
+
+
+class DecodePwmArgs(BaseModel):
+    """Pulse-width-modulation decoder over an OOK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    short_us: float = Field(..., description="Nominal '0' pulse width in microseconds", gt=0)
+    long_us: float = Field(..., description="Nominal '1' pulse width in microseconds", gt=0)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _short_less_than_long(self) -> DecodePwmArgs:
+        if self.short_us >= self.long_us:
+            raise ValueError(
+                f"short_us ({self.short_us}) must be < long_us ({self.long_us})"
+            )
+        return self
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_ppm
+# ---------------------------------------------------------------------------
+
+
+class DecodePpmArgs(BaseModel):
+    """Pulse-position-modulation decoder over an OOK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    pulse_us: float = Field(
+        ..., description="Nominal pulse width in microseconds; symbol period is 2*pulse_us", gt=0
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_nrz / decode_nrzi
+# ---------------------------------------------------------------------------
+
+
+class DecodeNrzArgs(BaseModel):
+    """NRZ / NRZI line-code decoder."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    symbol_rate_hz: float = Field(..., description="Bit rate in Hz", gt=0)
+    variant: str = Field(
+        default="nrz",
+        description="'nrz' (level = bit) or 'nrzi' (transition = 1)",
+        pattern="^(nrz|nrzi)$",
+    )
+    inverted: bool = Field(
+        default=False, description="Invert polarity (NRZ only)."
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_pocsag
+# ---------------------------------------------------------------------------
+
+
+class DecodePocsagArgs(BaseModel):
+    """POCSAG paging decoder (512 / 1200 / 2400 baud)."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: int = Field(default=1200, description="POCSAG baud rate")
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _valid_baud(self) -> DecodePocsagArgs:
+        if self.baud not in (512, 1200, 2400):
+            raise ValueError(f"baud must be 512, 1200, or 2400; got {self.baud}")
+        return self
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_ads_b
+# ---------------------------------------------------------------------------
+
+
+class DecodeAdsBArgs(BaseModel):
+    """Mode S / ADS-B decoder over captured 1090 MHz IQ."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(
+        default=2_000_000,
+        description="Capture rate. Must be >= 2 MHz for 0.5 μs chip resolution.",
+        ge=2_000_000,
+    )
+    max_frames: int = Field(
+        default=64,
+        description="Maximum frames to decode from the capture.",
+        ge=1,
+        le=4096,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_rtty
+# ---------------------------------------------------------------------------
+
+
+class DecodeRttyArgs(BaseModel):
+    """RTTY / Baudot ITA2 decoder over a 2FSK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: float = Field(
+        default=45.45,
+        description="RTTY baud rate. 45.45 (amateur), 50, 75, or 100.",
+        gt=0,
+    )
+    invert: bool = Field(
+        default=False,
+        description="Swap MARK/SPACE polarity if the decoded text is nonsense.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_ax25
+# ---------------------------------------------------------------------------
+
+
+class DecodeAx25Args(BaseModel):
+    """AX.25 HDLC packet decoder (Bell 202 AFSK-1200 or direct FSK-9600)."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: float = Field(default=1200.0, description="AX.25 baud rate (1200 or 9600 typical).", gt=0)
+    invert: bool = Field(default=False, description="Swap FSK polarity if flag pattern is present but CRCs fail.")
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# decode_aprs
+# ---------------------------------------------------------------------------
+
+
+class DecodeAprsArgs(BaseModel):
+    """APRS decoder — AX.25 UI frames with APRS payload interpretation."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: float = Field(default=1200.0, gt=0)
+    invert: bool = Field(default=False)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
+# knowledge_list_topics
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeListTopicsArgs(BaseModel):
+    """No arguments — enumerate every topic dir under knowledge/."""
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_read
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeReadArgs(BaseModel):
+    """Return the contents of one markdown file under knowledge/<topic>/."""
+
+    topic: str = Field(
+        ...,
+        description="Topic directory name (e.g. 'dsp', 'ism-433'). Must match [a-z0-9][a-z0-9-]*.",
+        min_length=1,
+        max_length=64,
+    )
+    name: str = Field(
+        ...,
+        description="Markdown filename inside the topic dir (e.g. 'README.md', 'reference.md').",
+        min_length=1,
+        max_length=128,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_search
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeSearchArgs(BaseModel):
+    """Case-insensitive substring search across every corpus markdown file."""
+
+    query: str = Field(..., description="Substring to search for (case-insensitive).", min_length=1, max_length=200)
+    max_results: int = Field(
+        default=20,
+        description="Maximum number of hits to return (1-200).",
+        ge=1,
+        le=200,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_band
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupBandArgs(BaseModel):
+    """Given a frequency in Hz, return the bands.json record(s) covering it."""
+
+    freq_hz: int = Field(
+        ...,
+        description="Frequency of interest in Hz.",
+        gt=0,
+        le=6_000_000_000,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_modulation
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupModulationArgs(BaseModel):
+    """Given a modulation name/alias, return the modulations.json record."""
+
+    name: str = Field(
+        ...,
+        description="Modulation family name or alias (e.g. 'OOK', 'GFSK', '2FSK', 'LoRa').",
+        min_length=1,
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_protocol
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupProtocolArgs(BaseModel):
+    """Given a protocol name/alias, return the protocols.json record."""
+
+    name: str = Field(
+        ...,
+        description="Protocol name or alias (e.g. 'POCSAG', 'ADS-B', 'AX.25', 'LoRaWAN').",
+        min_length=1,
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_keyfob
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupKeyfobArgs(BaseModel):
+    """Given a keyfob vendor+/or model, return the keyfobs.json record(s)."""
+
+    vendor: str | None = Field(
+        default=None,
+        description=(
+            "Vendor / manufacturer substring (e.g. 'Chamberlain', 'Genie', 'Tesla'). "
+            "At least one of vendor or model must be provided."
+        ),
+        max_length=64,
+    )
+    model: str | None = Field(
+        default=None,
+        description=(
+            "Model / product substring (e.g. 'Security+', 'Intellicode', 'HITAG2'). "
+            "At least one of vendor or model must be provided."
+        ),
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _at_least_one(self) -> KnowledgeLookupKeyfobArgs:
+        if not (self.vendor or "").strip() and not (self.model or "").strip():
+            raise ValueError("must supply at least one of vendor or model")
+        return self
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_decoder
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupDecoderArgs(BaseModel):
+    """Given a decoder-family name/alias, return the decoders.json record."""
+
+    name: str = Field(
+        ...,
+        description="Decoder family (Manchester, NRZ, NRZI, PWM, PPM, PCM, differential Manchester).",
+        min_length=1,
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_bibliography
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeBibliographyArgs(BaseModel):
+    """Return one bibliography citation by id, or the full list if unset."""
+
+    cite_id: str | None = Field(
+        default=None,
+        description="Optional bibliography record id (e.g. 'fcc-part-15'). "
+                    "If omitted, returns the full bibliography.",
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_random
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeRandomArgs(BaseModel):
+    """Return one random markdown file from the corpus (surprise-me verb)."""
+
+    seed: int | None = Field(
+        default=None,
+        description=(
+            "Optional deterministic seed. When set, the same seed always picks "
+            "the same file (useful for tests and reproducibility)."
+        ),
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_explain_signal
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeExplainSignalArgs(BaseModel):
+    """Rank candidate signals from known_signals.json given partial hints."""
+
+    freq_hz: int | None = Field(
+        default=None,
+        description="Approximate center frequency of interest, in Hz.",
+        gt=0,
+        le=6_000_000_000,
+    )
+    bw_hz: int | None = Field(
+        default=None,
+        description="Approximate signal bandwidth, in Hz.",
+        gt=0,
+    )
+    modulation_guess: str | None = Field(
+        default=None,
+        description="Best-guess modulation family (e.g. 'OOK', '2FSK', 'GFSK', 'LoRa-CSS').",
+        max_length=64,
+    )
+    max_results: int = Field(
+        default=5,
+        description="Maximum candidates to return (1-20).",
+        ge=1,
+        le=20,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _at_least_one_hint(self) -> KnowledgeExplainSignalArgs:
+        if (
+            self.freq_hz is None
+            and self.bw_hz is None
+            and not (self.modulation_guess or "").strip()
+        ):
+            raise ValueError(
+                "must supply at least one of freq_hz, bw_hz, modulation_guess"
+            )
+        return self
+
+
+# ---------------------------------------------------------------------------
+# knowledge_cross_reference
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeCrossReferenceArgs(BaseModel):
+    """Traverse ``see_also`` across every records/*.json file."""
+
+    record_id: str = Field(
+        ...,
+        description="Record id to start the traversal from (e.g. 'protocol-pocsag-1200').",
+        min_length=1,
+        max_length=128,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_verify_claim
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeVerifyClaimArgs(BaseModel):
+    """Grade a factual claim against the trap catalog."""
+
+    text: str = Field(
+        ...,
+        description="The claim to verify, as free text.",
+        min_length=1,
+        max_length=1000,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# sweep_spectrum_bulk
+# ---------------------------------------------------------------------------
+
+
+class SweepRange(BaseModel):
+    """One (start, end) tuple inside a sweep_spectrum_bulk request."""
+
+    start_freq_hz: int = Field(..., description="Start of sweep band in Hz", gt=0)
+    end_freq_hz: int = Field(..., description="End of sweep band in Hz", gt=0)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _range_ordered(self) -> SweepRange:
+        if self.start_freq_hz >= self.end_freq_hz:
+            raise ValueError(
+                f"start_freq_hz ({self.start_freq_hz}) must be < "
+                f"end_freq_hz ({self.end_freq_hz})"
+            )
+        return self
+
+
+class SweepSpectrumBulkArgs(BaseModel):
+    """Sweep multiple bands in one call.
+
+    Each range is dispatched as its own SweepSpectrumArgs invocation
+    through the driver. Per-range risk classification applies — a range
+    that overlaps a BLOCKED band is refused independently. All ranges
+    share the same sample_rate_hz/gain/dwell/fft_size settings.
+    """
+
+    ranges: list[SweepRange] = Field(
+        ...,
+        description="Ordered list of (start_freq_hz, end_freq_hz) pairs. Length 2-8.",
+        min_length=2,
+        max_length=8,
+    )
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    lna_gain_db: int = Field(default=16, description="LNA gain in dB (0-40)")
+    vga_gain_db: int = Field(default=20, description="VGA gain in dB (0-62)")
+    rf_amp_db: int = Field(default=0, description="RF amp gain in dB (0-14)")
+    dwell_s: float = Field(default=1.0, description="Dwell time per hop in seconds", gt=0)
+    fft_size: int = Field(default=4096, description="FFT bin count", gt=0)
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# play_sequence
+# ---------------------------------------------------------------------------
+
+
+class PlaySequenceStep(BaseModel):
+    """One step in a play_sequence — an inline (action, args) pair."""
+
+    action: str = Field(
+        ...,
+        description="CommandAction value for this step (e.g. 'analyze_iq_modulation').",
+        min_length=1,
+        max_length=64,
+    )
+    args: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Args passed to the step's handler after Pydantic validation.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+class PlaySequenceArgs(BaseModel):
+    """Chain 2-8 sub-actions through the funnel in order.
+
+    Each sub-action is dispatched through the full ``CommandExecutor``
+    with its own risk assessment, permission check, and audit trail.
+    play_sequence does NOT batch approvals — a TX inside a sequence
+    still blocks on the standard approval flow if the risk tier
+    requires it. play_sequence itself is hardcoded LOW; the funnel
+    invariant applies per-step.
+
+    Sub-actions cannot nest ``play_sequence`` (would allow unbounded
+    depth); attempts are rejected at validation time.
+    """
+
+    steps: list[PlaySequenceStep] = Field(
+        ...,
+        description="Ordered list of sub-actions. Length 2-8.",
+        min_length=2,
+        max_length=8,
+    )
+    stop_on_error: bool = Field(
+        default=True,
+        description="If True (default), abort the sequence at the first failed step.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _no_nested_play_sequence(self) -> PlaySequenceArgs:
+        for i, step in enumerate(self.steps):
+            if step.action == "play_sequence":
+                raise ValueError(
+                    f"steps[{i}]: play_sequence cannot nest inside itself"
+                )
+        return self
+
+
+# ---------------------------------------------------------------------------
 # Discriminated union (for generating a single tool schema in the chat prompt)
 # ---------------------------------------------------------------------------
 
@@ -196,9 +873,36 @@ ActionArgs = (
     | CaptureIqArgs
     | TransmitIqArgs
     | ReadIqSummaryArgs
-    | DecodeOokArgs
     | GrantListArgs
     | AuditQueryArgs
+    | AnalyzeIqModulationArgs
+    | AnalyzeIqSymbolsArgs
+    | AnalyzeIqSpectrogramArgs
+    | AnalyzeIqCarrierFrequencyArgs
+    | DecodeManchesterArgs
+    | DecodePwmArgs
+    | DecodePpmArgs
+    | DecodeNrzArgs
+    | DecodePocsagArgs
+    | DecodeAdsBArgs
+    | DecodeRttyArgs
+    | DecodeAx25Args
+    | DecodeAprsArgs
+    | KnowledgeListTopicsArgs
+    | KnowledgeReadArgs
+    | KnowledgeSearchArgs
+    | KnowledgeLookupBandArgs
+    | KnowledgeLookupModulationArgs
+    | KnowledgeLookupProtocolArgs
+    | KnowledgeLookupKeyfobArgs
+    | KnowledgeLookupDecoderArgs
+    | KnowledgeBibliographyArgs
+    | KnowledgeRandomArgs
+    | KnowledgeExplainSignalArgs
+    | KnowledgeCrossReferenceArgs
+    | KnowledgeVerifyClaimArgs
+    | PlaySequenceArgs
+    | SweepSpectrumBulkArgs
 )
 
 
@@ -212,7 +916,34 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "capture_iq": CaptureIqArgs,
     "transmit_iq": TransmitIqArgs,
     "read_iq_summary": ReadIqSummaryArgs,
-    "decode_ook": DecodeOokArgs,
     "grant_list": GrantListArgs,
     "audit_query": AuditQueryArgs,
+    "analyze_iq_modulation": AnalyzeIqModulationArgs,
+    "analyze_iq_symbols": AnalyzeIqSymbolsArgs,
+    "analyze_iq_spectrogram": AnalyzeIqSpectrogramArgs,
+    "analyze_iq_carrier_frequency": AnalyzeIqCarrierFrequencyArgs,
+    "decode_manchester": DecodeManchesterArgs,
+    "decode_pwm": DecodePwmArgs,
+    "decode_ppm": DecodePpmArgs,
+    "decode_nrz": DecodeNrzArgs,
+    "decode_pocsag": DecodePocsagArgs,
+    "decode_ads_b": DecodeAdsBArgs,
+    "decode_rtty": DecodeRttyArgs,
+    "decode_ax25": DecodeAx25Args,
+    "decode_aprs": DecodeAprsArgs,
+    "knowledge_list_topics": KnowledgeListTopicsArgs,
+    "knowledge_read": KnowledgeReadArgs,
+    "knowledge_search": KnowledgeSearchArgs,
+    "knowledge_lookup_band": KnowledgeLookupBandArgs,
+    "knowledge_lookup_modulation": KnowledgeLookupModulationArgs,
+    "knowledge_lookup_protocol": KnowledgeLookupProtocolArgs,
+    "knowledge_lookup_keyfob": KnowledgeLookupKeyfobArgs,
+    "knowledge_lookup_decoder": KnowledgeLookupDecoderArgs,
+    "knowledge_bibliography": KnowledgeBibliographyArgs,
+    "knowledge_random": KnowledgeRandomArgs,
+    "knowledge_explain_signal": KnowledgeExplainSignalArgs,
+    "knowledge_cross_reference": KnowledgeCrossReferenceArgs,
+    "knowledge_verify_claim": KnowledgeVerifyClaimArgs,
+    "play_sequence": PlaySequenceArgs,
+    "sweep_spectrum_bulk": SweepSpectrumBulkArgs,
 }

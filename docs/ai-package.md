@@ -1,7 +1,7 @@
 # AI Package — LLM Integration Architecture
 
 How `src/hackrf_agent/ai/` connects the model (cloud) to the executor (host-side
-deterministic policy). This is Part 6 of the `hackrf-agent` build plan.
+deterministic policy).
 
 ---
 
@@ -57,8 +57,8 @@ HackrfAgent.chat(user_message)
 ```
 
 Every branch produces at most one `TurnEnded` OR an unrecoverable `AgentError`. The
-audit log (Part 3, driven by Part 5's executor) captures every `execute_command` call
-with a `trace_id`. The LLM sees only compact JSON summaries — never raw IQ, never
+audit log, driven by the executor, captures every `execute_command` call with a
+`trace_id`. The LLM sees only compact JSON summaries — never raw IQ, never
 `bytes`, never `ndarray`.
 
 ---
@@ -102,7 +102,7 @@ Concrete implementation backed by the `openai` SDK pointed at OpenRouter. Key be
 - **Retries:** SDK default (`max_retries=2`) handles 429/5xx. No second retry
   loop is layered on top.
 - **Non-streaming:** Tool-use loops are simpler non-streaming. UI streaming is
-  a Part 7 concern if desired.
+  a CLI-layer concern if desired.
 
 #### Rate Limiter Design
 
@@ -204,7 +204,7 @@ Key properties:
 ### Event Stream
 
 `HackrfAgent.chat()` is an async generator that yields typed, frozen dataclasses.
-The caller (Part 7's CLI) pattern-matches on `.type`:
+The caller (the CLI) pattern-matches on `.type`:
 
 | Event | `.type` | Carries |
 |---|---|---|
@@ -283,28 +283,28 @@ the field-by-field mapping.
 - **No hardware imports.** Zero `pyhackrf`, `hackrf_agent.hw.*`, `numpy`.
 - **No UI imports.** Zero `rich`, `typer`, colored output. Events are typed
   dataclasses; the CLI chooses how to render.
-- **No audit logging.** The executor (Part 5) owns the audit log. The agent
+- **No audit logging.** The executor owns the audit log. The agent
   doesn't know audits exist.
 - **No approval prompts.** The executor calls `ApprovalPort.request()` internally.
   The agent doesn't know approval exists.
 - **No trace ID minting.** The executor mints one per `execute()` call.
 - **No raw data to the model.** `CommandResult.data` is passed through as JSON.
-  The formatter (Part 5) guarantees JSON-primitive values.
+  The formatter guarantees JSON-primitive values.
 
 ---
 
-## Part 7 Integration Points (COMPLETE)
+## Integration Points
 
-Part 7's CLI (`hackrf-agent chat`) is implemented in `src/hackrf_agent/cli/chat_cmd.py`.
-It assembles all Parts 2–6 into a working product:
+The CLI (`hackrf-agent chat`) is implemented in `src/hackrf_agent/cli/chat_cmd.py`.
+It assembles the domain, LLM, and hardware layers into a working product:
 
-1. Constructs `HackrfDriver` (Part 4) — with a real HackRF via lazy import inside
+1. Constructs `HackrfDriver` — with a real HackRF via lazy import inside
    `_run_chat()`. The `--help` output works without `pyhackrf` installed.
-2. Constructs `CommandExecutor` (Part 5) — with `RiskAssessor`, `PermissionService`,
+2. Constructs `CommandExecutor` — with `RiskAssessor`, `PermissionService`,
    `AuditService`, `ResultFormatter`, `HackrfDriver`, and `CliApprovalPort`.
-3. Constructs `OpenRouterClient` (Part 6) — with the API key from `SettingsService`
+3. Constructs `OpenRouterClient` — with the API key from `SettingsService`
    (env-var-only; user must export `OPENROUTER_API_KEY`) and model from `config.toml`.
-4. Constructs `HackrfAgent` (Part 6) — injecting `llm`, `executor`, and
+4. Constructs `HackrfAgent` — injecting `llm`, `executor`, and
    `max_history_messages` from config.
 5. Calls `agent.chat(user_message)` in the `_repl` loop, consuming the
    `AgentEvent` stream and rendering each event with `rich`:
@@ -345,6 +345,6 @@ approval flow, kill switch semantics, and configuration.
 
 - **OpenRouter API Docs**: [openrouter.ai/docs](https://openrouter.ai/docs)
 - **OpenAI Function Calling**: [platform.openai.com/docs/guides/function-calling](https://platform.openai.com/docs/guides/function-calling)
-- **`docs/tests.md`** — Part 6 test documentation (llm_client, prompts, agent loop, live)
+- **`docs/tests.md`** — AI test documentation (llm_client, prompts, agent loop, live)
 - **`docs/safety.md`** — BLOCKED bands, risk tiers, FCC citations
 - **`docs/development.md`** — Project layout, setup, quality tooling

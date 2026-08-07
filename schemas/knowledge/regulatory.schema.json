@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "regulatory.schema.json",
+  "title": "regulatory.json",
+  "type": "array",
+  "items": {
+    "allOf": [
+      {"$ref": "envelope.schema.json"},
+      {
+        "properties": {
+          "category": {"enum": ["regulatory", "meta"]},
+          "citations": {"minItems": 1}
+        },
+        "required": ["citations"]
+      }
+    ]
+  }
+}

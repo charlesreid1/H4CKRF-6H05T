@@ -137,7 +137,7 @@ The LLM never assigns its own tier.
 | Tier | Meaning | Criteria | Examples |
 |------|---------|----------|----------|
 | **LOW** | Auto-execute, no confirmation | Read-only, bounded duration, no disk write outside session dir | `get_device_info`, `sweep_spectrum` (RX, ≤2 s dwell), short `capture_iq` (≤5 s, to session path), `grant_list`, `audit_query` |
-| **MEDIUM** | Single-key confirmation (Y/n) | Longer capture, higher gain, disk writes, TX in ISM bands within legal power | `capture_iq` >5 s, `transmit_iq` on 433.05–434.79 MHz with gain ≤ 30 dB, `decode_ook`, `read_iq_summary` |
+| **MEDIUM** | Single-key confirmation (Y/n) | Longer capture, higher gain, disk writes, TX in ISM bands within legal power | `capture_iq` >5 s, `transmit_iq` on 433.05–434.79 MHz with gain ≤ 30 dB, long `sweep_spectrum` (dwell > 2 s) |
 | **HIGH** | Must type CONFIRM | TX anywhere non-trivial, high gain, long TX, TX outside ISM but not blocked, any TX without an active grant | `transmit_iq` with gain > 30 dB, TX on 315 MHz (higher power), TX on amateur bands, any `transmit_iq` above +30 dB total gain |
 | **BLOCKED** | Refused, no appeal | Protected bands (see Blocked Bands table), illegal ranges, TX gain exceeds hardware maximum (47 dB) | TX on 1090 MHz, 1575 MHz, 156.8 MHz, cellular downlink, aviation voice, GPS bands, TX VGA gain > 47 dB |
 
@@ -220,6 +220,52 @@ Ctrl-C is the kill switch. It has two levels:
 The kill-switch logic lives in `src/hackrf_agent/cli/kill_switch.py`. After any
 Ctrl-C event, TX is frozen until you explicitly re-issue a grant with
 `hackrf-agent grant tx ...`.
+
+---
+
+## Session Budgets (`MAX_CAPTURE_MINUTES`, `MAX_TX_SECONDS`)
+
+Belt-and-suspenders to the per-command duration limits enforced by
+`RiskAssessor`. Where the per-command tier stops "one 30-minute
+capture," the session budget stops "sixty 30-second captures summing
+to 30 minutes." Both budgets are per-executor-instance (i.e. per
+session); restarting the process resets the counters.
+
+### Capture budget
+
+When `MAX_CAPTURE_MINUTES` is set in the environment (positive number,
+e.g. `10` or `1.5`), the cumulative sum of every `capture_iq` call's
+`duration_s` in the session must stay under that cap. Any call that
+would push the total over is refused with `BLOCKED` before any RF
+activity — the driver is never invoked.
+
+```bash
+export MAX_CAPTURE_MINUTES=10
+hackrf-agent chat
+# Cumulative capture_iq duration in this session is capped at 600 seconds.
+```
+
+The cap applies only to `capture_iq`; `sweep_spectrum` and
+`sweep_spectrum_bulk` are not affected.
+
+### TX budget
+
+When `MAX_TX_SECONDS` is set (positive number, e.g. `60`), the
+cumulative TX time across every `transmit_iq` call in the session must
+stay under that cap. Pre-flight estimates the requested TX duration
+from the `.iq` file size and `sample_rate_hz` (interleaved cs8 =
+2 bytes/sample); the driver-measured duration is charged on success.
+A TX that would push the total over the cap is `BLOCKED` before the
+driver is invoked, with a matching audit row.
+
+```bash
+export MAX_TX_SECONDS=60
+hackrf-agent chat
+# Cumulative transmit_iq on-air time in this session is capped at 60 seconds.
+```
+
+Both budgets are **disabled by default** — leave them unset for a
+per-command-only cap. Set them explicitly for a bounded session.
 
 ---
 

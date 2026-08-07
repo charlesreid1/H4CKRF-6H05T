@@ -22,9 +22,41 @@ class CommandAction(str, Enum):  # noqa: UP042
     CAPTURE_IQ = "capture_iq"
     TRANSMIT_IQ = "transmit_iq"
     READ_IQ_SUMMARY = "read_iq_summary"
-    DECODE_OOK = "decode_ook"
     GRANT_LIST = "grant_list"
     AUDIT_QUERY = "audit_query"
+    # Analysis tier — offline DSP on already-captured .iq files.
+    # Hardcoded LOW risk. Cannot touch libhackrf.
+    ANALYZE_IQ_MODULATION = "analyze_iq_modulation"
+    ANALYZE_IQ_SYMBOLS = "analyze_iq_symbols"
+    ANALYZE_IQ_SPECTROGRAM = "analyze_iq_spectrogram"
+    ANALYZE_IQ_CARRIER_FREQUENCY = "analyze_iq_carrier_frequency"
+    DECODE_MANCHESTER = "decode_manchester"
+    DECODE_PWM = "decode_pwm"
+    DECODE_PPM = "decode_ppm"
+    DECODE_NRZ = "decode_nrz"
+    DECODE_POCSAG = "decode_pocsag"
+    DECODE_ADS_B = "decode_ads_b"
+    DECODE_RTTY = "decode_rtty"
+    DECODE_AX25 = "decode_ax25"
+    DECODE_APRS = "decode_aprs"
+    # Knowledge tier — read-only corpus access. Hardcoded LOW risk.
+    # See knowledge/MANIFEST.md.
+    KNOWLEDGE_LIST_TOPICS = "knowledge_list_topics"
+    KNOWLEDGE_READ = "knowledge_read"
+    KNOWLEDGE_SEARCH = "knowledge_search"
+    KNOWLEDGE_LOOKUP_BAND = "knowledge_lookup_band"
+    KNOWLEDGE_LOOKUP_MODULATION = "knowledge_lookup_modulation"
+    KNOWLEDGE_LOOKUP_PROTOCOL = "knowledge_lookup_protocol"
+    KNOWLEDGE_LOOKUP_KEYFOB = "knowledge_lookup_keyfob"
+    KNOWLEDGE_LOOKUP_DECODER = "knowledge_lookup_decoder"
+    KNOWLEDGE_BIBLIOGRAPHY = "knowledge_bibliography"
+    KNOWLEDGE_RANDOM = "knowledge_random"
+    KNOWLEDGE_EXPLAIN_SIGNAL = "knowledge_explain_signal"
+    KNOWLEDGE_CROSS_REFERENCE = "knowledge_cross_reference"
+    KNOWLEDGE_VERIFY_CLAIM = "knowledge_verify_claim"
+    # Composition tier — chain sub-actions through the funnel.
+    PLAY_SEQUENCE = "play_sequence"
+    SWEEP_SPECTRUM_BULK = "sweep_spectrum_bulk"
 
 
 class RiskLevel(str, Enum):  # noqa: UP042
@@ -43,6 +75,7 @@ class AuditEventType(str, Enum):  # noqa: UP042
     EXECUTED = "EXECUTED"
     RESULT = "RESULT"
     BLOCKED = "BLOCKED"
+    ROTATED = "ROTATED"
 
 
 # ---------------------------------------------------------------------------

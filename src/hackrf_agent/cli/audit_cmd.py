@@ -1,4 +1,4 @@
-"""``audit tail`` subcommand — pretty-print recent audit rows."""
+"""``audit`` subcommands — tail / stats / rotate."""
 
 from __future__ import annotations
 
@@ -72,6 +72,65 @@ async def _audit_tail(
             str(r.trace_id)[:8],
         )
     _console.print(table)
+
+
+@audit_app.command("stats")
+def audit_stats(
+    ctx: typer.Context = typer.Context,  # type: ignore[assignment]
+) -> None:
+    """Print audit DB row count, file size, and timestamp range."""
+    settings = _settings_from_ctx(ctx)
+    asyncio.run(_audit_stats(settings))
+
+
+async def _audit_stats(settings: SettingsService) -> None:
+    settings.home_dir.mkdir(parents=True, exist_ok=True)
+    await ensure_schema(settings.db_path)
+    async with AuditService(settings.db_path) as audit:
+        stats = await audit.stats()
+    table = Table(title="Audit DB")
+    table.add_column("field", style="bold")
+    table.add_column("value")
+    table.add_row("row_count", str(stats.row_count))
+    table.add_row("size_bytes", f"{stats.size_bytes:,}")
+    table.add_row(
+        "oldest",
+        datetime.fromtimestamp(stats.oldest_ts).astimezone().isoformat(timespec="seconds")
+        if stats.oldest_ts is not None else "(empty)",
+    )
+    table.add_row(
+        "newest",
+        datetime.fromtimestamp(stats.newest_ts).astimezone().isoformat(timespec="seconds")
+        if stats.newest_ts is not None else "(empty)",
+    )
+    _console.print(table)
+
+
+@audit_app.command("rotate")
+def audit_rotate(
+    keep_days: int = typer.Option(30, "--keep-days", help="Rows older than this are deleted."),
+    vacuum: bool = typer.Option(True, "--vacuum/--no-vacuum", help="Run VACUUM after the delete."),
+    ctx: typer.Context = typer.Context,  # type: ignore[assignment]
+) -> None:
+    """Delete audit rows older than --keep-days and (by default) VACUUM."""
+    if keep_days <= 0:
+        _console.print("[red]--keep-days must be positive[/]")
+        raise typer.Exit(code=2)
+    settings = _settings_from_ctx(ctx)
+    asyncio.run(_audit_rotate(settings, keep_days, vacuum))
+
+
+async def _audit_rotate(settings: SettingsService, keep_days: int, vacuum: bool) -> None:
+    settings.home_dir.mkdir(parents=True, exist_ok=True)
+    await ensure_schema(settings.db_path)
+    async with AuditService(settings.db_path) as audit:
+        deleted = await audit.rotate(keep_days=keep_days, vacuum=vacuum)
+        stats = await audit.stats()
+    _console.print(
+        f"[green]rotated:[/] deleted {deleted} rows older than "
+        f"{keep_days} days; {stats.row_count} rows remain "
+        f"({stats.size_bytes:,} bytes on disk)."
+    )
 
 
 def _settings_from_ctx(ctx: typer.Context) -> SettingsService:

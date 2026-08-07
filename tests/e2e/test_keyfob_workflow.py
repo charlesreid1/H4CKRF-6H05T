@@ -1,4 +1,4 @@
-"""End-to-end: the full keyfob-hunt from plan-bender.md encoded as an executable test.
+"""End-to-end keyfob-hunt: sweep → capture → analyze → decode → replay-approval-denied.
 
 Every step is asserted. Uses ScriptedLLMClient + FakeDriver + real executor +
 real audit DB.
@@ -57,7 +57,7 @@ def _sweep_result_noise_only(center_hz: float, sample_rate: int = 2_000_000):
 
 
 async def test_keyfob_workflow(tmp_path):
-    """End-to-end: the full keyfob-hunt from plan-bender.md.
+    """End-to-end keyfob-hunt: sweep → capture → analyze → decode → replay-approval-denied.
 
     Asserts:
       - Correct sequence of tool calls (sweep 315, sweep 433, capture 433).

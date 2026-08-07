@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "fec_codes.schema.json",
+  "title": "fec_codes.json",
+  "type": "array",
+  "items": {
+    "allOf": [
+      {
+        "$ref": "envelope.schema.json"
+      },
+      {
+        "properties": {
+          "category": {
+            "const": "fec_code"
+          },
+          "citations": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "citations"
+        ]
+      }
+    ]
+  }
+}

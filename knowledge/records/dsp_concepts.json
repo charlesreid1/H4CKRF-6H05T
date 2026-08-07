@@ -1,0 +1,399 @@
+[
+  {
+    "id": "dsp-nyquist-shannon",
+    "name": "Nyquist-Shannon sampling theorem",
+    "aliases": ["Nyquist rate", "sampling theorem"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1949-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp", "smith-dsp-guide"],
+    "technical_body": {
+      "statement": "A bandlimited signal with maximum frequency f_max is fully determined by samples taken at fs > 2 * f_max.",
+      "corollary": "For a complex-baseband (IQ) signal, the bandwidth captured is exactly fs (not fs/2 — negative and positive frequencies both fit).",
+      "numpy_sketch": "For a real signal, fs > 2 * f_max. For IQ, fs is the total captured bandwidth."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-aliasing", "dsp-iq-representation"]
+  },
+  {
+    "id": "dsp-aliasing",
+    "name": "Aliasing / folding",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1949-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp"],
+    "technical_body": {
+      "statement": "Any frequency component above fs/2 (for real sampling) or outside [-fs/2, fs/2] (for IQ) folds into the visible band at f_aliased = f - k*fs for the k that puts it in range.",
+      "workaround": "Use an anti-alias filter before the ADC, or take samples fast enough that everything of interest is inside the Nyquist band."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-nyquist-shannon"]
+  },
+  {
+    "id": "dsp-iq-representation",
+    "name": "Complex baseband / IQ representation",
+    "aliases": ["IQ", "analytic signal", "complex baseband"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1960-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp", "proakis-digital-comm"],
+    "technical_body": {
+      "statement": "An RF signal at carrier fc downconverted by an LO at fc produces I (in-phase) and Q (quadrature) baseband streams. Together they carry BOTH positive and negative frequency content, so a symmetric spectrum is *asymmetric* in IQ.",
+      "numpy_sketch": "iq = I + 1j*Q; positive freqs in np.fft.fft(iq) are 'above' the LO, negative freqs are 'below'"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-hilbert-transform", "dsp-dc-spike"]
+  },
+  {
+    "id": "dsp-fft",
+    "name": "FFT sizing and bin width",
+    "aliases": ["FFT", "DFT bin width"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1965-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp", "smith-dsp-guide"],
+    "technical_body": {
+      "bin_width_hz": "fs / N (where N = FFT length)",
+      "trade": "larger N -> finer frequency resolution but coarser time resolution",
+      "numpy_sketch": "spec = np.fft.fftshift(np.fft.fft(iq * window)); bins are np.linspace(-fs/2, fs/2, N)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-window-functions", "dsp-psd-welch"]
+  },
+  {
+    "id": "dsp-window-functions",
+    "name": "Window functions (Hann, Hamming, Blackman-Harris)",
+    "aliases": ["FFT window"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp", "smith-dsp-guide"],
+    "technical_body": {
+      "trade": "wider main-lobe (Hann/Hamming) vs deeper sidelobes (Blackman-Harris) vs box (no window - worst leakage)",
+      "typical_choice": "Hann for spectrograms; Blackman-Harris for weak-signal detection alongside a strong nearby carrier",
+      "numpy_sketch": "w = np.blackman(N); spec = np.fft.fft(x * w)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-fft", "dsp-psd-welch"]
+  },
+  {
+    "id": "dsp-psd-welch",
+    "name": "Welch's method for PSD estimation",
+    "aliases": ["Welch PSD"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1967-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp"],
+    "technical_body": {
+      "statement": "Split signal into overlapping windowed segments; take FFT of each; average magnitude squared. Reduces variance vs a single FFT.",
+      "numpy_sketch": "from scipy.signal import welch; f, Pxx = welch(iq, fs=fs, nperseg=4096, return_onesided=False)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-fft", "dsp-window-functions"]
+  },
+  {
+    "id": "dsp-hilbert-transform",
+    "name": "Hilbert transform / analytic signal",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1940-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp"],
+    "technical_body": {
+      "statement": "For a real signal x(t), analytic(t) = x(t) + j * H{x}(t), where H{} removes the negative frequencies. Envelope = |analytic|.",
+      "numpy_sketch": "from scipy.signal import hilbert; envelope = np.abs(hilbert(x))"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-iq-representation"]
+  },
+  {
+    "id": "dsp-matched-filter",
+    "name": "Matched filter",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1943-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "statement": "The linear filter maximizing SNR at the sampling instant is h(t) = p(-t) (time-reversed pulse shape). For symmetric pulses p, h(t) = p(t).",
+      "canonical_use_cases": ["symbol detection in PSK/QAM", "sync-word correlation", "chip correlation in DSSS"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["decoder-matched-filter"]
+  },
+  {
+    "id": "dsp-decimation",
+    "name": "Decimation (integer downsampling)",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp"],
+    "technical_body": {
+      "statement": "Lowpass filter, then take every K-th sample. Effective sample rate = fs/K.",
+      "numpy_sketch": "from scipy.signal import decimate; y = decimate(x, K, ftype='fir')"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-polyphase-resampler"]
+  },
+  {
+    "id": "dsp-polyphase-resampler",
+    "name": "Polyphase filter bank / rational resampler",
+    "aliases": ["resample_poly", "polyphase"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1975-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp"],
+    "technical_body": {
+      "statement": "Change sample rate by rational factor P/Q using a single unified filter that both interpolates and decimates.",
+      "numpy_sketch": "from scipy.signal import resample_poly; y = resample_poly(x, up=P, down=Q)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-decimation"]
+  },
+  {
+    "id": "dsp-cyclostationary",
+    "name": "Cyclostationary features / spectral correlation",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "statement": "Many modulations have a periodic autocorrelation structure — the spectral correlation function reveals the symbol rate as a distinct peak. Used for modulation classification.",
+      "note": "Second-pass depth; first pass just recognize the concept."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-matched-filter"]
+  },
+  {
+    "id": "dsp-dc-spike",
+    "name": "DC spike (LO leakage)",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1990-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-docs", "hackrf-agent-repo"],
+    "technical_body": {
+      "cause": "The LO leaks through the mixer to the ADC; sits at whatever frequency the tuner is set to (DC in complex baseband).",
+      "workaround": "Tune the LO off the signal of interest (offset by ~fs/4) then digitally shift back. See ai/prompts.py:110 for target_freq_hz vs center_freq_hz."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-iq-imbalance"]
+  },
+  {
+    "id": "dsp-iq-imbalance",
+    "name": "IQ imbalance (amplitude + phase)",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1990-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-docs"],
+    "technical_body": {
+      "cause": "Non-ideal quadrature: the LO's I and Q outputs are not perfectly 90 deg apart or not perfectly equal in amplitude.",
+      "visible_pathology": "A mirror-image spectrum at -f (image rejection is finite)."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-dc-spike"]
+  },
+  {
+    "id": "dsp-envelope-detection",
+    "name": "Envelope detection",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1920-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "statement": "For an amplitude-modulated (AM, OOK, ASK) signal, |iq| tracks the amplitude envelope.",
+      "numpy_sketch": "env = np.abs(iq)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["modulation-ook", "modulation-am-dsb-lc"]
+  },
+  {
+    "id": "dsp-instantaneous-frequency",
+    "name": "Instantaneous frequency",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1930-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "statement": "For an FM / FSK signal, the derivative of unwrapped phase, scaled by fs/(2*pi), gives the instantaneous frequency in Hz.",
+      "numpy_sketch": "inst_f = np.diff(np.unwrap(np.angle(iq))) * fs / (2*np.pi)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["modulation-2fsk", "modulation-fm-narrow"]
+  },
+  {
+    "id": "dsp-costas-loop",
+    "name": "Costas loop (carrier recovery)",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1956-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "rice-digital-comm"],
+    "technical_body": {
+      "statement": "PLL that locks to a suppressed carrier by mixing the input with I and Q locally generated tones; the loop filter drives the NCO. M-ary variants use M-power nonlinearity.",
+      "canonical_use_cases": ["BPSK (2-Costas)", "QPSK (4-Costas)", "8PSK (8-Costas)"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["modulation-bpsk", "modulation-qpsk"]
+  },
+  {
+    "id": "dsp-symbol-timing-recovery",
+    "name": "Symbol timing recovery",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rice-digital-comm"],
+    "technical_body": {
+      "methods": ["Gardner (2 samples/symbol, carrier-independent)", "Mueller-Muller (1 sample/symbol, decision-directed)", "Zero-crossing", "Early-late gate"],
+      "canonical_use_cases": ["every digital receiver needs one"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["decoder-gardner-timing", "decoder-mueller-muller-timing"]
+  },
+  {
+    "id": "dsp-autocorrelation",
+    "name": "Autocorrelation-based symbol-rate estimation",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "statement": "For an OOK/PSK stream with pulse duration T, autocorrelation of the envelope peaks at multiples of T. FFT of the autocorrelation reveals the symbol rate.",
+      "numpy_sketch": "ac = np.correlate(env, env, mode='full'); peaks = np.argmax(ac[len(ac)//2 + 1:]) + 1  # samples per symbol"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-symbol-timing-recovery"]
+  },
+  {
+    "id": "dsp-adc-quantization",
+    "name": "ADC quantization and SFDR",
+    "aliases": ["ADC dynamic range"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-docs", "proakis-digital-comm"],
+    "technical_body": {
+      "rule_of_thumb": "SNR (dB) ~ 6.02 * bits + 1.76 for a full-scale sine",
+      "hackrf_bits": 8,
+      "hackrf_sfdr_db": 48,
+      "notes": "8-bit ADC is why HackRF struggles with very-strong-nearby-weak-target scenarios."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-dc-spike"]
+  },
+  {
+    "id": "dsp-scalloping-loss",
+    "name": "Scalloping loss",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1975-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp"],
+    "technical_body": {
+      "statement": "A tone that lands between FFT bins is attenuated by the window's response at that fractional offset. Max scalloping loss for a rectangular window is ~3.9 dB; for Hann ~1.4 dB.",
+      "workaround": "Zero-pad the FFT (finer bin spacing) or fit a peak model to the three nearest bins."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-window-functions"]
+  },
+  {
+    "id": "dsp-image-rejection",
+    "name": "Image rejection (mirror image at -f)",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1930-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "hackrf-docs"],
+    "technical_body": {
+      "statement": "Any signal at +f_offset appears as a weaker mirror at -f_offset due to IQ imbalance. HackRF image rejection is typically 30-40 dB unless corrected.",
+      "correction": "Estimate and null the mirror via signal-processing correction of I/Q gain + phase."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-iq-imbalance"]
+  },
+  {
+    "id": "dsp-de-emphasis",
+    "name": "De-emphasis (FM broadcast)",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1941-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "statement": "FM broadcast transmits with pre-emphasis boosting high audio frequencies; receiver applies matching de-emphasis (single-pole LPF, tau=75us US / 50us EU) to restore flat audio and improve SNR.",
+      "numpy_sketch": "y = scipy.signal.lfilter([1], [1, -np.exp(-1/(fs*tau))], audio)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["modulation-fm-wide"]
+  },
+  {
+    "id": "dsp-gain-staging",
+    "name": "Gain staging (LNA / VGA / baseband)",
+    "aliases": ["HackRF gain stages"],
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1990-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-docs"],
+    "technical_body": {
+      "hackrf_stages": ["RF amplifier (0 or 14 dB)", "LNA at IF (0-40 dB, 8 dB steps)", "baseband VGA (0-62 dB, 2 dB steps)"],
+      "guideline": "put LNA gain first to establish noise figure; add baseband VGA only up to just below ADC clipping"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-adc-quantization"]
+  },
+  {
+    "id": "dsp-oversampling",
+    "name": "Oversampling for noise shaping",
+    "category": "dsp_concept",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["oppenheim-schafer-dsp"],
+    "technical_body": {
+      "statement": "Sampling at k * Nyquist and then decimating spreads quantization noise over a wider band; low-pass and decimating retains signal SNR while shedding out-of-band noise. Effective bits ~ log2(k)/2 higher.",
+      "numpy_sketch": "capture at 20 Msps -> LPF -> decimate to 2 Msps for a 1.5-bit effective-ENOB improvement"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["dsp-adc-quantization", "dsp-decimation"]
+  }
+]

@@ -168,7 +168,7 @@ class HackrfAgent:
                     tools=[EXECUTE_COMMAND_TOOL_SCHEMA],
                     max_tokens=4096,
                 )
-            except Exception as e:  # noqa: BLE001 — SDK error taxonomy varies
+            except Exception as e:
                 yield AgentError(
                     message=f"LLM request failed: {type(e).__name__}: {e}",
                     recoverable=False,

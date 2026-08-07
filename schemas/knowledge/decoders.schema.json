@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "decoders.schema.json",
+  "title": "decoders.json",
+  "type": "array",
+  "items": {
+    "allOf": [
+      {
+        "$ref": "envelope.schema.json"
+      },
+      {
+        "properties": {
+          "category": {
+            "const": "decoder_family"
+          },
+          "citations": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "citations"
+        ]
+      }
+    ]
+  }
+}

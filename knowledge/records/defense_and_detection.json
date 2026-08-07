@@ -1,0 +1,172 @@
+[
+  {
+    "id": "defense-rf-hygiene",
+    "name": "RF hygiene checklist",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15"],
+    "technical_body": {
+      "rules": [
+        "Never transmit into a load you cannot verify (dummy load or a properly matched antenna).",
+        "Verify no active operator on the frequency before TX (listen first).",
+        "Respect per-band duty-cycle limits (§15.231 rules on 315 MHz keyfob band, EN 300 220 in EU sub-GHz).",
+        "Keep TX power at the minimum required for a research reproduction; never drive to full VGA without a specific reason.",
+        "Announce yourself: at a con, coordinate with RF Village / event RF safety before intentional TX."
+      ]
+    },
+    "hackrf_role": "policy",
+    "see_also": ["defense-jamming-detection"]
+  },
+  {
+    "id": "defense-rogue-sweep",
+    "name": "Sweep-based rogue transmitter detection",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["hackrf-wiki"],
+    "technical_body": {
+      "recipe": "hackrf_sweep across the venue band of interest at frequent intervals. Compare against a baseline sweep taken when the environment is known-quiet. Look for new peaks, sustained bursts, and unusual duty patterns.",
+      "canonical_uses": ["conference RF safety monitoring", "venue-side rogue-AP detection (with a WiFi tool, not HackRF)"]
+    },
+    "hackrf_role": "detect",
+    "see_also": ["defense-waterfall-anomaly"]
+  },
+  {
+    "id": "defense-waterfall-anomaly",
+    "name": "Waterfall anomaly ID heuristics",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["sigidwiki"],
+    "technical_body": {
+      "heuristics": [
+        "Sudden broadband raise across a >5 MHz span often means an overloaded ADC (turn down the LNA/VGA first, not the antenna).",
+        "Very-clean sidelobes on a suspected transmitter often indicate a numpy-generated signal (real hardware has more phase noise + timing jitter).",
+        "Flat-topped envelopes are a dead giveaway of clipping (either at the source or your own ADC).",
+        "A DC spike that follows your tune is your own; a DC spike that stays put in the spectrogram is a genuine narrowband signal."
+      ]
+    },
+    "hackrf_role": "detect",
+    "see_also": ["defense-rogue-sweep"]
+  },
+  {
+    "id": "defense-jamming-detection",
+    "name": "Jamming detection heuristics",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["kamkar-rolljam-2015"],
+    "technical_body": {
+      "signs": [
+        "Broadband noise floor rises across the target band (e.g. keyfob receiver's band) coincident with a keyfob press failing.",
+        "Bursty noise strictly during a keyfob press window is consistent with RollJam-style jam-record-replay.",
+        "Continuous jamming often has audible tell in an FM demodulator — a constant hiss without modulation."
+      ]
+    },
+    "hackrf_role": "detect",
+    "see_also": ["defense-rogue-sweep"]
+  },
+  {
+    "id": "defense-ads-b-integrity",
+    "name": "ADS-B spoofing detection (RX-side)",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2013-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtca-do-260b"],
+    "technical_body": {
+      "note": "ADS-B has no authentication; airborne integrity is enforced by SSR cross-check, ground radar, and consistency checks in ground receivers.",
+      "hackrf_role_hint": "corpus documents that TX is BLOCKED; assessments of ADS-B integrity in a venue are RX-only correlations of positions across multiple receiver stations."
+    },
+    "hackrf_role": "detect",
+    "see_also": ["protocol-mode-s-ads-b"]
+  },
+  {
+    "id": "defense-tempest-awareness",
+    "name": "TEMPEST / RF emanation awareness",
+    "aliases": ["EM emanations"],
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["defcon-rf-village"],
+    "technical_body": {
+      "note": "Unintended RF emanation from monitors, keyboards, PCB traces, and switching power supplies can carry information. HackRF can observe some of it (e.g. van Eck reconstruction of a VGA sync).",
+      "hackrf_role_hint": "the corpus mentions the concept for situational awareness; TEMPEST-grade attack pipelines are out of scope."
+    },
+    "hackrf_role": "detect",
+    "see_also": ["defense-waterfall-anomaly"]
+  },
+  {
+    "id": "defense-tx-power-audit",
+    "name": "TX power / EIRP audit (HackRF-adjacent)",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-docs"],
+    "technical_body": {
+      "note": "The HackRF's maximum TX power varies by band (higher below 2 GHz, lower above). Multiply by the antenna gain (dBi) to estimate EIRP for regulatory checks.",
+      "guideline": "For §15.231 keyfob-band testing, aim well below the 60 dBuV/m at 3 m (~15 nW EIRP) limit; the HackRF at max VGA already blows past it."
+    },
+    "hackrf_role": "policy",
+    "see_also": ["defense-rf-hygiene"]
+  },
+  {
+    "id": "defense-jamming-forbidden",
+    "name": "Jamming is not documented as a canned attack",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15"],
+    "technical_body": {
+      "policy": "The corpus documents that jamming is technically possible with a HackRF and is illegal without authorization in most jurisdictions. No canned jamming recipe ships with this corpus. RollJam is described as historical research; its practical variant requires jamming + capture, which the corpus does not ship."
+    },
+    "hackrf_role": "policy",
+    "see_also": ["defense-rf-hygiene", "defense-jamming-detection"]
+  },
+  {
+    "id": "defense-gps-spoof-forbidden",
+    "name": "GPS spoofing is out of scope",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "policy": "GPS L1/L2/L5 TX is BLOCKED at the safety gate. Research papers on GPS spoofing (Humphreys 2012) are cited in bibliography for reference; the corpus does not ship an attack pipeline."
+    },
+    "hackrf_role": "policy",
+    "see_also": ["defense-jamming-forbidden"]
+  },
+  {
+    "id": "defense-aviation-blocked",
+    "name": "Aviation-band TX is BLOCKED",
+    "category": "defense_and_detection",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "policy": "118-137 MHz AM voice, 1030 MHz interrogator, 1090 MHz Mode S — every aviation band is BLOCKED for TX at the safety gate. The RiskAssessor table in RiskAssessor.py is authoritative; this record is documentation only."
+    },
+    "hackrf_role": "policy",
+    "see_also": ["defense-gps-spoof-forbidden"]
+  }
+]

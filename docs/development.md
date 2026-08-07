@@ -102,16 +102,10 @@ Three tests run:
    fires `stop_event.set()` after 100 ms, asserts `KillSwitchTriggered` within 2 s.
 
 **Never TX in automated tests.** No `transmit_iq` test exists; manual TX smoke
-testing is covered by the Part 8 runbook.
+testing is documented in `docs/safety.md`.
 
 CI skips all `@pytest.mark.hardware` tests by default. The `--hardware` flag is
-gated by a `pytest_addoption` hook (to be added in `tests/conftest.py` when CI
-infrastructure is set up).
-
-**Current status (2026-08-03):** HackRF One is not connected to this development
-machine. `hackrf_info` verification is deferred. The `pyhackrf` package imports as
-`import hackrf` but will fail at `CDLL('libhackrf.so.0')` until libhackrf is installed
-via Homebrew (`brew install hackrf`).
+gated by a `pytest_addoption` hook in `tests/conftest.py`.
 
 ---
 
@@ -119,38 +113,61 @@ via Homebrew (`brew install hackrf`).
 
 ```
 hackrf-agent/
-├── pyproject.toml                         # Build config, deps, tool settings
-├── README.md                              # Entry point for new users
+├── pyproject.toml                          # Build config, deps, tool settings
+├── Readme.md                               # Entry point for new users
+├── CHANGELOG.md
 ├── docs/
-│   ├── architecture.md                    # Architecture reference (Part 8)
-│   ├── safety.md                          # FCC citations, band policy, risk tiers
-│   ├── development.md                     # This file
-│   └── execute_command_schema.md          # Tool schema reference (Part 7)
+│   ├── ai-package.md                       # LLM package internals
+│   ├── architecture.md                     # Architecture reference
+│   ├── cli.md                              # CLI reference
+│   ├── ctf_playbook.md
+│   ├── development.md                      # This file
+│   ├── execute_command_schema.md           # Auto-generated tool schema reference
+│   ├── mcp.md                              # MCP server usage + tool table
+│   ├── rf_cheatsheet.md
+│   ├── safety.md                           # FCC citations, band policy, risk tiers
+│   ├── tests.md                            # Test tiers, markers, runners
+│   └── warmup.md
 ├── schemas/
-│   └── execute_command.schema.json        # Machine-readable JSON Schema
+│   ├── execute_command.schema.json         # Machine-readable envelope schema
+│   └── knowledge/                          # Per-record-file JSON schemas
+├── knowledge/                              # Corpus (markdown + records/*.json)
+│   ├── MANIFEST.md
+│   └── <topic>/                            # README, reference, walkthrough, recognition
+├── skills/
+│   └── hackrf/SKILL.md                     # Assistant guidance for the MCP
+├── scripts/
+│   ├── generate_execute_command_schema.py  # Regen schema + mcp.md tool table
+│   ├── generate_tone_iq.py
+│   └── validate_knowledge_records.py       # Enforces knowledge/records schemas
 ├── src/hackrf_agent/
 │   ├── __init__.py
-│   ├── ai/                                # LLM plumbing (Part 6 — COMPLETE)
-│   │   ├── agent.py                       # HackrfAgent — conversation loop
-│   │   ├── llm_client.py                  # LLMClient protocol + OpenRouterClient + FakeLLMClient
-│   │   └── prompts.py                     # SYSTEM_PROMPT + EXECUTE_COMMAND_TOOL_SCHEMA
-│   ├── domain/                            # Core logic (no I/O to hardware or LLM)
-│   │   ├── models.py                      # Dataclasses & enums
-│   │   ├── executor.py                    # CommandExecutor — the chokepoint
-│   │   ├── risk_assessor.py               # LOW/MEDIUM/HIGH/BLOCKED
-│   │   ├── frequency_policy.py            # BLOCKED_BANDS, ISM_BANDS
-│   │   ├── permission_service.py          # Scoped, time-limited grants
-│   │   ├── audit_service.py               # SQLite-backed audit log
-│   │   ├── approval.py                    # ApprovalPort protocol + test doubles (prod impl in Part 7)
-│   │   ├── handlers.py                    # One async callable per CommandAction
-│   │   ├── result_formatter.py            # bytes → compact JSON summaries
-│   │   └── session.py                     # SessionPaths + new_session factory
-│   ├── hw/                                # HackRF drivers (Part 4 — COMPLETE)
-│   │   ├── hackrf_driver.py               # pyhackrf wrapper (primary)
-│   │   ├── hackrf_subprocess.py           # CLI escape hatch
-│   │   ├── dsp.py                         # FFT, peak detect, IQ conversion
-│   │   └── exceptions.py                  # HackrfError hierarchy
-│   ├── cli/                               # Terminal interface (Part 7 — COMPLETE)
+│   ├── ai/                                 # LLM plumbing
+│   │   ├── agent.py                        # HackrfAgent — conversation loop
+│   │   ├── llm_client.py                   # LLMClient protocol + OpenRouterClient
+│   │   └── prompts.py                      # SYSTEM_PROMPT + EXECUTE_COMMAND_TOOL_SCHEMA
+│   ├── domain/                             # Core logic (no I/O to hardware or LLM)
+│   │   ├── models.py                       # CommandAction, ExecuteCommand, CommandResult
+│   │   ├── args.py                         # Per-action Pydantic args models
+│   │   ├── executor.py                     # CommandExecutor — the chokepoint
+│   │   ├── risk_assessor.py                # LOW/MEDIUM/HIGH/BLOCKED
+│   │   ├── frequency_policy.py             # BLOCKED_BANDS, ISM_BANDS
+│   │   ├── permission_service.py           # Scoped, time-limited grants
+│   │   ├── audit_service.py                # SQLite-backed audit log
+│   │   ├── approval.py                     # ApprovalPort protocol + test doubles
+│   │   ├── handlers.py                     # One async callable per CommandAction
+│   │   ├── result_formatter.py             # bytes → compact JSON summaries
+│   │   ├── session.py                      # SessionPaths + new_session factory
+│   │   ├── capture_budget.py               # MAX_CAPTURE_MINUTES session budget
+│   │   └── knowledge.py                    # Knowledge-tier verbs + trap catalog
+│   ├── hw/                                 # HackRF drivers
+│   │   ├── hackrf_driver.py                # pyhackrf wrapper (primary)
+│   │   ├── hackrf_subprocess.py            # CLI escape hatch
+│   │   ├── dsp.py                          # FFT, peak detect, IQ conversion
+│   │   ├── analysis.py                     # Protocol decoders (POCSAG, ADS-B, RTTY, AX.25/APRS, Manchester, PWM, PPM, NRZ)
+│   │   └── exceptions.py                   # HackrfError hierarchy
+│   ├── cli/                                # Terminal interface
+│   │   ├── __init__.py
 │   │   ├── main.py                         # Typer app; mounts all subcommands
 │   │   ├── parsing.py                      # Band, duration, gain parsers
 │   │   ├── settings.py                     # SettingsService (config.toml + OPENROUTER_API_KEY env)
@@ -160,48 +177,29 @@ hackrf-agent/
 │   │   ├── audit_cmd.py                    # audit tail
 │   │   ├── doctor_cmd.py                   # doctor
 │   │   ├── chat_cmd.py                     # chat REPL, event rendering
-│   │   └── __init__.py
-│   └── data/                              # Persistence (Part 3 — COMPLETE)
+│   │   ├── lore_cmd.py                     # lore search (corpus grep)
+│   │   └── mcp_cmd.py                      # `hackrf-agent mcp` launcher
+│   ├── mcp/                                # MCP server
+│   │   ├── __main__.py                     # `python -m hackrf_agent.mcp`
+│   │   ├── server.py                       # stdio server, tool dispatch
+│   │   ├── tool_registry.py                # One MCP tool per CommandAction
+│   │   ├── approval_port.py                # Elicitation-backed ApprovalPort
+│   │   ├── resources.py                    # Audit + grants + sessions resources
+│   │   ├── serialization.py
+│   │   └── logging_config.py
+│   └── data/                               # Persistence
 │       ├── db.py                           # ensure_schema + open_connection
-│       └── schema.sql                     # DDL for audit + grants
+│       └── schema.sql                      # DDL for audit + grants
 ├── tests/
-│   ├── unit/                              # No hardware, no network, no LLM
-│   │   ├── test_llm_client.py            # 23 tests — LLM client fakes, rate limiter, construction
-│   │   ├── test_prompts.py               # 19 tests — system prompt, tool schema, determinism
-│   │   ├── test_models.py                # 17 tests — domain model validation
-│   │   ├── test_risk_assessor.py         # 41 tests — risk decision tree
-│   │   ├── test_frequency_policy.py      # 37 tests — band tables, blocked/ISM checks
-│   │   ├── test_dsp.py                   # 23 tests — FFT, peak detection, IQ conversion
-│   │   ├── test_hackrf_subprocess.py     # 14 tests — argv validation, allowlist, error paths
-│   │   ├── test_hackrf_driver.py         # 33 tests — gain/freq/sample rate validation
-│   │   ├── test_db.py                    # schema + connection tests
-│   │   ├── test_audit_service.py         # audit log writer + reader
-│   │   ├── test_permission_service.py    # grant CRUD + TTL enforcement
-│   │   ├── test_approval.py              # ApprovalPort protocol + test doubles
-│   │   ├── test_handlers.py              # handler dispatch + arg extraction
-│   │   ├── test_result_formatter.py      # format helpers for each action
-│   │   ├── test_session.py               # SessionPaths + new_session
-│   │   ├── test_cli_parsing.py           # 23 tests — band/duration/gain parsers (Part 7)
-│   │   ├── test_cli_settings.py          # SettingsService: config.toml + env-var api key (Part 7)
-│   │   ├── test_cli_kill_switch.py       # 7 tests — SIGINT, double-Ctrl-C, revoke (Part 7)
-│   │   └── test_cli_approval.py          # 7 tests — MEDIUM/HIGH prompts (Part 7)
-│   ├── integration/                      # External deps (hardware, LLM, or fakes)
-│   │   ├── test_agent_loop.py            # 23 tests — full agent loop with FakeLLMClient
-│   │   ├── test_agent_live.py            # 1 @llm test — live Claude round-trip
-│   │   ├── test_executor.py              # 17 tests — full executor funnel
-│   │   ├── test_dsp_pipeline.py          # 2 tests — synthetic IQ through DSP
-│   │   ├── test_hackrf_driver.py         # 3 @hardware tests — real device RX-only
-│   │   ├── test_persistence_roundtrip.py # audit + grants round-trip
-│   │   ├── test_cli_permissions.py       # 9 tests — grant tx/list/revoke CLI (Part 7)
-│   │   ├── test_cli_audit.py             # 5 tests — audit tail CLI (Part 7)
-│   │   ├── test_cli_doctor.py            # 5 tests — doctor diagnostics CLI (Part 7)
-│   │   ├── test_cli_chat.py              # 1 @llm @hardware test — chat smoke (Part 7)
-│   │   └── test_cli_main.py              # 4 tests — --help, no_args_is_help (Part 7)
-│   ├── e2e/                              # Full workflow with fake LLM + mock HW
-│   └── fixtures/
-│       ├── iq/                            # Golden .iq files
-│       └── audit/                         # Canonical audit DB snapshots
-└── .venv/                                 # Virtual environment (gitignored)
+│   ├── conftest.py                         # --hardware / --llm flag registration
+│   ├── unit/                               # No hardware, no network, no LLM
+│   ├── integration/                        # External deps (fakes or real, marker-gated)
+│   ├── mcp/                                # MCP server smoke + registry tests
+│   ├── e2e/                                # Full workflow with scripted LLM + fake HW
+│   ├── support/                            # Test doubles (ScriptedLLM, FakeDriver)
+│   └── fixtures/                           # Golden .iq files + audit snapshots
+├── attic/                                  # Historical build plans (not shipped)
+└── .venv/                                  # Virtual environment (gitignored)
 ```
 
 ---
@@ -340,27 +338,93 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`):
 
 ## Adding a New CommandAction
 
-Checklist:
+Every RF, knowledge, or analysis capability lands as a new
+`CommandAction` value — never as a second MCP tool that bypasses the
+funnel. This checklist is authoritative; a PR that skips items 1–14
+is not landing.
 
-1. Add the enum value to `CommandAction` in `models.py`.
-2. Add a handler in `handlers.py` and register in `HANDLERS`.
-3. Add risk-tier entries in `risk_assessor.py`.
-4. Add a formatter method in `result_formatter.py`.
-5. Add a `PER_ACTION_DOCS` entry in `scripts/generate_execute_command_schema.py`.
-6. Add tests: unit for the handler, matrix row in `test_full_funnel_matrix.py`.
-7. Add the action to `SYSTEM_PROMPT` in `prompts.py` so the LLM knows about it.
-8. Run `python scripts/generate_execute_command_schema.py` to regenerate docs.
-9. Run `pre-commit run --all-files` — the schema regenerator updates the docs;
-   commit the diff.
-10. Run `pytest tests/unit/ tests/integration/ tests/e2e/ -q -m "not hardware and not llm"`
-    — everything should pass.
+### The 14-item reviewer's checklist
+
+1. **New `CommandAction` value** in `src/hackrf_agent/domain/models.py`.
+   Group with related actions (knowledge tier, analysis tier, action
+   tier) and match the existing comment structure.
+2. **New args model** in `src/hackrf_agent/domain/args.py`. Pydantic
+   v2, `frozen=True`, `extra="forbid"`. Register in `ARGS_BY_ACTION`
+   and add to the `ActionArgs` discriminated union.
+3. **`RiskAssessor` classifies it deterministically** in
+   `src/hackrf_agent/domain/risk_assessor.py`. Knowledge and analysis
+   verbs are hardcoded `LOW` (add to the read-only branches).
+   TX-adjacent verbs go through the existing tier table. **The gate
+   never reads editable config** — coupling the risk tier to editable
+   `records/*.json` is forbidden; the gate stays hardcoded in Python.
+4. **New handler function** in
+   `src/hackrf_agent/domain/handlers.py`, dispatched from `HANDLERS`.
+   Handlers return JSON-primitive dicts with a `kind` marker.
+5. **Executor formatter pass-through** in
+   `src/hackrf_agent/domain/executor.py:_format`. Knowledge and
+   analysis handlers already have a shared branch that returns raw +
+   strips the `kind` marker + sets `risk_tier=LOW`. Add your new
+   `kind` string to that branch (or add a dedicated `format_*` method
+   in `result_formatter.py` for hardware-side actions).
+6. **New MCP tool description entry** in
+   `src/hackrf_agent/mcp/tool_registry.py:_TOOL_DESCRIPTIONS`.
+7. **New prompt entry** in `src/hackrf_agent/ai/prompts.py`. Add
+   under the appropriate tier heading (Knowledge / Analysis / Act).
+   Bump `SYSTEM_PROMPT_VERSION` if the prompt content changes.
+8. **Schema regenerator entry** in
+   `scripts/generate_execute_command_schema.py:PER_ACTION_DOCS`. Run
+   the script; commit the resulting `docs/execute_command_schema.md`
+   and `schemas/execute_command.schema.json` changes.
+9. **Unit test for the args model** — validation, defaults, rejection
+   of out-of-range values. Add to `tests/unit/test_handlers.py` or a
+   new file if the verb has substantial DSP.
+10. **Handler test** in `tests/unit/test_handlers.py`. Exercise the
+    happy path + the reject-outside-session-root path if the handler
+    reads files.
+11. **MCP registry test** in `tests/mcp/test_tool_registry.py`. At
+    minimum a dispatch round-trip; more if the args model has
+    validation rules.
+12. **Integration test in `tests/integration/`** if the handler
+    crosses a subsystem boundary (touches the audit log, the
+    permission service, or the driver).
+13. **`CHANGELOG.md` entry** under the current "Unreleased" section.
+14. **No new import of `pyhackrf` or `hw.hackrf_driver` outside `hw/`
+    and `domain/executor.py` dispatch.** Automated grep in CI. The
+    knowledge and analysis tiers must not import hardware modules.
+
+### Corpus-side additions
+
+If the new action reads files from `knowledge/`:
+
+- Add a fixture in `tests/fixtures/knowledge/` (or synthesize one in
+  the test).
+- Include an explicit test that path traversal is rejected (any input
+  matching `../` or containing `..` must raise `KnowledgeError` or
+  `ValueError`).
+
+### If the new action is a decoder
+
+- Round-trip test — synthesize a known signal in the test, run the
+  decoder, assert the recovered payload matches. See
+  `tests/unit/test_analysis.py::TestDecodeAdsB::test_round_trips_synthetic_frame`
+  as a model.
+- Update `records/protocols.json` with a matching record. Include the
+  MCP verb name in `tools_downstream`.
+
+### Final gates
+
+```bash
+python scripts/generate_execute_command_schema.py  # regenerate docs
+pytest tests/unit/ tests/mcp/ -q                    # 596+ tests must pass
+pre-commit run --all-files                          # linters + schema drift
+```
 
 ---
 
 ## References
 
-- **`docs/ai-package.md`** — LLM integration architecture (Part 6), agent loop, prompts, tool schema
-- **`docs/cli.md`** — CLI reference (Part 7), all commands, approval flow, kill switch, config
+- **`docs/ai-package.md`** — LLM integration architecture, agent loop, prompts, tool schema
+- **`docs/cli.md`** — CLI reference, all commands, approval flow, kill switch, config
 - **`docs/tests.md`** — Complete test documentation, all tiers, all files, quality gates
 - **`docs/safety.md`** — FCC citations, band policy, risk tiers
 - **HackRF Wiki**: [github.com/greatscottgadgets/hackrf/wiki](https://github.com/greatscottgadgets/hackrf/wiki)

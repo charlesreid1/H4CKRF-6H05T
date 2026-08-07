@@ -52,6 +52,7 @@ class ResultFormatter:
         sample_rate_hz: int = 2_000_000,
         fft_size: int = 4096,
         top_n: int = 5,
+        truncated: bool = False,
     ) -> dict[str, Any]:
         peaks = find_peaks(magnitude_db, freqs_hz, top_n=top_n)
         noise = estimate_noise_floor(magnitude_db)
@@ -68,6 +69,7 @@ class ResultFormatter:
             "num_bins": int(magnitude_db.size),
             "noise_floor_dbfs": float(noise),
             "peaks": annotated,
+            "truncated": bool(truncated),
         }
 
     def format_capture(
@@ -149,20 +151,6 @@ class ResultFormatter:
             num_samples=iq_path.stat().st_size // 2,
             session_paths=session_paths,
         )
-
-    def format_decode_ook(
-        self,
-        *,
-        iq_path: Path,
-        note: str = "OOK decoding not yet implemented",
-    ) -> dict[str, Any]:
-        # Placeholder for Part 5 — decode_ook is a future action; the
-        # executor still needs a formatter to return something structured.
-        return {
-            "iq_path": str(iq_path),
-            "bits": [],
-            "note": note,
-        }
 
     def format_grant_list(self, grants: list[Any]) -> dict[str, Any]:
         # `grants` is a list of hackrf_agent.domain.models.Grant.

@@ -137,7 +137,9 @@ class HackrfDriver:
 
     async def __aenter__(self) -> HackrfDriver:
         try:
-            from python_hackrf import pyhackrf  # noqa: PLC0415  # pyright: ignore[reportMissingImports]
+            from python_hackrf import (
+                pyhackrf,  # pyright: ignore[reportMissingImports]
+            )
         except ImportError as e:
             raise HackrfNotFoundError(
                 "python-hackrf not installed; run `pip install hackrf-agent[hackrf]`"
@@ -238,13 +240,14 @@ class HackrfDriver:
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float64]]:
         """RX-only sweep across [start_hz, stop_hz].
 
-        For the day-1 implementation we tune to ``(start+stop)//2``, sample
-        at ``sample_rate_hz`` for ``dwell_s``, and return one FFT centered
+        This driver tunes to ``(start+stop)//2``, samples at
+        ``sample_rate_hz`` for ``dwell_s``, and returns one FFT centered
         there. If ``(stop-start) > sample_rate_hz`` the tail of the
         requested range falls outside the captured bandwidth — the
-        executor (Part 5) is responsible for detecting that.
-
-        Multi-tune sweeping (``hackrf_sweep``-style) is deferred.
+        executor detects this and either flags ``truncated`` in the
+        result or, for wider coverage, callers should use
+        ``sweep_spectrum_bulk`` and pass explicit sub-ranges, each
+        ≤ ``sample_rate_hz`` wide.
 
         Returns:
             ``(magnitude_db, freqs_hz)`` — both shape ``(fft_size,)``.
@@ -334,7 +337,7 @@ class HackrfDriver:
         return out_path
 
     # ------------------------------------------------------------------
-    # Public API — transmit IQ (wired but not yet CLI-exposed)
+    # Public API — transmit IQ
     # ------------------------------------------------------------------
 
     async def transmit_iq(
@@ -441,7 +444,7 @@ class HackrfDriver:
         finally:
             try:
                 await loop.run_in_executor(None, self._device.pyhackrf_stop_rx)
-            except Exception:  # noqa: BLE001 — best-effort stop on already-stopped device
+            except Exception:
                 pass
 
         # Concatenate and trim to exact requested length.
@@ -538,7 +541,7 @@ class HackrfDriver:
             file_handle.close()
             try:
                 await loop.run_in_executor(None, self._device.pyhackrf_stop_tx)
-            except Exception:  # noqa: BLE001 — best-effort stop
+            except Exception:
                 pass
 
         if self._stop_event.is_set():

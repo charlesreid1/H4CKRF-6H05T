@@ -1,0 +1,262 @@
+[
+  {
+    "id": "crypto-keeloq-nlfsr",
+    "name": "Keeloq NLFSR (Microchip HCS family)",
+    "aliases": ["Keeloq", "HCS200/300/301"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["kasper-keeloq-2008", "kamkar-rolljam-2015"],
+    "technical_body": {
+      "key_bits": 64,
+      "block_bits": 32,
+      "structure": "non-linear feedback shift register with 528 rounds",
+      "known_attacks": [
+        "slide attack (Kasper/Eisenbarth/Moradi/Paar 2008 - key recovery from ~2^16 chosen plaintexts)",
+        "RollJam (Kamkar 2015) - jam-record-replay against ordinary rolling operation",
+        "learn-mode key extraction via power analysis"
+      ]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["crypto-keeloq-aes", "keyfob-generic-keeloq"]
+  },
+  {
+    "id": "crypto-keeloq-aes",
+    "name": "Keeloq-AES (post-2010 rolling)",
+    "aliases": ["Ultimate KEELOQ"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["kasper-keeloq-2008"],
+    "technical_body": {
+      "key_bits": 128,
+      "block_bits": 128,
+      "structure": "AES-128 rolling code replacement for NLFSR Keeloq",
+      "known_attacks": "no cryptographic weakness; RollJam-style jam-record-replay still applies to poorly-implemented desync handling"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["crypto-keeloq-nlfsr"]
+  },
+  {
+    "id": "crypto-hitag2",
+    "name": "HITAG2",
+    "aliases": ["HITAG2 stream cipher", "PCF7936"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["1997-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["verdult-hitag2-2012"],
+    "technical_body": {
+      "key_bits": 48,
+      "structure": "48-bit LFSR + non-linear filter",
+      "known_attacks": "Verdult-Garcia-Balasch 2012 - key recovery in minutes with 1000-2000 captured presses; timing side-channel attacks"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["keyfob-generic-hitag2"]
+  },
+  {
+    "id": "crypto-dst40",
+    "name": "TI DST40 (Digital Signature Transponder)",
+    "aliases": ["DST40"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["1995-01-01", "2010-12-31"],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["verdult-megamos-2013"],
+    "technical_body": {
+      "key_bits": 40,
+      "structure": "proprietary Feistel-like cipher",
+      "known_attacks": "Bono/Green/Stubblefield 2005 - full key recovery via reverse-engineered cipher; ExxonMobil SpeedPass demo"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["crypto-megamos"]
+  },
+  {
+    "id": "crypto-megamos",
+    "name": "Megamos Crypto",
+    "aliases": ["Megamos"],
+    "category": "crypto_in_rf",
+    "region": "EU",
+    "era_bounds": ["1997-01-01", "2015-12-31"],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["verdult-megamos-2013"],
+    "technical_body": {
+      "key_bits": 96,
+      "structure": "proprietary non-linear stream cipher",
+      "known_attacks": "Verdult-Garcia-Ege 2013 (\"Dismantling Megamos Crypto\") - practical key recovery; injunction delayed publication until 2015"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["crypto-dst40", "keyfob-generic-megamos"]
+  },
+  {
+    "id": "crypto-gsm-a51",
+    "name": "GSM A5/1",
+    "aliases": ["A5/1"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["1987-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "key_bits": 64,
+      "structure": "3 LFSRs with irregular clocking",
+      "known_attacks": "rainbow tables (Nohl/Munaut 2010) reduce key recovery to seconds from a few minutes of ciphertext",
+      "in_scope_for_hackrf": false
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-gsm-a52"]
+  },
+  {
+    "id": "crypto-gsm-a52",
+    "name": "GSM A5/2 (export)",
+    "aliases": ["A5/2"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["1987-01-01", "2007-12-31"],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "key_bits": 64,
+      "structure": "A5/1 with one more LFSR forced weak",
+      "known_attacks": "trivially broken in real-time; disabled by GSMA since 2007"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-gsm-a51"]
+  },
+  {
+    "id": "crypto-tetra-tea1",
+    "name": "TETRA TEA1 (export cipher, backdoored)",
+    "aliases": ["TEA1"],
+    "category": "crypto_in_rf",
+    "region": "EU",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["tetra-burst-2023"],
+    "technical_body": {
+      "nominal_key_bits": 80,
+      "effective_key_bits": 32,
+      "structure": "reduced-strength variant of TETRA's family; deliberately weakened per Midnight Blue 2023 disclosure",
+      "known_attacks": "brute force in <1 minute on commodity hardware"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-tetra-tea2"]
+  },
+  {
+    "id": "crypto-tetra-tea2",
+    "name": "TETRA TEA2/3/4",
+    "aliases": ["TEA2", "TEA3"],
+    "category": "crypto_in_rf",
+    "region": "EU",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["tetra-burst-2023"],
+    "technical_body": {
+      "key_bits": 80,
+      "structure": "proprietary; TEA2/3/4 not exposed to backdoor issues per TETRA:BURST",
+      "known_attacks": "additional CVEs disclosed under TETRA:BURST (authentication protocol, keystream recovery under specific conditions)"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-tetra-tea1"]
+  },
+  {
+    "id": "crypto-p25-adp",
+    "name": "P25 ADP (RC4-40)",
+    "aliases": ["ADP", "Advanced Digital Privacy"],
+    "category": "crypto_in_rf",
+    "region": "US",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["dsdplus"],
+    "technical_body": {
+      "key_bits": 40,
+      "structure": "RC4 stream cipher, 40-bit key",
+      "known_attacks": "brute-force in ~2^40 keystream searches; several public tools exist"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-p25-des-ofb", "crypto-p25-aes"]
+  },
+  {
+    "id": "crypto-p25-des-ofb",
+    "name": "P25 DES-OFB",
+    "aliases": ["P25 DES"],
+    "category": "crypto_in_rf",
+    "region": "US",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["dsdplus"],
+    "technical_body": {
+      "key_bits": 56,
+      "structure": "DES in Output Feedback mode",
+      "status": "deprecated in favor of AES-256; still deployed"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-p25-aes"]
+  },
+  {
+    "id": "crypto-p25-aes",
+    "name": "P25 AES-256",
+    "aliases": ["P25 AES"],
+    "category": "crypto_in_rf",
+    "region": "US",
+    "era_bounds": ["2001-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["dsdplus"],
+    "technical_body": {
+      "key_bits": 256,
+      "structure": "AES-256 in Output Feedback mode",
+      "known_attacks": "none cryptographic; key-management errors are the practical concern"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-p25-des-ofb"]
+  },
+  {
+    "id": "crypto-dmr-aes",
+    "name": "DMR AES-256",
+    "aliases": ["DMR encryption"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-ts-102-361"],
+    "technical_body": {
+      "key_bits": 256,
+      "structure": "AES-256 (Motorola ARC4 and Basic Privacy also encountered)",
+      "known_attacks": "no cryptographic weakness in AES; ARC4-40 Basic Privacy is trivially broken"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["crypto-p25-aes"]
+  },
+  {
+    "id": "crypto-lorawan-aes-ccm",
+    "name": "LoRaWAN AES-128 (payload + MAC)",
+    "aliases": ["LoRaWAN encryption"],
+    "category": "crypto_in_rf",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["lorawan-spec"],
+    "technical_body": {
+      "key_bits": 128,
+      "structure": "AES-128 in CCM (CTR + CBC-MAC) for both payload confidentiality and MAC integrity",
+      "known_attacks": "no cryptographic weakness in AES; version-1.0 ABP + static-devnonce implementations have shipped with reuse vulnerabilities"
+    },
+    "hackrf_role": "out-of-scope",
+    "see_also": ["protocol-lorawan-eu868"]
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "crypto_in_rf.schema.json",
+  "title": "crypto_in_rf.json",
+  "type": "array",
+  "items": {
+    "allOf": [
+      {
+        "$ref": "envelope.schema.json"
+      },
+      {
+        "properties": {
+          "category": {
+            "const": "crypto_in_rf"
+          },
+          "citations": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "citations"
+        ]
+      }
+    ]
+  }
+}

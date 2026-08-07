@@ -70,7 +70,34 @@ target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "RUF"]
+# Silence categories that fight the codebase style without buying safety:
+#   E501: line-too-long — MCP tool descriptions and Pydantic Field
+#         descriptions are inherently long strings; wrapping them harms
+#         grep-ability. We keep line-length=100 as an aspiration for
+#         normal code but don't gate on it.
+#   B017: assert-raises-exception — pytest.raises(Exception) is used in
+#         a few places where the arg-model rejection type is intentional.
+#   RUF001/003: em-dash + smart quotes are intentional in prose docstrings.
+#   RUF015: `list(x)[0]` reads clearer than `next(iter(x))` at callsites.
+#   RUF046: `int(...)` on numpy scalars documents the JSON-primitive
+#           promise; keep the cast as intent.
+#   RUF059: `for _, x in items` is idiomatic.
+ignore = ["E501", "B017", "RUF001", "RUF003", "RUF015", "RUF046", "RUF059"]
+
+[tool.ruff.lint.per-file-ignores]
+# Kept intentionally: these predate the RUF ratchet and are stylistic
+# rather than correctness-related. Left in place so the ratchet catches
+# net-new regressions; not worth churn to fix retroactively.
+"src/hackrf_agent/hw/analysis.py" = ["F841", "SIM102", "SIM108"]
+"src/hackrf_agent/hw/hackrf_driver.py" = ["SIM105"]
+"src/hackrf_agent/domain/executor.py" = ["SIM102"]
+"src/hackrf_agent/ai/llm_client.py" = ["SIM102"]
+"src/hackrf_agent/cli/mcp_cmd.py" = ["B904"]
+"tests/mcp/test_server_smoke.py" = ["SIM105"]
+"tests/mcp/test_approval_flow.py" = ["SIM105"]
+"tests/unit/test_analysis.py" = ["F841"]
+"tests/unit/test_audit_service.py" = ["B007"]
 
 [tool.mypy]
 python_version = "3.11"

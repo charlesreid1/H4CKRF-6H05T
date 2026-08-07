@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
 
@@ -24,10 +23,8 @@ from hackrf_agent.domain.result_formatter import ResultFormatter
 from hackrf_agent.domain.risk_assessor import RiskAssessor
 from hackrf_agent.domain.session import new_session
 from hackrf_agent.mcp.approval_port import McpApprovalPort
-from hackrf_agent.mcp.server import create_server, ServerDeps
-
+from hackrf_agent.mcp.server import ServerDeps, create_server
 from tests.support.fake_driver import FakeDriver
-
 
 # ---------------------------------------------------------------------------
 # Helper: run a client/server pair over memory streams in the test's own task
@@ -132,16 +129,19 @@ async def _make_deps(
 
 
 class TestListTools:
-    async def test_lists_all_eight_tools(
+    async def test_lists_all_command_action_tools(
         self, db_path: Path, session_paths, fake_driver: FakeDriver
     ) -> None:
+        from hackrf_agent.domain.models import CommandAction
+
         deps = await _make_deps(db_path, session_paths, fake_driver)
         try:
 
             async def _test(session: ClientSession) -> None:
                 result = await session.list_tools()
                 tool_names = [t.name for t in result.tools]
-                assert len(tool_names) == 8
+                # One MCP tool per CommandAction, prefixed hackrf_.
+                assert len(tool_names) == len(list(CommandAction))
                 for name in tool_names:
                     assert name.startswith("hackrf_"), f"Bad tool name: {name}"
 

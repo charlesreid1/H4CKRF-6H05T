@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from hackrf_agent.ai.llm_client import DEFAULT_MODEL
 from hackrf_agent.cli.settings import (
     ENV_API_KEY,
     Settings,
     SettingsService,
 )
-from hackrf_agent.ai.llm_client import DEFAULT_MODEL
 
 
 class TestSettingsServiceLoad:

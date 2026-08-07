@@ -33,6 +33,23 @@ def test_every_action_has_docs() -> None:
     assert not extra, f"PER_ACTION_DOCS entries without enum members: {extra}"
 
 
+def test_no_ook_stub_verb() -> None:
+    """No decode_* CommandAction value contains 'ook' unless there is a real
+    decoder verb behind it. Guards against reintroducing the historical
+    decode_ook stub that returned empty bits. 'knowledge_lookup_*' verbs
+    contain 'ook' as a substring of 'lookup' and are intentionally allowed.
+    """
+    offenders = [
+        a.value for a in CommandAction
+        if a.value.startswith("decode_") and "ook" in a.value.lower()
+    ]
+    assert offenders == [], (
+        f"decode_* CommandAction values contain 'ook' — real decoders are "
+        f"decode_manchester / decode_nrz / decode_pwm / decode_ppm. "
+        f"Offenders: {offenders}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Test 2: Running the script twice produces byte-identical output
 # ---------------------------------------------------------------------------

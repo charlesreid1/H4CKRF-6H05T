@@ -1,0 +1,761 @@
+[
+  {
+    "id": "signal-fm-broadcast",
+    "name": "FM broadcast station",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1941-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15", "itu-rr"],
+    "technical_body": {
+      "carrier_hz_range": [88000000, 108000000],
+      "channel_spacing_hz": 200000,
+      "modulation": "wideband FM (75 kHz deviation)",
+      "subcarriers": ["19 kHz pilot", "38 kHz stereo DSB", "57 kHz RDS/RBDS"]
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-fm-wide"]
+  },
+  {
+    "id": "signal-airband-am",
+    "name": "AM aviation voice",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1946-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "carrier_hz_range": [118000000, 137000000],
+      "channel_spacing_hz": [8330, 25000],
+      "modulation": "AM (DSB-LC)",
+      "typical_bandwidth_hz": 6000,
+      "blocked_tx": true
+    },
+    "hackrf_role": "rx-only",
+    "flag_pattern_hint": "callsign + tower/atis/unicom idents",
+    "see_also": ["band-airband", "modulation-am-dsb-lc"]
+  },
+  {
+    "id": "signal-noaa-apt",
+    "name": "NOAA APT weather satellite downlink",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1960-01-01", "2028-12-31"],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["satdump", "sigidwiki"],
+    "technical_body": {
+      "carriers_hz": [137100000, 137620000, 137912500],
+      "modulation": "wideband FM with 2400 Hz AM subcarrier",
+      "bandwidth_hz": 34000,
+      "line_rate_hz": 2,
+      "notes": "NOAA-19 is the last operational APT satellite; decommission planned"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-meteor-lrpt"]
+  },
+  {
+    "id": "signal-meteor-lrpt",
+    "name": "Meteor-M LRPT weather satellite downlink",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2014-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["satdump"],
+    "technical_body": {
+      "carrier_hz": 137100000,
+      "modulation": "QPSK (72 kbps)",
+      "bandwidth_hz": 140000
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-noaa-apt"]
+  },
+  {
+    "id": "signal-iss-voice-downlink",
+    "name": "ISS voice downlink (Region 2)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["2000-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["sigidwiki"],
+    "technical_body": {
+      "carrier_hz": 145800000,
+      "modulation": "narrow FM",
+      "channel_bandwidth_hz": 12500
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-fm-narrow"]
+  },
+  {
+    "id": "signal-ax25-1200",
+    "name": "AX.25 packet radio at 1200 bps (US 144.390 MHz APRS)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["1984-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ax25-spec", "aprs-spec"],
+    "technical_body": {
+      "carrier_hz_typical": 144390000,
+      "modulation": "Bell 202 AFSK-1200 (audio 1200/2200 Hz over narrow FM)",
+      "channel_bandwidth_hz": 16000
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "AX.25 flag byte 0x7E, source/dest callsign",
+    "see_also": ["protocol-aprs", "protocol-ax25"]
+  },
+  {
+    "id": "signal-marine-vhf-fm",
+    "name": "Marine VHF narrowband FM voice",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-80", "itu-rr"],
+    "technical_body": {
+      "carrier_hz_range": [156025000, 162025000],
+      "channel_spacing_hz": [12500, 25000],
+      "modulation": "narrow FM",
+      "notes": "Channel 16 (156.800 MHz) is international distress - BLOCKED for TX"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-ais-b"]
+  },
+  {
+    "id": "signal-ais-a",
+    "name": "AIS ship transponder channel A (161.975 MHz)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2002-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "gr-ais"],
+    "technical_body": {
+      "carrier_hz": 161975000,
+      "modulation": "GMSK (BT=0.4)",
+      "symbol_rate_bps": 9600,
+      "channel_bandwidth_hz": 25000,
+      "framing": "HDLC (bit-stuffed) with CRC-16"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-ais-b", "modulation-gmsk"]
+  },
+  {
+    "id": "signal-ais-b",
+    "name": "AIS ship transponder channel B (162.025 MHz)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2002-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr", "gr-ais"],
+    "technical_body": {
+      "carrier_hz": 162025000,
+      "modulation": "GMSK (BT=0.4)",
+      "symbol_rate_bps": 9600,
+      "channel_bandwidth_hz": 25000
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-ais-a", "modulation-gmsk"]
+  },
+  {
+    "id": "signal-vhf-paging-pocsag",
+    "name": "POCSAG paging burst (VHF band)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1982-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-r-m-584-2", "multimon-ng-github"],
+    "technical_body": {
+      "carrier_hz_ranges": [[138000000, 174000000], [415000000, 470000000], [929000000, 932000000]],
+      "channel_bandwidth_hz": 12500,
+      "modulation": "2FSK",
+      "deviation_hz": 4500,
+      "symbol_rate_bps": [512, 1200, 2400]
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["protocol-pocsag-1200"]
+  },
+  {
+    "id": "signal-flex-paging",
+    "name": "FLEX paging burst",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1993-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["multimon-ng-github"],
+    "technical_body": {
+      "carrier_hz_ranges": [[929000000, 932000000], [935000000, 940000000]],
+      "modulation": "4FSK",
+      "symbol_rate_bps": [1600, 3200, 6400]
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["protocol-flex"]
+  },
+  {
+    "id": "signal-vhf-dmr",
+    "name": "DMR trunked voice (VHF)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2005-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-ts-102-361", "sdrtrunk-github"],
+    "technical_body": {
+      "carrier_hz_range": [136000000, 174000000],
+      "modulation": "4FSK",
+      "symbol_rate_hz": 4800,
+      "channel_bandwidth_hz": 12500,
+      "access": "2-slot TDMA"
+    },
+    "hackrf_role": "rx-only-unless-licensed",
+    "see_also": ["protocol-dmr", "signal-uhf-p25"]
+  },
+  {
+    "id": "signal-uhf-p25",
+    "name": "P25 Phase 1 trunked voice (UHF)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["sdrtrunk-github", "dsdplus"],
+    "technical_body": {
+      "carrier_hz_range": [406000000, 512000000],
+      "modulation": "C4FM",
+      "symbol_rate_hz": 4800,
+      "channel_bandwidth_hz": 12500
+    },
+    "hackrf_role": "rx-only-unless-licensed",
+    "see_also": ["protocol-p25-phase1"]
+  },
+  {
+    "id": "signal-tetra-downlink",
+    "name": "TETRA base-station downlink",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-en-300-392", "tetra-burst-2023"],
+    "technical_body": {
+      "carrier_hz_range": [380000000, 500000000],
+      "modulation": "pi/4-DQPSK",
+      "symbol_rate_hz": 18000,
+      "channel_bandwidth_hz": 25000,
+      "access": "4-slot TDMA"
+    },
+    "hackrf_role": "rx-only-unless-licensed",
+    "see_also": ["protocol-tetra"]
+  },
+  {
+    "id": "signal-ism-315-keyfob-ook",
+    "name": "OOK keyfob burst at 315 MHz",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rtl-433-github", "kamkar-rolljam-2015"],
+    "technical_body": {
+      "center_hz": 315000000,
+      "bandwidth_hz": 40000,
+      "modulation": "OOK",
+      "symbol_rate_hz_range": [1500, 4500],
+      "burst_duration_ms": [30, 100],
+      "burst_repetition_count": [3, 5],
+      "burst_gap_ms": 20,
+      "typical_source": "automobile keyfob or garage door opener"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "3-5 identical or increment-by-1 bursts per press",
+    "see_also": ["band-ism-315", "keyfob-generic-keeloq"]
+  },
+  {
+    "id": "signal-ism-315-tpms",
+    "name": "TPMS burst at 315 MHz (US)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["2007-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rouf-tpms-2010", "rtl-433-github"],
+    "technical_body": {
+      "center_hz": 315000000,
+      "modulation": "OOK or 2FSK",
+      "symbol_rate_hz_range": [2400, 9600],
+      "burst_duration_ms": [10, 50],
+      "burst_repetition_seconds": 90,
+      "typical_source": "TPMS sensor"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "32-bit sensor ID + pressure/temperature",
+    "see_also": ["band-ism-315"]
+  },
+  {
+    "id": "signal-ism-433-weather-station",
+    "name": "OOK weather-station burst at 433.92 MHz",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["1998-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rtl-433-github"],
+    "technical_body": {
+      "center_hz": 433920000,
+      "bandwidth_hz": 40000,
+      "modulation": "OOK",
+      "symbol_rate_hz_range": [1000, 4000],
+      "burst_duration_ms": [15, 100],
+      "burst_repetition_count": [4, 8],
+      "typical_source": "Acurite / Fine Offset / Oregon Scientific"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "temperature+humidity payload; vendor sync word varies",
+    "see_also": ["band-ism-433"]
+  },
+  {
+    "id": "signal-ism-433-keyfob",
+    "name": "OOK keyfob burst at 433.92 MHz (EU)",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["2000-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rtl-433-github"],
+    "technical_body": {
+      "center_hz": 433920000,
+      "modulation": "OOK",
+      "symbol_rate_hz_range": [1500, 4500],
+      "burst_duration_ms": [30, 120],
+      "typical_source": "EU vehicle / garage / gate remote"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "Keeloq encrypted counter; increment-by-1 across presses",
+    "see_also": ["keyfob-generic-keeloq"]
+  },
+  {
+    "id": "signal-ism-433-tpm-ook",
+    "name": "TPMS burst at 433.92 MHz (EU)",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["2007-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["rouf-tpms-2010", "rtl-433-github"],
+    "technical_body": {
+      "center_hz": 433920000,
+      "modulation": "OOK",
+      "symbol_rate_hz_range": [2400, 9600],
+      "burst_duration_ms": [10, 50],
+      "burst_repetition_seconds": 90,
+      "typical_source": "TPMS sensor"
+    },
+    "hackrf_role": "rx-primary",
+    "flag_pattern_hint": "32-bit sensor ID + pressure/temperature",
+    "see_also": ["band-ism-433"]
+  },
+  {
+    "id": "signal-ism-433-lora",
+    "name": "LoRa chirp at 433 MHz (EU sub-band)",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["gr-lora-sdr"],
+    "technical_body": {
+      "center_hz": 433175000,
+      "bandwidth_hz_options": [125000, 250000],
+      "modulation": "CSS",
+      "spectral_signature": "parallel diagonal streaks"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-lora-css"]
+  },
+  {
+    "id": "signal-adsb-1090",
+    "name": "Mode S extended-squitter burst at 1090 MHz",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtca-do-260b", "fcc-part-87"],
+    "technical_body": {
+      "center_hz": 1090000000,
+      "bandwidth_hz": 2000000,
+      "modulation": "PPM",
+      "chip_width_us": 0.5,
+      "long_frame_duration_us": 120,
+      "typical_source": "aircraft Mode S transponder"
+    },
+    "hackrf_role": "rx-only",
+    "flag_pattern_hint": "ICAO24 in bits 8-31; callsign in DF17 type 1-4",
+    "see_also": ["band-ads-b", "protocol-mode-s-ads-b"]
+  },
+  {
+    "id": "signal-acars-vhf",
+    "name": "ACARS aircraft short-message downlink",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1978-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87", "sigidwiki"],
+    "technical_body": {
+      "carrier_hz_range": [129000000, 137000000],
+      "modulation": "MSK (or 2FSK, legacy)",
+      "symbol_rate_bps": 2400,
+      "channel_bandwidth_hz": 25000
+    },
+    "hackrf_role": "rx-only",
+    "flag_pattern_hint": "aircraft tail + message ID + short free text",
+    "see_also": ["band-airband"]
+  },
+  {
+    "id": "signal-vdl-mode-2",
+    "name": "VDL Mode 2 aircraft data link",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2000-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "carrier_hz_range": [136900000, 136975000],
+      "modulation": "D8PSK",
+      "symbol_rate_bps": 10500
+    },
+    "hackrf_role": "rx-only",
+    "see_also": ["signal-acars-vhf"]
+  },
+  {
+    "id": "signal-lora-eu868",
+    "name": "LoRa chirp at 868 MHz (EU LoRaWAN)",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["lorawan-spec", "gr-lora-sdr"],
+    "technical_body": {
+      "carriers_hz": [868100000, 868300000, 868500000],
+      "bandwidth_hz_options": [125000, 250000, 500000],
+      "modulation": "CSS",
+      "spreading_factors": [7, 8, 9, 10, 11, 12]
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["protocol-lorawan-eu868"]
+  },
+  {
+    "id": "signal-lora-us915",
+    "name": "LoRa chirp at 915 MHz (US LoRaWAN)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["lorawan-spec", "gr-lora-sdr"],
+    "technical_body": {
+      "carriers_hz_range": [902300000, 914900000],
+      "channel_spacing_hz": 200000,
+      "bandwidth_hz_options": [125000, 500000],
+      "modulation": "CSS"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["protocol-lorawan-us915"]
+  },
+  {
+    "id": "signal-z-wave-eu",
+    "name": "Z-Wave home-automation (EU 868 MHz)",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["2004-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-en-300-220"],
+    "technical_body": {
+      "carrier_hz": 868420000,
+      "modulation": "GFSK",
+      "symbol_rate_bps": [9600, 40000, 100000],
+      "channel_bandwidth_hz": 300000
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-gfsk"]
+  },
+  {
+    "id": "signal-z-wave-us",
+    "name": "Z-Wave home-automation (US 908.42 MHz)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["2004-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15"],
+    "technical_body": {
+      "carrier_hz": 908420000,
+      "modulation": "GFSK",
+      "symbol_rate_bps": [9600, 40000, 100000],
+      "channel_bandwidth_hz": 300000
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-z-wave-eu"]
+  },
+  {
+    "id": "signal-sigfox-eu",
+    "name": "Sigfox UNB uplink (EU 868 MHz)",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["etsi-en-300-220", "sigidwiki"],
+    "technical_body": {
+      "carrier_hz": 868130000,
+      "modulation": "DBPSK (100 bps ultra-narrowband)",
+      "channel_bandwidth_hz": 100
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-lora-eu868"]
+  },
+  {
+    "id": "signal-adsb-mode-ac",
+    "name": "Mode A/C SSR transponder",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1972-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "reply_hz": 1090000000,
+      "interrogate_hz": 1030000000,
+      "modulation": "PAM-PPM (0.45 us pulse pairs)"
+    },
+    "hackrf_role": "rx-only",
+    "see_also": ["signal-adsb-1090"]
+  },
+  {
+    "id": "signal-goes-hrit",
+    "name": "GOES HRIT L-band weather satellite downlink",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["goestools"],
+    "technical_body": {
+      "carrier_hz": 1694100000,
+      "bandwidth_hz": 927000,
+      "modulation": "BPSK",
+      "symbol_rate_bps": 927000,
+      "notes": "GEO downlink; needs L-band antenna + LNA"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["signal-noaa-apt"]
+  },
+  {
+    "id": "signal-iridium-downlink",
+    "name": "Iridium L-band satellite downlink",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1998-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["iridium-toolkit", "gr-iridium"],
+    "technical_body": {
+      "carrier_hz_range": [1616000000, 1626000000],
+      "modulation": "DQPSK",
+      "symbol_rate_bps": 25000,
+      "channel_bandwidth_hz": 25000,
+      "access": "TDMA/FDMA (ring alert on 1626.27 MHz)"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["iridium-toolkit"]
+  },
+  {
+    "id": "signal-gps-l1",
+    "name": "GPS L1 C/A code (1575.42 MHz)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1993-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "carrier_hz": 1575420000,
+      "bandwidth_hz": 2000000,
+      "modulation": "BPSK-1 (C/A) + BPSK-10 (P(Y))",
+      "notes": "TX is BLOCKED at the safety gate (spoofing prohibited)"
+    },
+    "hackrf_role": "rx-only",
+    "see_also": ["modulation-dsss"]
+  },
+  {
+    "id": "signal-wifi-24-ofdm",
+    "name": "WiFi 2.4 GHz OFDM channel",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1999-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ieee-802-11"],
+    "technical_body": {
+      "center_hz_typical": [2412000000, 2437000000, 2462000000],
+      "channel_bandwidth_hz": 20000000,
+      "modulation": "OFDM",
+      "typical_source": "802.11n/ac/ax AP or client"
+    },
+    "hackrf_role": "rx-observe-only",
+    "flag_pattern_hint": "for decoding, use monitor-mode adapter or P1N3NUT5",
+    "see_also": ["band-ism-2400"]
+  },
+  {
+    "id": "signal-ble-adv",
+    "name": "BLE advertising channels 37/38/39",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ieee-802-15-4"],
+    "technical_body": {
+      "carriers_hz": [2402000000, 2426000000, 2480000000],
+      "channel_bandwidth_hz": 2000000,
+      "modulation": "GFSK (BT=0.5)",
+      "symbol_rate_bps": 1000000,
+      "typical_source": "BLE beacon (AirTag, Tile, iBeacon-style, fitness tracker)"
+    },
+    "hackrf_role": "rx-observe-only",
+    "see_also": ["modulation-gfsk", "band-ism-2400"]
+  },
+  {
+    "id": "signal-zigbee-24",
+    "name": "Zigbee / 802.15.4 O-QPSK burst (2.4 GHz)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["2003-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ieee-802-15-4"],
+    "technical_body": {
+      "carrier_hz_range": [2405000000, 2480000000],
+      "channel_spacing_hz": 5000000,
+      "modulation": "O-QPSK (with half-sine pulse shape) over DSSS",
+      "symbol_rate_hz": 62500,
+      "chip_rate_hz": 2000000
+    },
+    "hackrf_role": "rx-observe-only",
+    "see_also": ["protocol-zigbee-802154"]
+  },
+  {
+    "id": "signal-bluetooth-classic",
+    "name": "Bluetooth Classic (2.4 GHz FHSS)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1998-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-en-300-328"],
+    "technical_body": {
+      "carrier_hz_range": [2402000000, 2480000000],
+      "modulation": "GFSK (BT=0.5)",
+      "symbol_rate_bps": 1000000,
+      "access": "FHSS (79 channels, 1600 hops/s)"
+    },
+    "hackrf_role": "rx-observe-only",
+    "see_also": ["modulation-fhss", "modulation-gfsk"]
+  },
+  {
+    "id": "signal-cb-27mhz",
+    "name": "US CB radio (27 MHz, 11 m)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["1958-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15"],
+    "technical_body": {
+      "carrier_hz_range": [26965000, 27405000],
+      "channel_spacing_hz": 10000,
+      "modulation": "AM / USB / LSB"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-am-dsb-lc"]
+  },
+  {
+    "id": "signal-gmrs-frs",
+    "name": "GMRS/FRS narrowband FM (US)",
+    "category": "protocol_phy",
+    "region": "US",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-90", "fcc-part-97"],
+    "technical_body": {
+      "carrier_hz_range": [462000000, 467000000],
+      "channel_spacing_hz": 12500,
+      "modulation": "narrow FM"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-fm-narrow"]
+  },
+  {
+    "id": "signal-amateur-70cm",
+    "name": "70 cm amateur band (US Part 97, EU Region 1)",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1920-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97", "cept-erc-rec-70-03"],
+    "technical_body": {
+      "carrier_hz_range": [430000000, 450000000],
+      "modulation": "mixed (FM, SSB, digital)"
+    },
+    "hackrf_role": "rx-and-tx-license-required",
+    "see_also": ["signal-cb-27mhz"]
+  },
+  {
+    "id": "signal-numbers-station-hf",
+    "name": "Numbers-station HF broadcast",
+    "category": "protocol_phy",
+    "region": "universal",
+    "era_bounds": ["1960-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["sigidwiki", "defcon-rf-village"],
+    "technical_body": {
+      "carrier_hz_range": [3000000, 30000000],
+      "modulation": "SSB voice (spoken digits) or CW / MFSK",
+      "notes": "HackRF requires an HF upconverter to reach HF band; below native 1 MHz floor"
+    },
+    "hackrf_role": "rx-only",
+    "see_also": ["modulation-ssb"]
+  },
+  {
+    "id": "signal-dab-radio",
+    "name": "DAB digital audio broadcast",
+    "category": "protocol_phy",
+    "region": "EU",
+    "era_bounds": ["1995-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-en-300-220"],
+    "technical_body": {
+      "carrier_hz_range": [174000000, 240000000],
+      "channel_bandwidth_hz": 1536000,
+      "modulation": "OFDM (DQPSK per subcarrier)"
+    },
+    "hackrf_role": "rx-primary",
+    "see_also": ["modulation-ofdm"]
+  }
+]

@@ -1,0 +1,262 @@
+[
+  {
+    "id": "meta-documentation-only",
+    "name": "This file is documentation only — the gate does not read it",
+    "category": "meta",
+    "confidence": "primary",
+    "citations": ["hackrf-agent-repo"],
+    "technical_body": {
+      "purpose": "regulatory.json mirrors the hardcoded truth in src/hackrf_agent/domain/frequency_policy.py:BLOCKED_BANDS and ISM_BANDS so an assistant can retrieve regulatory context without reading Python source. It is NOT configuration. RiskAssessor never loads this file; changing an entry here does not unblock a band.",
+      "authoritative_source": "src/hackrf_agent/domain/frequency_policy.py"
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-blocked-ads-b-1090",
+    "name": "ADS-B / SSR / TCAS 1090 MHz — BLOCKED for TX and sweep",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["2010-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "band_hz": [1087000000, 1093000000],
+      "authority": "47 CFR §87.131",
+      "rationale": "Aviation safety-of-life. Even sweeping across 1090 MHz risks interference with transponder replies; RX for decoding is allowed via decode_ads_b on captured files only.",
+      "blocked_tx": true,
+      "blocked_sweep": true,
+      "rx_allowed_via": ["decode_ads_b (offline)"]
+    },
+    "see_also": ["protocol-mode-s-1090"]
+  },
+  {
+    "id": "regulatory-blocked-aviation-voice",
+    "name": "Aviation voice 118–137 MHz — BLOCKED for TX",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["1946-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-87"],
+    "technical_body": {
+      "band_hz": [118000000, 137000000],
+      "authority": "47 CFR §87.171",
+      "rationale": "Air-traffic control voice — safety-of-life. Contains VHF Guard 121.5 (nested block ICAO Annex 10).",
+      "blocked_tx": true,
+      "modulation_family": "AM (double-sideband, ~6 kHz)",
+      "nested_ranges": [{"band_hz": [121400000, 121600000], "reason": "International aeronautical emergency — ICAO Annex 10"}]
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-blocked-gnss",
+    "name": "GNSS L-bands (GPS/GLONASS/Galileo) — BLOCKED for TX",
+    "category": "regulatory",
+    "region": "universal",
+    "era_bounds": ["1978-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-rr"],
+    "technical_body": {
+      "ranges_hz": [
+        {"band_hz": [1559000000, 1591000000], "reason": "GPS L1 — ITU RR RNSS allocation"},
+        {"band_hz": [1215000000, 1240000000], "reason": "GPS L2 — ITU RR RNSS allocation"},
+        {"band_hz": [1164000000, 1189000000], "reason": "GPS L5 safety-of-life — ITU RR"},
+        {"band_hz": [1592952500, 1610485000], "reason": "GLONASS G1 — ITU RR"},
+        {"band_hz": [1237827500, 1254427500], "reason": "GLONASS G2 — ITU RR"},
+        {"band_hz": [1260000000, 1300000000], "reason": "Galileo E6 — ITU RR"}
+      ],
+      "authority": "ITU RR RNSS allocation, 47 CFR §2.106 (US table)",
+      "rationale": "GNSS is critical navigation infrastructure. Any spurious in-band emission at consumer power levels can degrade fixes across a wide area.",
+      "blocked_tx": true
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-blocked-maritime-distress",
+    "name": "Maritime distress 156.7625–156.8375 MHz (Ch 16) — BLOCKED for TX",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["1960-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-80"],
+    "technical_body": {
+      "band_hz": [156762500, 156837500],
+      "authority": "47 CFR §80.369",
+      "rationale": "Marine distress and calling channel (Ch 16). Safety-of-life; any TX by an unlicensed party is criminal.",
+      "blocked_tx": true
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-blocked-cellular-downlink-us",
+    "name": "US cellular downlink bands — BLOCKED for TX",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["1983-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-22", "fcc-part-24", "fcc-part-27"],
+    "technical_body": {
+      "ranges_hz": [
+        {"band_hz": [729000000, 746000000], "reason": "LTE Band 12 downlink — 47 CFR Part 27"},
+        {"band_hz": [746000000, 756000000], "reason": "LTE Band 13 downlink — 47 CFR Part 27"},
+        {"band_hz": [734000000, 746000000], "reason": "LTE Band 17 downlink (nested in Band 12) — 47 CFR Part 27"},
+        {"band_hz": [869000000, 894000000], "reason": "Cellular Band 5 downlink — 47 CFR Part 22H"},
+        {"band_hz": [1930000000, 1990000000], "reason": "PCS Band 2 downlink — 47 CFR Part 24E"},
+        {"band_hz": [2110000000, 2155000000], "reason": "AWS Band 4 downlink — 47 CFR Part 27"}
+      ],
+      "authority": "47 CFR Parts 22, 24, 27 (licensed exclusive-use spectrum)",
+      "rationale": "Licensed spectrum. Even test emissions are prohibited absent an experimental license.",
+      "blocked_tx": true
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-blocked-public-safety",
+    "name": "US public safety allocations — BLOCKED for TX",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["1997-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-90"],
+    "technical_body": {
+      "ranges_hz": [
+        {"band_hz": [758000000, 775000000], "reason": "Public safety narrowband/broadband — FirstNet"},
+        {"band_hz": [851000000, 854000000], "reason": "Public safety NPSPAC — 47 CFR Part 90"}
+      ],
+      "authority": "47 CFR Part 90 (private land mobile) / FirstNet Authority",
+      "rationale": "First-responder communications. Non-negotiable.",
+      "blocked_tx": true
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-blocked-radio-astronomy",
+    "name": "Radio-astronomy passive protected bands — BLOCKED for TX",
+    "category": "regulatory",
+    "region": "universal",
+    "era_bounds": ["1959-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-ra-769"],
+    "technical_body": {
+      "ranges_hz": [
+        {"band_hz": [1400000000, 1427000000], "reason": "Radio astronomy 21 cm — ITU-R RA.769"},
+        {"band_hz": [406100000, 410000000], "reason": "Radio astronomy protected — ITU-R RA.769"},
+        {"band_hz": [608000000, 614000000], "reason": "Radio astronomy protected — ITU-R RA.769"},
+        {"band_hz": [2690000000, 2700000000], "reason": "Radio astronomy protected — ITU-R RA.769"}
+      ],
+      "authority": "ITU-R Recommendation RA.769",
+      "rationale": "Passive-service allocations. Every dB of terrestrial in-band noise degrades observations globally.",
+      "blocked_tx": true
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-ism-315",
+    "name": "ISM 315 MHz — small-signal only (Part 15 §15.231)",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["1989-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15"],
+    "technical_body": {
+      "band_hz": [310000000, 320000000],
+      "authority": "47 CFR §15.231",
+      "field_strength_limit_uv_m_at_3m": 6000,
+      "duty_cycle": "periodic transmissions of ≤5 seconds; no continuous carriers",
+      "typical_uses": ["North American keyfobs (car remotes, garage doors)", "TPMS", "medical telemetry"],
+      "blocked_tx": false,
+      "hackrf_role": "rx-and-low-power-tx"
+    },
+    "see_also": ["regulatory-ism-433", "protocol-tpms-schrader"]
+  },
+  {
+    "id": "regulatory-ism-433",
+    "name": "ISM 433.05–434.79 MHz — EU Region 1 (ETSI EN 300 220)",
+    "category": "regulatory",
+    "region": "EU",
+    "era_bounds": ["2000-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["etsi-en-300-220"],
+    "technical_body": {
+      "band_hz": [433050000, 434790000],
+      "authority": "ETSI EN 300 220 (also usable in R1 under Part 15 subset for imports)",
+      "erp_limit_dbm": 10,
+      "duty_cycle_pct": 10,
+      "typical_uses": ["EU keyfobs", "weather stations", "garage doors", "wireless doorbells"],
+      "blocked_tx": false,
+      "hackrf_role": "rx-and-low-power-tx"
+    },
+    "see_also": ["regulatory-ism-315"]
+  },
+  {
+    "id": "regulatory-ism-902-928",
+    "name": "ISM 902–928 MHz — US LPWAN (Part 15 §15.247/§15.249)",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15"],
+    "technical_body": {
+      "band_hz": [902000000, 928000000],
+      "authority": "47 CFR §15.247 (spread-spectrum) or §15.249 (narrowband)",
+      "eirp_limit_dbm_15_247": 30,
+      "eirp_limit_dbm_15_249": -1,
+      "typical_uses": ["LoRa US", "Z-Wave US", "Sigfox US", "amateur 33 cm (secondary)"],
+      "blocked_tx": false,
+      "hackrf_role": "rx-primary-tx-grant-required"
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-ism-2400",
+    "name": "ISM 2400–2483.5 MHz — universal (Part 15 §15.247)",
+    "category": "regulatory",
+    "region": "universal",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-15"],
+    "technical_body": {
+      "band_hz": [2400000000, 2483500000],
+      "authority": "47 CFR §15.247",
+      "eirp_limit_dbm": 30,
+      "typical_uses": ["Bluetooth Classic + BLE", "Zigbee 802.15.4", "WiFi 2.4 GHz", "microwave ovens (leakage)"],
+      "blocked_tx": false,
+      "hackrf_role": "rx-primary-tx-grant-required",
+      "notes": "The HackRF can *observe* Bluetooth/WiFi at 2.4 GHz but its timing is too coarse for real-time protocol participation. Passive analysis only."
+    },
+    "see_also": []
+  },
+  {
+    "id": "regulatory-amateur-us",
+    "name": "US amateur allocations — licensed operator territory (Part 97)",
+    "category": "regulatory",
+    "region": "US",
+    "era_bounds": ["1934-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["fcc-part-97"],
+    "technical_body": {
+      "authority": "47 CFR Part 97",
+      "hackrf_role": "rx-and-tx-with-license",
+      "risk_tier_note": "H4CKRF classifies TX in amateur bands as HIGH by default — a licensed operator can approve, but the gate never assumes a license.",
+      "ranges_hz": [
+        {"band_hz": [222000000, 225000000], "reason": "1.25 m band"},
+        {"band_hz": [420000000, 450000000], "reason": "70 cm band"},
+        {"band_hz": [902000000, 928000000], "reason": "33 cm (secondary to ISM)"},
+        {"band_hz": [1240000000, 1300000000], "reason": "23 cm"},
+        {"band_hz": [2390000000, 2450000000], "reason": "13 cm"}
+      ]
+    },
+    "see_also": []
+  }
+]

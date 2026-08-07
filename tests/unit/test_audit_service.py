@@ -311,8 +311,8 @@ class TestHelpers:
 class TestQueryOrdering:
     async def test_query_returns_last_n_not_first_n(self, tmp_path):
         """limit=3 with 10 events should return events 8,9,10 (most recent)."""
-        from hackrf_agent.domain.audit_service import AuditService, make_event
         from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService, make_event
 
         db = tmp_path / "agent.db"
         await ensure_schema(db)
@@ -337,3 +337,91 @@ class TestQueryOrdering:
         assert [r.id for r in rows] == [8, 9, 10]
         # Chronological: oldest→newest within the window.
         assert rows[0].id < rows[-1].id
+
+
+# ---------------------------------------------------------------------------
+# Rotation + stats
+# ---------------------------------------------------------------------------
+
+
+class TestRotate:
+    async def test_deletes_older_than_cutoff_keeps_newer(self, tmp_path):
+        import time as _time
+
+        from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService, make_event
+
+        db = tmp_path / "agent.db"
+        await ensure_schema(db)
+
+        now = _time.time()
+        async with AuditService(db) as svc:
+            # Directly-crafted events with explicit timestamps.
+            for ts in (now - 40 * 86400, now - 20 * 86400, now - 1):
+                ev = make_event(
+                    trace_id=uuid4(),
+                    session_id="s1",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                    action=CommandAction.GET_DEVICE_INFO,
+                )
+                object.__setattr__(ev, "timestamp", ts)
+                await svc.log(ev)
+
+        async with AuditService(db) as svc:
+            stats_before = await svc.stats()
+            deleted = await svc.rotate(keep_days=30, vacuum=True)
+            stats_after = await svc.stats()
+
+        assert stats_before.row_count == 3
+        # deleted the 40-day-old row; keeps 20-day and 1-second.
+        # A ROTATED audit event was also written.
+        assert deleted == 1
+        assert stats_after.row_count == 3  # 2 kept + 1 ROTATED event
+
+    async def test_logs_rotated_event_before_delete(self, tmp_path):
+        import time as _time
+
+        from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService, make_event
+
+        db = tmp_path / "agent.db"
+        await ensure_schema(db)
+
+        async with AuditService(db) as svc:
+            ev = make_event(
+                trace_id=uuid4(),
+                session_id="s1",
+                event=AuditEventType.COMMAND_RECEIVED,
+                action=CommandAction.GET_DEVICE_INFO,
+            )
+            object.__setattr__(ev, "timestamp", _time.time() - 400 * 86400)
+            await svc.log(ev)
+            await svc.rotate(keep_days=30, vacuum=False)
+
+        async with AuditService(db) as svc:
+            rows = await svc.query(event=AuditEventType.ROTATED)
+        assert len(rows) == 1
+
+    async def test_rejects_nonpositive_keep_days(self, tmp_path):
+        from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService
+
+        db = tmp_path / "agent.db"
+        await ensure_schema(db)
+        async with AuditService(db) as svc:
+            with pytest.raises(ValueError):
+                await svc.rotate(keep_days=0)
+
+
+class TestStats:
+    async def test_empty_db(self, tmp_path):
+        from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService
+
+        db = tmp_path / "agent.db"
+        await ensure_schema(db)
+        async with AuditService(db) as svc:
+            stats = await svc.stats()
+        assert stats.row_count == 0
+        assert stats.oldest_ts is None
+        assert stats.newest_ts is None

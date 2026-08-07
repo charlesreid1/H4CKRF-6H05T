@@ -1,0 +1,378 @@
+[
+  {
+    "id": "decoder-manchester",
+    "name": "Manchester (IEEE 802.3 / G.E. Thomas)",
+    "aliases": ["biphase-L", "biphase level", "Manchester encoding"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1949-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "hackrf-agent-repo"],
+    "technical_body": {
+      "encoding_rule": "Each bit is transmitted as two half-symbols; a transition mid-bit encodes the value.",
+      "conventions": {
+        "ieee_802_3": "0 = low-to-high transition, 1 = high-to-low transition",
+        "g_e_thomas": "0 = high-to-low transition, 1 = low-to-high transition (inverse)"
+      },
+      "self_clocking": true,
+      "dc_balance": "zero-DC (equal high and low time per bit)",
+      "preamble_typical": "0xAA/0x55 alternating (mid-bit transitions produce a clean clock spike)",
+      "symbol_rate_range_bps": [100, 1000000],
+      "canonical_use_cases": [
+        "OOK keyfobs at 315/433 MHz (rolling code + fixed code)",
+        "TPMS (Schrader, Continental)",
+        "10BASE-T Ethernet PHY",
+        "some weather stations (Acurite 592TXR, Fine Offset WH1080)"
+      ],
+      "polarity_recovery": "Try both polarity assumptions; the one that yields a valid preamble/CRC wins."
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_upstream": ["analyze_iq_symbols"],
+    "tools_downstream": ["hackrf-agent decode_manchester", "urh"],
+    "see_also": ["decoder-diff-manchester", "decoder-nrz", "modulation-ook"]
+  },
+  {
+    "id": "decoder-diff-manchester",
+    "name": "Differential Manchester",
+    "aliases": ["biphase-M", "biphase mark/space", "conditional biphase", "Miller-1"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1960-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "encoding_rule": "Mid-bit transition always present (for clock recovery). A start-of-bit transition encodes the value.",
+      "conventions": {
+        "biphase_mark": "0 = start-of-bit transition, 1 = no start-of-bit transition",
+        "biphase_space": "0 = no start-of-bit transition, 1 = start-of-bit transition"
+      },
+      "self_clocking": true,
+      "dc_balance": "zero-DC",
+      "canonical_use_cases": [
+        "IEEE 802.5 token ring",
+        "some ISO/IEC 14443 (RFID) uplinks",
+        "occasional keyfob variants that resist plain Manchester decoders"
+      ],
+      "polarity_recovery": "polarity-independent — the main advantage over plain Manchester"
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": ["hackrf-agent decode_manchester"],
+    "see_also": ["decoder-manchester", "decoder-miller"]
+  },
+  {
+    "id": "decoder-miller",
+    "name": "Miller (delay encoding)",
+    "aliases": ["Miller encoding", "MFM", "modified FM"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1963-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "encoding_rule": "1 = mid-bit transition; 0 = transition at bit boundary UNLESS preceded by a 1.",
+      "self_clocking": "yes, when combined with a suitable pattern",
+      "canonical_use_cases": [
+        "floppy-disk MFM encoding",
+        "some RFID uplinks (ISO 14443 type B)",
+        "some legacy 315/433 MHz vendor codes labeled 'Miller'"
+      ]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": ["urh"],
+    "see_also": ["decoder-diff-manchester"]
+  },
+  {
+    "id": "decoder-nrz",
+    "name": "NRZ (non-return-to-zero)",
+    "aliases": ["NRZ-L", "unipolar NRZ", "polar NRZ"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1950-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "hackrf-agent-repo"],
+    "technical_body": {
+      "encoding_rule": "Level directly encodes the bit for the full symbol period; no mid-bit transition.",
+      "self_clocking": false,
+      "dc_balance": "not DC-balanced; long runs of 0s or 1s produce DC bias",
+      "clock_recovery": "requires a preamble (e.g. 0xAA) or an external clock reference; matched-filter timing recovery on a training sequence.",
+      "canonical_use_cases": [
+        "POCSAG (after 2FSK demod)",
+        "many FSK-based paging/telemetry protocols",
+        "raw-bit output of most demodulators"
+      ],
+      "symbol_rate_range_bps": [50, 10000000]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_upstream": ["analyze_iq_symbols"],
+    "tools_downstream": ["hackrf-agent decode_nrz", "multimon-ng"],
+    "see_also": ["decoder-nrzi", "decoder-manchester", "protocol-pocsag-1200"]
+  },
+  {
+    "id": "decoder-nrzi",
+    "name": "NRZI (non-return-to-zero inverted)",
+    "aliases": ["NRZ-I", "NRZ-mark", "NRZ-space"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1950-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "encoding_rule": "A transition at the start of a symbol encodes one value; no transition encodes the other. Value = XOR of previous level.",
+      "conventions": {
+        "nrz_mark": "1 = transition, 0 = no transition",
+        "nrz_space": "0 = transition, 1 = no transition"
+      },
+      "self_clocking": "partial - long runs of 0s (NRZ-mark) have no transitions; needs bit-stuffing (HDLC) or a preamble",
+      "canonical_use_cases": [
+        "HDLC / AX.25 packet radio (Bell 202 AFSK-1200, FSK-9600)",
+        "USB PHY (with bit-stuffing after 6 consecutive 1s)",
+        "some ISO/IEC 14443 (RFID) downlinks"
+      ],
+      "bit_stuffing_note": "HDLC/AX.25 insert a 0 after 5 consecutive 1s to preserve clock recovery; the decoder must strip it before payload assembly."
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_upstream": ["analyze_iq_symbols"],
+    "tools_downstream": ["hackrf-agent decode_nrz", "hackrf-agent decode_ax25"],
+    "see_also": ["decoder-nrz", "decoder-hdlc-bit-stuffing", "protocol-ax25"]
+  },
+  {
+    "id": "decoder-hdlc-bit-stuffing",
+    "name": "HDLC bit-stuffing / de-stuffing",
+    "aliases": ["zero-bit insertion", "HDLC framing"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1975-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ax25-spec"],
+    "technical_body": {
+      "rule": "Insert a 0 bit after every 5 consecutive 1s in the payload. The 0x7E flag (01111110) is thus unambiguous as a frame delimiter.",
+      "self_clocking": "when combined with NRZI, the stuffed 0 guarantees an edge and preserves clock recovery",
+      "canonical_use_cases": ["AX.25 packet radio", "SDLC / HDLC WAN framing", "AIS (HDLC on GMSK)"]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": ["hackrf-agent decode_ax25", "gr-ais"],
+    "see_also": ["decoder-nrzi", "protocol-ax25"]
+  },
+  {
+    "id": "decoder-pwm",
+    "name": "PWM (pulse-width modulation)",
+    "aliases": ["pulse-width encoding", "duty-cycle encoding"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtl-433-github", "hackrf-agent-repo"],
+    "technical_body": {
+      "encoding_rule": "Each bit is a fixed-period pulse; the ratio of high time to low time within the period encodes the bit.",
+      "conventions": {
+        "short_high_long_low": "0 = short high + long low, 1 = long high + short low",
+        "vendor_variants": "polarity and short/long roles are vendor-specific - invert if the preamble misses"
+      },
+      "self_clocking": true,
+      "typical_short_us": [200, 800],
+      "typical_long_us": [600, 2400],
+      "canonical_use_cases": [
+        "Chamberlain/LiftMaster garage-door fixed codes",
+        "some HomeEasy/Nexa 433 MHz remotes",
+        "IR remotes (NEC, RC-5, Sony SIRC over IR carrier)",
+        "many 433 MHz weather-station formats"
+      ]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_upstream": ["analyze_iq_symbols"],
+    "tools_downstream": ["hackrf-agent decode_pwm", "rtl_433", "urh"],
+    "see_also": ["decoder-ppm", "decoder-manchester"]
+  },
+  {
+    "id": "decoder-ppm",
+    "name": "PPM (pulse-position modulation)",
+    "aliases": ["pulse-position encoding", "pulse-interval encoding"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtl-433-github", "hackrf-agent-repo"],
+    "technical_body": {
+      "encoding_rule": "A short pulse of fixed width; the *gap* between successive pulses encodes the bit.",
+      "conventions": {
+        "short_gap_long_gap": "0 = short gap, 1 = long gap (or inverse; polarity is vendor-specific)"
+      },
+      "self_clocking": true,
+      "typical_pulse_us": [50, 500],
+      "typical_short_gap_us": [200, 1000],
+      "typical_long_gap_us": [500, 2500],
+      "canonical_use_cases": [
+        "Acurite temperature/humidity 433 MHz",
+        "Oregon Scientific weather V2",
+        "some IR remotes",
+        "ADS-B Mode S PPM at the bit level: 1 us slot, first-half high = 1, second-half high = 0"
+      ]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_upstream": ["analyze_iq_symbols"],
+    "tools_downstream": ["hackrf-agent decode_ppm", "hackrf-agent decode_ads_b", "rtl_433"],
+    "see_also": ["decoder-pwm", "protocol-mode-s-ads-b"]
+  },
+  {
+    "id": "decoder-rz",
+    "name": "RZ (return-to-zero)",
+    "aliases": ["unipolar RZ", "polar RZ"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1950-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "encoding_rule": "Each bit period splits into two halves: the first half carries the level; the second half returns to zero.",
+      "self_clocking": true,
+      "dc_balance": "poor (mean of half symbol on)",
+      "canonical_use_cases": ["some optical PHY", "IR remotes with fixed-duty pulses"]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": [],
+    "see_also": ["decoder-nrz", "decoder-manchester"]
+  },
+  {
+    "id": "decoder-pcm",
+    "name": "PCM (pulse-code modulation)",
+    "aliases": ["straight bit sampling"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1937-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "encoding_rule": "Sample the analog channel at Nyquist rate; represent each sample as an N-bit code word. Source code, not line code - cross-reference only.",
+      "canonical_use_cases": [
+        "u-law/A-law telephony (G.711)",
+        "CD audio (16-bit linear PCM at 44.1 kHz)",
+        "vocoder output feeding a channel code in DMR / TETRA / P25"
+      ],
+      "note": "In an RF context, PCM is the *content* riding on top of an actual channel code (NRZ, Manchester, ...)."
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": [],
+    "see_also": ["decoder-nrz"]
+  },
+  {
+    "id": "decoder-4b5b",
+    "name": "4B/5B block code",
+    "aliases": ["4B/5B", "100BASE-FX encoding"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "encoding_rule": "Map every 4-bit nibble to a 5-bit code word that has at most 3 consecutive 0s and at most 2 consecutive 1s; feed the 5-bit stream into NRZI.",
+      "code_rate": 0.8,
+      "canonical_use_cases": ["100BASE-FX Ethernet PHY", "FDDI physical layer"]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": [],
+    "see_also": ["decoder-nrzi", "decoder-8b10b"]
+  },
+  {
+    "id": "decoder-8b10b",
+    "name": "8B/10B block code",
+    "aliases": ["8B/10B", "IEEE 802.3z encoding"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1983-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "encoding_rule": "Map every 8-bit byte to a 10-bit code word chosen from a set that guarantees DC balance and enough transitions for clock recovery.",
+      "code_rate": 0.8,
+      "canonical_use_cases": ["1000BASE-X Gigabit Ethernet", "Fibre Channel", "PCIe gen1/gen2", "SATA / SAS"]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": [],
+    "see_also": ["decoder-4b5b"]
+  },
+  {
+    "id": "decoder-gardner-timing",
+    "name": "Gardner symbol-timing recovery",
+    "aliases": ["Gardner detector"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1986-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "rice-digital-comm"],
+    "technical_body": {
+      "rule": "Sample twice per symbol; timing error e = Re[(x_mid) * (x_prev - x_curr)^*]. Feeds an NCO that corrects sample instant toward the eye peak.",
+      "signal_types": ["BPSK", "QPSK", "M-PSK"],
+      "advantages": "carrier-independent (only needs I/Q); works with modest SNR",
+      "canonical_use_cases": ["BPSK / QPSK receivers", "GNU Radio symbol_sync block (Gardner variant)"]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": ["gr-osmosdr", "gnuradio"],
+    "see_also": ["decoder-mueller-muller-timing"]
+  },
+  {
+    "id": "decoder-mueller-muller-timing",
+    "name": "Mueller-Muller symbol-timing recovery",
+    "aliases": ["M&M timing", "Mueller-Muller detector"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1976-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "rice-digital-comm"],
+    "technical_body": {
+      "rule": "Decision-directed timing error e = a_{n-1} * y_n - a_n * y_{n-1}. Requires slicer output; one sample per symbol.",
+      "signal_types": ["BPSK", "PAM"],
+      "advantages": "one sample per symbol (efficient); works well post-carrier-recovery"
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": ["gnuradio"],
+    "see_also": ["decoder-gardner-timing"]
+  },
+  {
+    "id": "decoder-matched-filter",
+    "name": "Matched filter",
+    "aliases": ["MF", "optimal linear receiver"],
+    "category": "decoder_family",
+    "region": "universal",
+    "era_bounds": ["1943-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "rule": "Convolve the received signal with a time-reversed conjugate of the transmit pulse shape. Maximizes SNR at the sampling instant for AWGN.",
+      "canonical_pulse_shapes": ["RRC (roll-off 0.2-0.35)", "Gaussian (BT product)"],
+      "canonical_use_cases": ["every PSK/QAM receiver front end", "chip correlation in DSSS", "sync-word detection in packet framing"]
+    },
+    "hackrf_role": "analyze",
+    "blocked_tx": false,
+    "tools_downstream": ["gnuradio", "numpy"],
+    "see_also": ["decoder-gardner-timing", "modulation-bpsk"]
+  }
+]

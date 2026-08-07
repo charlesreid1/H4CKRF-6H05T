@@ -1,0 +1,189 @@
+[
+  {
+    "id": "antenna-quarter-wave-monopole",
+    "name": "Quarter-wave whip / monopole",
+    "aliases": ["1/4-wave whip", "monopole"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["1930-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "hackrf-wiki"],
+    "technical_body": {
+      "length_formula_m": "0.075 / f_MHz",
+      "length_examples": {"433 MHz": "17.3 cm", "915 MHz": "8.2 cm", "1090 MHz": "6.9 cm"},
+      "requires_ground_plane": true,
+      "gain_dbi": 2.15,
+      "canonical_uses": ["general-purpose HackRF whip", "ANT500 stock kit"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-half-wave-dipole"]
+  },
+  {
+    "id": "antenna-half-wave-dipole",
+    "name": "Half-wave dipole",
+    "aliases": ["1/2-wave dipole"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["1920-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "length_formula_m": "0.143 / f_MHz (per element × 2)",
+      "gain_dbi": 2.15,
+      "requires_ground_plane": false,
+      "polarization": "linear (along the dipole axis)",
+      "canonical_uses": ["hand-built ISM RX/TX", "cheap 433 MHz coax pigtail dipole"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-quarter-wave-monopole", "antenna-log-periodic"]
+  },
+  {
+    "id": "antenna-ant500-telescoping",
+    "name": "ANT500 telescoping whip (HackRF kit)",
+    "aliases": ["ANT500", "Great Scott Gadgets telescoping whip"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["2014-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-docs"],
+    "technical_body": {
+      "usable_freq_hz_range": [75000000, 1000000000],
+      "length_range_cm": [20, 88],
+      "connector": "SMA male",
+      "typical_uses": ["HackRF stock antenna for VHF/UHF exploration"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-quarter-wave-monopole"]
+  },
+  {
+    "id": "antenna-log-periodic",
+    "name": "Log-periodic dipole array (LPDA)",
+    "aliases": ["log-periodic"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["1958-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "usable_freq_ratio": "10:1 typical (e.g. 400 MHz - 4 GHz)",
+      "gain_dbi": [6, 9],
+      "polarization": "linear",
+      "canonical_uses": ["directional VHF/UHF field work", "many-band survey antennas"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-yagi", "antenna-discone"]
+  },
+  {
+    "id": "antenna-yagi",
+    "name": "Yagi-Uda array",
+    "aliases": ["Yagi"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["1926-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "gain_dbi": [7, 15],
+      "bandwidth": "narrow (~5-10% of design frequency)",
+      "polarization": "linear (along the elements)",
+      "canonical_uses": ["directional 2m / 70 cm amateur", "1090 MHz ADS-B DIY high-gain"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-log-periodic"]
+  },
+  {
+    "id": "antenna-biquad",
+    "name": "Biquad",
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["2000-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["rtl-sdr-blog"],
+    "technical_body": {
+      "gain_dbi": [10, 12],
+      "beamwidth_deg": 65,
+      "polarization": "linear",
+      "canonical_uses": ["2.4 GHz WiFi and Bluetooth direction finding", "buildable from coax + wire"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-patch"]
+  },
+  {
+    "id": "antenna-patch",
+    "name": "Patch (microstrip)",
+    "aliases": ["microstrip patch"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "gain_dbi": [6, 9],
+      "polarization": "linear or circular (depending on feed)",
+      "canonical_uses": ["1090 MHz ADS-B DIY", "GPS L1 receiver antennas", "compact 2.4 GHz"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-biquad"]
+  },
+  {
+    "id": "antenna-helical-axial",
+    "name": "Helical (axial mode)",
+    "aliases": ["helical"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["1946-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "gain_dbi": [10, 18],
+      "polarization": "circular (right-hand or left-hand depending on winding)",
+      "canonical_uses": ["L-band satellite RX (GPS, GOES, Iridium)"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-patch"]
+  },
+  {
+    "id": "antenna-discone",
+    "name": "Discone",
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["1945-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "usable_freq_ratio": "10:1 typical (e.g. 100 MHz - 1 GHz)",
+      "gain_dbi": [1, 3],
+      "polarization": "vertical",
+      "canonical_uses": ["wideband RX for scanning across VHF/UHF"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-log-periodic"]
+  },
+  {
+    "id": "antenna-rtl-sdr-blog-v3-telescoping",
+    "name": "RTL-SDR blog v3 telescoping antenna",
+    "aliases": ["RTL-SDR blog dipole kit"],
+    "category": "antenna",
+    "region": "universal",
+    "era_bounds": ["2018-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["rtl-sdr-blog"],
+    "technical_body": {
+      "usable_freq_hz_range": [100000000, 1700000000],
+      "form_factor": "small tripod with telescoping dipole elements + SMA feedline",
+      "canonical_uses": ["portable ADS-B + FM broadcast + POCSAG RX"]
+    },
+    "hackrf_role": "antenna",
+    "see_also": ["antenna-ant500-telescoping", "antenna-half-wave-dipole"]
+  }
+]

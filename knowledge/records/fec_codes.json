@@ -1,0 +1,301 @@
+[
+  {
+    "id": "fec-crc-8-ccitt",
+    "name": "CRC-8-CCITT",
+    "aliases": ["CRC-8/CCITT", "CRC-8/ITU"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1961-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "polynomial_hex": "0x07",
+      "polynomial_notation": "x^8 + x^2 + x + 1",
+      "init_hex": "0x00",
+      "reflect_input": false,
+      "reflect_output": false,
+      "xorout_hex": "0x00",
+      "check_value_hex_for_ascii_123456789": "0xF4",
+      "canonical_uses": ["ATM header", "some weather-station telemetry"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-crc-16-ccitt"]
+  },
+  {
+    "id": "fec-crc-16-ccitt",
+    "name": "CRC-16-CCITT (Kermit)",
+    "aliases": ["CRC-CCITT", "CRC-16/KERMIT"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1975-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ax25-spec", "proakis-digital-comm"],
+    "technical_body": {
+      "polynomial_hex": "0x1021",
+      "polynomial_notation": "x^16 + x^12 + x^5 + 1",
+      "init_hex": "0x0000 (Kermit) or 0xFFFF (X.25/HDLC)",
+      "reflect_input": true,
+      "reflect_output": true,
+      "xorout_hex": "0x0000 (Kermit), 0xFFFF (HDLC)",
+      "canonical_uses": ["AX.25 packet FCS (HDLC variant)", "AIS FCS", "Zigbee FCS"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-crc-16-ibm"]
+  },
+  {
+    "id": "fec-crc-16-ibm",
+    "name": "CRC-16-IBM (ANSI / Modbus / USB)",
+    "aliases": ["CRC-16/ARC", "CRC-16/MODBUS"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1960-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "polynomial_hex": "0x8005",
+      "polynomial_notation": "x^16 + x^15 + x^2 + 1",
+      "init_hex": "0xFFFF (Modbus) / 0x0000 (ARC)",
+      "reflect_input": true,
+      "reflect_output": true,
+      "xorout_hex": "0x0000",
+      "canonical_uses": ["Modbus RTU", "USB Token", "many industrial protocols"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-crc-16-ccitt"]
+  },
+  {
+    "id": "fec-crc-24-mode-s",
+    "name": "CRC-24 with Mode S parity",
+    "aliases": ["Mode S PI/AP CRC-24"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtca-do-260b"],
+    "technical_body": {
+      "polynomial_hex": "0xFFF409",
+      "polynomial_notation": "x^24 + x^23 + x^22 + x^21 + x^20 + x^19 + x^18 + x^17 + x^16 + x^15 + x^14 + x^13 + x^12 + x^10 + x^3 + 1",
+      "canonical_uses": ["Mode S / ADS-B parity-interrogator field"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["protocol-mode-s-ads-b"]
+  },
+  {
+    "id": "fec-crc-32",
+    "name": "CRC-32 (Ethernet / gzip)",
+    "aliases": ["CRC-32/ISO-HDLC", "IEEE 802.3 CRC"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1975-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "ieee-802-11"],
+    "technical_body": {
+      "polynomial_hex": "0x04C11DB7",
+      "init_hex": "0xFFFFFFFF",
+      "reflect_input": true,
+      "reflect_output": true,
+      "xorout_hex": "0xFFFFFFFF",
+      "canonical_uses": ["Ethernet FCS", "gzip / zip / PNG", "802.11 FCS"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-crc-16-ibm"]
+  },
+  {
+    "id": "fec-hamming-7-4",
+    "name": "Hamming(7,4)",
+    "aliases": ["Hamming 7,4"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1950-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "code_rate": 0.571,
+      "n": 7,
+      "k": 4,
+      "corrects": "single-bit errors, detects double-bit",
+      "generator_matrix": "systematic G with three parity columns"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-bch-31-21"]
+  },
+  {
+    "id": "fec-bch-31-21",
+    "name": "BCH(31,21) — POCSAG codeword",
+    "aliases": ["POCSAG BCH", "BCH 31-21"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1982-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["itu-r-m-584-2"],
+    "technical_body": {
+      "n": 31,
+      "k": 21,
+      "generator_polynomial": "x^10 + x^9 + x^8 + x^6 + x^5 + x^3 + 1",
+      "corrects": "up to 2 bit errors per codeword",
+      "canonical_uses": ["POCSAG paging codewords"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["protocol-pocsag-1200"]
+  },
+  {
+    "id": "fec-reed-solomon-255-223",
+    "name": "Reed-Solomon (255,223) — CCSDS TM",
+    "aliases": ["RS(255,223)", "CCSDS TM outer code"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1987-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm", "goestools"],
+    "technical_body": {
+      "n": 255,
+      "k": 223,
+      "symbol_size_bits": 8,
+      "corrects_symbols": 16,
+      "canonical_uses": ["Voyager", "CCSDS TM standard outer code", "GOES HRIT outer code"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-convolutional-rate-half-k7"]
+  },
+  {
+    "id": "fec-reed-solomon-iridium",
+    "name": "Reed-Solomon (255,239) — Iridium",
+    "aliases": ["Iridium RS"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1998-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "secondary",
+    "citations": ["iridium-toolkit"],
+    "technical_body": {
+      "n": 255,
+      "k": 239,
+      "symbol_size_bits": 8,
+      "corrects_symbols": 8,
+      "canonical_uses": ["Iridium downlink outer code"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-reed-solomon-255-223"]
+  },
+  {
+    "id": "fec-convolutional-rate-half-k7",
+    "name": "Convolutional code, rate 1/2, K=7 (Voyager / NASA)",
+    "aliases": ["CCSDS convolutional", "K=7 rate 1/2"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1977-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["viterbi-coherent", "proakis-digital-comm"],
+    "technical_body": {
+      "rate": 0.5,
+      "constraint_length": 7,
+      "generators_octal": ["171", "133"],
+      "canonical_uses": ["deep-space telemetry", "CCSDS TM inner code", "digital TV inner code (DVB-S)"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-reed-solomon-255-223"]
+  },
+  {
+    "id": "fec-viterbi-decoder",
+    "name": "Viterbi maximum-likelihood decoder",
+    "aliases": ["Viterbi algorithm"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1967-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["viterbi-coherent"],
+    "technical_body": {
+      "role": "trellis-based ML decoder for convolutional codes; soft-decision variant is standard",
+      "complexity": "exponential in constraint length K"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-convolutional-rate-half-k7"]
+  },
+  {
+    "id": "fec-ldpc",
+    "name": "LDPC codes (mentioned)",
+    "aliases": ["low-density parity check"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1963-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "role": "sparse-parity-check-matrix codes decoded by belief propagation; near Shannon-limit performance at long block lengths",
+      "canonical_uses": ["WiFi 6 (802.11ax) LDPC option", "DVB-S2 / DVB-T2", "5G NR data channel"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-convolutional-rate-half-k7"]
+  },
+  {
+    "id": "fec-crc-16-usb",
+    "name": "CRC-16/USB",
+    "aliases": ["USB Token CRC"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1996-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "polynomial_hex": "0x8005",
+      "init_hex": "0xFFFF",
+      "reflect_input": true,
+      "reflect_output": true,
+      "xorout_hex": "0xFFFF",
+      "canonical_uses": ["USB packet CRC"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-crc-16-ibm"]
+  },
+  {
+    "id": "fec-crc-8-atm-header",
+    "name": "CRC-8 ATM HEC",
+    "aliases": ["ATM Header Error Check"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1987-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "polynomial_hex": "0x07",
+      "init_hex": "0x00",
+      "canonical_uses": ["ATM cell header check"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-crc-8-ccitt"]
+  },
+  {
+    "id": "fec-crc-16-dnp",
+    "name": "CRC-16/DNP",
+    "aliases": ["DNP3 CRC"],
+    "category": "fec_code",
+    "region": "universal",
+    "era_bounds": ["1990-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "polynomial_hex": "0x3D65",
+      "init_hex": "0x0000",
+      "reflect_input": true,
+      "reflect_output": true,
+      "xorout_hex": "0xFFFF",
+      "canonical_uses": ["DNP3 industrial protocol"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["fec-crc-16-ibm"]
+  }
+]

@@ -36,6 +36,7 @@ class RiskAssessor:
     # Duration / dwell caps
     LOW_CAPTURE_DURATION_S = 5.0  # captures ≤ this stay LOW
     LOW_SWEEP_DWELL_S = 2.0  # sweeps ≤ this stay LOW
+    BULK_AGGREGATE_LOW_MAX_S = 30.0  # n_ranges * dwell_s ≤ this stays LOW
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -56,7 +57,7 @@ class RiskAssessor:
             CommandAction.GRANT_LIST,
             CommandAction.AUDIT_QUERY,
             CommandAction.READ_IQ_SUMMARY,
-            CommandAction.DECODE_OOK,
+            CommandAction.PLAY_SEQUENCE,
         ):
             return RiskAssessment(
                 level=RiskLevel.LOW,
@@ -64,9 +65,64 @@ class RiskAssessor:
                 requires_confirmation=False,
             )
 
+        # A2. Knowledge tier — read-only corpus access. Always LOW.
+        # These handlers never touch libhackrf, never cause RF emission,
+        # and never write to disk. Any TX-adjacent knowledge verb added
+        # in the future must NOT be added here — it belongs in its own
+        # tier assessment.
+        if action in (
+            CommandAction.KNOWLEDGE_LIST_TOPICS,
+            CommandAction.KNOWLEDGE_READ,
+            CommandAction.KNOWLEDGE_SEARCH,
+            CommandAction.KNOWLEDGE_LOOKUP_BAND,
+            CommandAction.KNOWLEDGE_LOOKUP_MODULATION,
+            CommandAction.KNOWLEDGE_LOOKUP_PROTOCOL,
+            CommandAction.KNOWLEDGE_LOOKUP_KEYFOB,
+            CommandAction.KNOWLEDGE_LOOKUP_DECODER,
+            CommandAction.KNOWLEDGE_BIBLIOGRAPHY,
+            CommandAction.KNOWLEDGE_RANDOM,
+            CommandAction.KNOWLEDGE_EXPLAIN_SIGNAL,
+            CommandAction.KNOWLEDGE_CROSS_REFERENCE,
+            CommandAction.KNOWLEDGE_VERIFY_CLAIM,
+        ):
+            return RiskAssessment(
+                level=RiskLevel.LOW,
+                reason="read-only knowledge-corpus access",
+                requires_confirmation=False,
+            )
+
+        # A3. Analysis tier — offline DSP on already-captured .iq files.
+        # Always LOW. Cannot touch libhackrf. Handlers enforce that the
+        # iq_path is under the session root before opening.
+        if action in (
+            CommandAction.ANALYZE_IQ_MODULATION,
+            CommandAction.ANALYZE_IQ_SYMBOLS,
+            CommandAction.ANALYZE_IQ_SPECTROGRAM,
+            CommandAction.ANALYZE_IQ_CARRIER_FREQUENCY,
+            CommandAction.DECODE_MANCHESTER,
+            CommandAction.DECODE_PWM,
+            CommandAction.DECODE_PPM,
+            CommandAction.DECODE_NRZ,
+            CommandAction.DECODE_POCSAG,
+            CommandAction.DECODE_ADS_B,
+            CommandAction.DECODE_RTTY,
+            CommandAction.DECODE_AX25,
+            CommandAction.DECODE_APRS,
+        ):
+            return RiskAssessment(
+                level=RiskLevel.LOW,
+                reason="offline IQ analysis; reads from session dir only",
+                requires_confirmation=False,
+            )
+
         # B. SWEEP_SPECTRUM
         if action == CommandAction.SWEEP_SPECTRUM:
             return self._assess_sweep(args)
+
+        # B2. SWEEP_SPECTRUM_BULK — per-range dwell rules; any BLOCKED
+        # range in the list blocks the whole call.
+        if action == CommandAction.SWEEP_SPECTRUM_BULK:
+            return self._assess_sweep_bulk(args)
 
         # C. CAPTURE_IQ
         if action == CommandAction.CAPTURE_IQ:
@@ -153,6 +209,80 @@ class RiskAssessor:
         return RiskAssessment(
             level=RiskLevel.MEDIUM,
             reason="long RX sweep (dwell > 2 s)",
+            requires_confirmation=True,
+        )
+
+    def _assess_sweep_bulk(self, args: dict[str, Any]) -> RiskAssessment:
+        ranges = args.get("ranges")
+        if not isinstance(ranges, list) or len(ranges) < 2:
+            return RiskAssessment(
+                level=RiskLevel.BLOCKED,
+                reason="invalid ranges argument",
+                blocked_reason="sweep_spectrum_bulk needs a list of >=2 ranges",
+                requires_confirmation=False,
+            )
+        # Any range with malformed bounds → BLOCKED.
+        for r in ranges:
+            if not isinstance(r, dict):
+                return RiskAssessment(
+                    level=RiskLevel.BLOCKED,
+                    reason="malformed range entry",
+                    blocked_reason="range entries must be objects",
+                    requires_confirmation=False,
+                )
+            start = r.get("start_freq_hz")
+            end = r.get("end_freq_hz")
+            if not isinstance(start, int) or not isinstance(end, int):
+                return RiskAssessment(
+                    level=RiskLevel.BLOCKED,
+                    reason="malformed range entry",
+                    blocked_reason="each range needs integer start/end_freq_hz",
+                    requires_confirmation=False,
+                )
+            if start >= end:
+                return RiskAssessment(
+                    level=RiskLevel.BLOCKED,
+                    reason="malformed range entry",
+                    blocked_reason=f"range [{start}..{end}] has start >= end",
+                    requires_confirmation=False,
+                )
+
+        dwell_s = self._get_float(args, "dwell_s")
+        if dwell_s is None:
+            dwell_s = 1.0
+
+        # Aggregate cost cap: n_ranges * dwell_s must stay under
+        # BULK_AGGREGATE_LOW_MAX_S for LOW. A hostile fan-out (e.g.
+        # 100 ranges × 1 s dwell) is still 100 s of RX and 100 s of
+        # holding the driver lock even though per-range dwell is 1 s.
+        aggregate_s = len(ranges) * dwell_s
+
+        # LOW only when both per-range dwell is ≤ 2s AND aggregate is
+        # bounded. MEDIUM otherwise. Each range still dispatches as an
+        # independent sub-sweep — that is the parity we want with
+        # SWEEP_SPECTRUM.
+        if (
+            dwell_s <= self.LOW_SWEEP_DWELL_S
+            and aggregate_s <= self.BULK_AGGREGATE_LOW_MAX_S
+        ):
+            return RiskAssessment(
+                level=RiskLevel.LOW,
+                reason="short-dwell bulk RX sweep",
+                requires_confirmation=False,
+            )
+        if aggregate_s > self.BULK_AGGREGATE_LOW_MAX_S and dwell_s <= self.LOW_SWEEP_DWELL_S:
+            return RiskAssessment(
+                level=RiskLevel.MEDIUM,
+                reason=(
+                    f"bulk RX sweep aggregate cost "
+                    f"{aggregate_s:.1f}s exceeds LOW cap "
+                    f"({self.BULK_AGGREGATE_LOW_MAX_S:.0f}s)"
+                ),
+                requires_confirmation=True,
+            )
+        return RiskAssessment(
+            level=RiskLevel.MEDIUM,
+            reason="long-dwell bulk RX sweep (per-range dwell > 2 s)",
             requires_confirmation=True,
         )
 

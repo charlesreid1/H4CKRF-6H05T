@@ -1,0 +1,448 @@
+[
+  {
+    "id": "tool-hackrf-transfer",
+    "name": "hackrf_transfer",
+    "aliases": ["hackrf_transfer CLI"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2014-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-github", "hackrf-docs"],
+    "technical_body": {
+      "role": "CLI RX/TX and IQ file playback for HackRF One",
+      "input_formats": [".cs8", "raw int8 interleaved"],
+      "output_formats": [".cs8"],
+      "notable_flags": ["-r <file> (RX)", "-t <file> (TX)", "-f <hz>", "-s <sample_rate>", "-a <rf_amp>", "-l <lna_gain>", "-g <vga_gain>", "-x <tx_vga_gain>"]
+    },
+    "hackrf_role": "primary-cli",
+    "see_also": ["tool-hackrf-sweep", "tool-hackrf-info"]
+  },
+  {
+    "id": "tool-hackrf-sweep",
+    "name": "hackrf_sweep",
+    "aliases": ["hackrf_sweep CLI"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-github"],
+    "technical_body": {
+      "role": "wide-band spectrum sweep (up to 5 GHz range) with configurable bin width",
+      "output_formats": ["CSV per bin"],
+      "typical_use": "find where a signal lives before doing a narrower capture"
+    },
+    "hackrf_role": "primary-cli",
+    "see_also": ["tool-hackrf-transfer", "tool-qspectrumanalyzer"]
+  },
+  {
+    "id": "tool-hackrf-info",
+    "name": "hackrf_info",
+    "aliases": ["hackrf_info CLI"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2014-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-github"],
+    "technical_body": {
+      "role": "device enumeration + firmware version reporting",
+      "output_formats": ["human-readable text"]
+    },
+    "hackrf_role": "primary-cli",
+    "see_also": ["tool-hackrf-transfer"]
+  },
+  {
+    "id": "tool-hackrf-spiflash",
+    "name": "hackrf_spiflash",
+    "aliases": ["firmware update"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2014-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-github"],
+    "technical_body": {
+      "role": "flash new firmware onto HackRF's LPC4320 host bridge",
+      "safety": "always verify firmware version against Great Scott Gadgets release before flashing"
+    },
+    "hackrf_role": "primary-cli",
+    "see_also": ["tool-hackrf-info"]
+  },
+  {
+    "id": "tool-hackrf-operacake",
+    "name": "hackrf_operacake",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["hackrf-github"],
+    "technical_body": {
+      "role": "manages the Opera Cake antenna-switching add-on",
+      "typical_use": "chain 4 antennas through one HackRF for multi-band monitoring"
+    },
+    "hackrf_role": "primary-cli",
+    "see_also": ["tool-hackrf-transfer"]
+  },
+  {
+    "id": "tool-gnu-radio",
+    "name": "GNU Radio",
+    "aliases": ["gnuradio", "gnuradio-companion", "GRC"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2001-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["gnu-radio-wiki"],
+    "technical_body": {
+      "role": "flow-graph signal-processing framework; GRC is the GUI, Python is the scripting API, C++ is the block-authoring language",
+      "canonical_uses": ["custom demodulators", "gr-osmosdr as universal SDR source", "gr-air-modes, gr-ais, gr-iridium, gr-lora_sdr, gr-pager"]
+    },
+    "hackrf_role": "external-flowgraph-toolkit",
+    "see_also": ["tool-urh", "tool-inspectrum"]
+  },
+  {
+    "id": "tool-urh",
+    "name": "Universal Radio Hacker (URH)",
+    "aliases": ["URH"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2017-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["urh-github", "urh-paper-woot-2018"],
+    "technical_body": {
+      "role": "GUI signal analysis + generation + attack simulation",
+      "input_formats": [".complex", ".cs8", ".cs16", ".cf32", ".wav", "SigMF"],
+      "output_formats": ["same", "URH project files"],
+      "automatic_detection": ["OOK/ASK", "2FSK", "PSK (basic)"],
+      "shells_hackrf": true
+    },
+    "hackrf_relationship": "URH can drive the HackRF directly. In this MCP's design we do NOT shell out to URH; the corpus teaches the operator to run URH themselves and hand the resulting IQ back to the MCP for analysis.",
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-inspectrum", "tool-gnu-radio"]
+  },
+  {
+    "id": "tool-inspectrum",
+    "name": "inspectrum",
+    "aliases": ["inspectrum GUI"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["inspectrum-github"],
+    "technical_body": {
+      "role": "read-only spectrogram + cursor + symbol-rate measurement",
+      "input_formats": [".cs8", ".cs16", ".cf32", ".complex"],
+      "complement_to_urh": "URH edits; inspectrum measures with precision cursors"
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-urh"]
+  },
+  {
+    "id": "tool-rtl-433",
+    "name": "rtl_433",
+    "aliases": ["rtl_433 CLI"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2013-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtl-433-github"],
+    "technical_body": {
+      "role": "sub-GHz OOK/ASK/FSK catalog decoder with ~250 built-in device types",
+      "input_formats": ["rtl-sdr live", ".cs8", ".cs16", ".cu8", ".cf32"],
+      "output_formats": ["JSON", "MQTT", "KV", "syslog"],
+      "notable_flags": ["-R <decoder>", "-A (analyzer mode for reverse-engineering)", "-r <file>"]
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["tool-multimon-ng", "protocol-acurite-592txr"]
+  },
+  {
+    "id": "tool-multimon-ng",
+    "name": "multimon-ng",
+    "aliases": ["multimon"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2012-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["multimon-ng-github"],
+    "technical_body": {
+      "role": "decode legacy analog-audio protocols from 22050 Hz signed-16 PCM (or WAV)",
+      "input_formats": ["-t raw (pipe)", ".wav"],
+      "supported_modes": ["POCSAG 512/1200/2400", "FLEX", "AFSK 1200/2400", "DTMF", "ZVEI", "EEA", "X10"],
+      "notable_flags": ["-a <mode>"]
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["tool-rtl-433", "protocol-pocsag-1200"]
+  },
+  {
+    "id": "tool-dump1090-readsb",
+    "name": "dump1090 / readsb",
+    "aliases": ["dump1090", "readsb"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2012-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["dump1090-readsb"],
+    "technical_body": {
+      "role": "Mode S / ADS-B extended-squitter decoder",
+      "input_formats": ["rtl-sdr live", ".cs8 via --ifile", ".cu8"],
+      "output_formats": ["Beast", "AVR", "SBS-1", "JSON API", "HTTP web UI"]
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["protocol-mode-s-ads-b"]
+  },
+  {
+    "id": "tool-gr-osmosdr",
+    "name": "gr-osmosdr",
+    "aliases": ["osmocom source/sink"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2012-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["osmocom-wiki", "gnu-radio-wiki"],
+    "technical_body": {
+      "role": "universal SDR source/sink block for GNU Radio; talks to HackRF, RTL-SDR, USRP, LimeSDR, PlutoSDR, and more"
+    },
+    "hackrf_role": "external-flowgraph-block",
+    "see_also": ["tool-gnu-radio"]
+  },
+  {
+    "id": "tool-gqrx",
+    "name": "gqrx",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2011-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["gqrx-github"],
+    "technical_body": {
+      "role": "GNU Radio-backed GUI receiver for Linux + macOS",
+      "canonical_uses": ["quick audio listen", "waterfall exploration"]
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-cubicsdr", "tool-sdrpp"]
+  },
+  {
+    "id": "tool-cubicsdr",
+    "name": "CubicSDR",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2014-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["cubicsdr-github"],
+    "technical_body": {
+      "role": "cross-platform LiquidDSP-backed GUI receiver"
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-gqrx", "tool-sdrpp"]
+  },
+  {
+    "id": "tool-sdrpp",
+    "name": "SDR++",
+    "aliases": ["SDR Plus Plus"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2020-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["sdrpp"],
+    "technical_body": {
+      "role": "modern cross-platform GUI SDR with plugin ecosystem"
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-gqrx", "tool-sdrangel"]
+  },
+  {
+    "id": "tool-sdrangel",
+    "name": "SDRAngel",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["sdrangel"],
+    "technical_body": {
+      "role": "multi-platform SDR framework with strong DAB/DVB/LoRa/AIS built-in modes"
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-sdrpp"]
+  },
+  {
+    "id": "tool-sigdigger",
+    "name": "SigDigger",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2019-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["sigdigger-github"],
+    "technical_body": {
+      "role": "GUI signal-analysis suite (spectrum, waterfall, symbol timing, constellation)"
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-inspectrum", "tool-urh"]
+  },
+  {
+    "id": "tool-dsdplus",
+    "name": "DSD+ (DSDPlus)",
+    "aliases": ["DSD+"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["dsdplus"],
+    "technical_body": {
+      "role": "freeware DMR / P25 / dPMR / NXDN voice decoder from discriminated audio",
+      "platform": "Windows"
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["tool-sdrtrunk"]
+  },
+  {
+    "id": "tool-sdrtrunk",
+    "name": "SDRTrunk",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["sdrtrunk-github"],
+    "technical_body": {
+      "role": "cross-platform trunked radio (P25/DMR/NXDN) tracker + decoder",
+      "runtime": "JVM"
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-dsdplus"]
+  },
+  {
+    "id": "tool-fissure",
+    "name": "Fissure",
+    "aliases": ["FISSURE RF Framework"],
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2022-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["fissure-github"],
+    "technical_body": {
+      "role": "RF / SIGINT framework with attack workflows, signal library, and integration hooks"
+    },
+    "hackrf_role": "external-framework",
+    "see_also": ["tool-urh"]
+  },
+  {
+    "id": "tool-satdump",
+    "name": "SatDump",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2021-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["satdump"],
+    "technical_body": {
+      "role": "polar-orbit + geo weather-satellite decoder (Meteor-M LRPT, GOES HRIT, NOAA APT)"
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["protocol-noaa-apt", "protocol-goes-hrit"]
+  },
+  {
+    "id": "tool-goestools",
+    "name": "goestools",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2017-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["goestools"],
+    "technical_body": {
+      "role": "GOES HRIT decoder (predecessor / peer to SatDump for GOES)"
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["tool-satdump"]
+  },
+  {
+    "id": "tool-iridium-toolkit",
+    "name": "iridium-toolkit + gr-iridium",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["iridium-toolkit", "gr-iridium"],
+    "technical_body": {
+      "role": "Iridium L-band downlink frame decoder (Sec-T 2016 lineage)"
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["protocol-iridium"]
+  },
+  {
+    "id": "tool-gr-lora-sdr",
+    "name": "gr-lora_sdr",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2019-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["gr-lora-sdr"],
+    "technical_body": {
+      "role": "LoRa PHY (RX + TX) in GNU Radio; EPFL fork of the earlier gr-lora"
+    },
+    "hackrf_role": "external-flowgraph-block",
+    "see_also": ["modulation-lora-css"]
+  },
+  {
+    "id": "tool-limesuite",
+    "name": "LimeSuite",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["limesuite"],
+    "technical_body": {
+      "role": "LimeSDR host tools + calibration + register-level control"
+    },
+    "hackrf_role": "external-cli",
+    "see_also": ["tool-gr-osmosdr"]
+  },
+  {
+    "id": "tool-pothossdr",
+    "name": "PothosSDR",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2016-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["pothossdr"],
+    "technical_body": {
+      "role": "dataflow SDR framework and Windows binary bundle of GNU Radio + tools"
+    },
+    "hackrf_role": "external-framework",
+    "see_also": ["tool-gnu-radio"]
+  },
+  {
+    "id": "tool-qspectrumanalyzer",
+    "name": "QSpectrumAnalyzer",
+    "category": "sdr_tool",
+    "region": "universal",
+    "era_bounds": ["2015-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "community",
+    "citations": ["hackrf-wiki"],
+    "technical_body": {
+      "role": "GUI over hackrf_sweep / rtl_power for wide-band spectrogram exploration"
+    },
+    "hackrf_role": "external-gui",
+    "see_also": ["tool-hackrf-sweep"]
+  }
+]

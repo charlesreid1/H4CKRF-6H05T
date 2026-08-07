@@ -1,10 +1,57 @@
 # H4CKRF-6H05T
 
-AI control plane for HackRF One — the LLM proposes RF actions; a deterministic
-host-side gate authorizes or refuses each one; every step is audited.
+H4CKRF-6H05T is a HackRF co-pilot: an RF/SIGINT knowledge corpus *and* a
+safety-gated control plane exposed over MCP. It knows the canon (modulation
+families, common ISM/UNII bands, keyfob and paging protocols, decoder pipelines)
+and it can act — safely — on the HackRF One. Every RF action funnels through
+one deterministic `execute_command` chokepoint that classifies risk, checks
+grants, asks for approval, and audits the result. The LLM never touches
+libhackrf.
 
 Inspired by [M0MA-V3SP3R](https://github.com/charlesreid1/M0MA-V3SP3R) but for
 HackRF, with a laptop running Python instead of an Android app on a phone.
+
+---
+
+## What can it do?
+
+Three tiers, from knowing to analyzing to acting:
+
+- **Know** — corpus tools (`knowledge_list_topics`, `knowledge_read`,
+  `knowledge_search`, `knowledge_lookup_band`, `knowledge_lookup_modulation`,
+  `knowledge_verify_claim`). All read-only, all `LOW` risk, cannot cause RF
+  emission.
+- **Analyze** — DSP tools that operate on already-captured `.iq` files
+  (`read_iq_summary`, `analyze_iq_modulation`, `analyze_iq_symbols`,
+  `analyze_iq_spectrogram`, `decode_manchester`, `decode_pwm`, `decode_ppm`,
+  `decode_nrz`, `decode_pocsag`, `decode_ads_b`, `decode_rtty`,
+  `decode_ax25`, `decode_aprs`). All `LOW` risk, cannot touch hardware.
+- **Act** — the HackRF surface (`get_device_info`, `sweep_spectrum`,
+  `capture_iq`, `transmit_iq`, `grant_list`, `audit_query`,
+  `sweep_spectrum_bulk`, `play_sequence`).
+  Every action goes through the funnel below.
+
+---
+
+## Safety funnel
+
+Everything that could conceivably cause RF energy to leave the HackRF, or that
+opens the USB handle, or that reads raw IQ from the device, funnels through
+one deterministic chain:
+
+```
+ExecuteCommand → CommandExecutor.execute()
+                    → RiskAssessor.assess()
+                    → PermissionService.check() (for TX)
+                    → ApprovalPort.request() (for MEDIUM/HIGH)
+                    → HackrfDriver / HackrfSubprocess
+```
+
+There is no second MCP tool that reaches libhackrf. The LLM sees exactly one
+tool, `execute_command`, discriminated by `action`. Knowledge and analysis
+verbs land as new `CommandAction` values with fixed `LOW` risk — they inherit
+the full audit trail and cannot bypass the gate. The funnel invariant is
+stated in full in [docs/architecture.md](docs/architecture.md#the-safety-funnel).
 
 ---
 
@@ -14,6 +61,23 @@ HackRF, with a laptop running Python instead of an Android app on a phone.
 guarantee legality — you are responsible for FCC compliance (or your local
 regulator) in your jurisdiction. Read
 **[docs/safety.md](docs/safety.md)** before your first TX.
+
+---
+
+## Repo map
+
+```
+src/hackrf_agent/    the safety-gated MCP + CLI (installable Python package)
+knowledge/           the RF/SIGINT corpus (markdown + records/*.json)
+skills/hackrf/       the SKILL.md that tells an assistant to use the MCP
+scripts/             user-facing shell/Python helpers (schema regen, fixtures)
+docs/                long-form guides (architecture, safety, MCP host setup)
+schemas/             JSON Schema for the execute_command envelope + records
+tests/               unit + integration + mcp + e2e
+```
+
+See [knowledge/MANIFEST.md](knowledge/MANIFEST.md) for the corpus contents
+and layout.
 
 ---
 
@@ -219,21 +283,48 @@ how approval works over MCP elicitation, resource URIs, and safety caveats.
 
 ## Documentation
 
-- **[docs/architecture.md](docs/architecture.md)** — how the pieces fit together.
-  The layer diagram, module map, risk-tier table, envelope schema, audit-log
-  schema, and data-flow for one command.
+**Getting started + reference**
+
+- **[docs/cli.md](docs/cli.md)** — user-facing command reference.
+- **[docs/mcp.md](docs/mcp.md)** — use HackRF from any MCP-aware host (Claude
+  Desktop, Claude Code, Cursor, OpenCode, `mcp-cli`, …). Tool list, host config
+  snippets, approval flow, resources, and safety caveats.
 - **[docs/safety.md](docs/safety.md)** — what the risk gate does, and does not,
   protect. FCC citations, plain-English risk tiers, the grant model, the kill
   switch, and incident response.
 - **[docs/execute_command_schema.md](docs/execute_command_schema.md)** — the
   LLM's one tool. One section per `CommandAction` with purpose, args, example,
   and risk tier. Auto-generated from the code.
-- **[docs/mcp.md](docs/mcp.md)** — use HackRF from any MCP-aware host (Claude
-  Desktop, Claude Code, Cursor, OpenCode, `mcp-cli`, …). Tool list, host config
-  snippets, approval flow, resources, and safety caveats.
+- **[docs/env_reference.md](docs/env_reference.md)** — every env var, every
+  `config.toml` key, every CLI flag in one table with precedence rules.
+
+**For CTF operators**
+
+- **[docs/ctf_playbook.md](docs/ctf_playbook.md)** — first-60-seconds triage
+  strategy for a mystery frequency or IQ file.
+- **[docs/ctf_recipes.md](docs/ctf_recipes.md)** — six end-to-end walkthroughs:
+  unknown keyfob, POCSAG page hunt, LoRa CSS, APRS packet, spectrogram stego,
+  mystery-modulation IQ.
+- **[docs/rf_cheatsheet.md](docs/rf_cheatsheet.md)** — one-page band and
+  modulation reference.
+- **[docs/field_kit.md](docs/field_kit.md)** — DEF CON prep: what to bring,
+  home rehearsal, offline fallback when venue wifi dies.
+- **[docs/prompting.md](docs/prompting.md)** — how to talk to the co-pilot
+  productively: templates, steering, anti-patterns.
+- **[docs/iq_handling.md](docs/iq_handling.md)** — IQ file formats, size math,
+  handoffs to Inspectrum / URH / GQRX / SigMF.
+- **[docs/warmup.md](docs/warmup.md)** — smoke-test sequence to verify the
+  stack is healthy before an event.
+- **[docs/troubleshooting.md](docs/troubleshooting.md)** — symptom → fix FAQ
+  for when something breaks mid-event.
+
+**Contributors**
+
+- **[docs/architecture.md](docs/architecture.md)** — how the pieces fit together.
+  The layer diagram, module map, risk-tier table, envelope schema, audit-log
+  schema, and data-flow for one command.
 - **[docs/development.md](docs/development.md)** — contributor guide. Setup,
   test tiers, "add a new CommandAction" checklist, CI runners, release process.
-- **[docs/cli.md](docs/cli.md)** — user-facing command reference.
 - **[docs/ai-package.md](docs/ai-package.md)** — contributor reference for the
   `hackrf_agent.ai` package.
 - **[docs/tests.md](docs/tests.md)** — how to run each test tier, and what the

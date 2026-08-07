@@ -52,6 +52,18 @@ class AuditRow:
     duration_ms: int | None
 
 
+@dataclass(frozen=True)
+class AuditStats:
+    """Summary of the audit DB — row count, on-disk size, and the timestamp
+    range covered. All timestamps are Unix epoch seconds, UTC.
+    """
+
+    row_count: int
+    size_bytes: int
+    oldest_ts: float | None
+    newest_ts: float | None
+
+
 # ---------------------------------------------------------------------------
 # Service
 # ---------------------------------------------------------------------------
@@ -163,6 +175,84 @@ class AuditService:
         rows = list(reversed(rows))
 
         return [self._row_to_audit(r) for r in rows]
+
+    # -- maintenance ---------------------------------------------------------
+
+    async def stats(self) -> AuditStats:
+        """Return a snapshot of the audit DB: row count, size on disk, and
+        the timestamp range covered. Safe to call while the writer is
+        running — uses a fresh read connection.
+        """
+        async with open_connection(self._db_path) as conn, conn.execute(
+            "SELECT COUNT(*), MIN(timestamp), MAX(timestamp) FROM audit;"
+        ) as cur:
+            row = await cur.fetchone()
+        row_count = int(row[0]) if row else 0
+        oldest = float(row[1]) if row and row[1] is not None else None
+        newest = float(row[2]) if row and row[2] is not None else None
+        try:
+            size = Path(self._db_path).stat().st_size
+        except FileNotFoundError:
+            size = 0
+        return AuditStats(
+            row_count=row_count,
+            size_bytes=size,
+            oldest_ts=oldest,
+            newest_ts=newest,
+        )
+
+    async def rotate(
+        self,
+        *,
+        keep_days: int,
+        session_id: str = "rotate",
+        vacuum: bool = True,
+    ) -> int:
+        """Delete rows older than *keep_days*; optionally VACUUM afterwards.
+
+        Logs a ``ROTATED`` audit event *before* the deletes so the audit
+        trail itself records the rotation (payload has the cutoff
+        timestamp and pre-rotation row count).
+
+        Returns the number of rows deleted.
+        """
+        if keep_days <= 0:
+            raise ValueError(f"keep_days must be positive, got {keep_days}")
+        if not self._started:
+            raise RuntimeError("AuditService.rotate() called before start()")
+
+        cutoff_ts = time.time() - (keep_days * 86400.0)
+        stats_before = await self.stats()
+
+        # Log ROTATED first so the audit trail records the intent.
+        await self.log(
+            make_event(
+                trace_id=uuid4(),
+                session_id=session_id,
+                event=AuditEventType.ROTATED,
+                payload={
+                    "keep_days": keep_days,
+                    "cutoff_ts": cutoff_ts,
+                    "row_count_before": stats_before.row_count,
+                    "vacuum": vacuum,
+                },
+            )
+        )
+        # Drain the writer queue so the ROTATED event lands before the
+        # delete happens (delete is on its own connection).
+        # Give the writer loop a chance to run.
+        while not self._queue.empty():
+            await asyncio.sleep(0)
+
+        async with open_connection(self._db_path) as conn:
+            async with conn.execute(
+                "DELETE FROM audit WHERE timestamp < ?;", (cutoff_ts,)
+            ) as cur:
+                deleted = cur.rowcount
+            await conn.commit()
+            if vacuum:
+                await conn.execute("VACUUM;")
+        return int(deleted or 0)
 
     # -- internals -----------------------------------------------------------
 

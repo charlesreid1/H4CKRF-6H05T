@@ -1,0 +1,178 @@
+[
+  {
+    "id": "symbol-manchester-ieee",
+    "name": "Manchester (IEEE 802.3 convention)",
+    "aliases": ["biphase-L IEEE", "Manchester IEEE"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1980-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ieee-802-11", "proakis-digital-comm"],
+    "technical_body": {
+      "rule": "0 = low-to-high mid-bit; 1 = high-to-low mid-bit",
+      "dc_balance": true,
+      "self_clocking": true,
+      "canonical_uses": ["10BASE-T Ethernet", "many 315/433 MHz keyfobs when documented as IEEE"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["symbol-manchester-thomas", "decoder-manchester"]
+  },
+  {
+    "id": "symbol-manchester-thomas",
+    "name": "Manchester (G.E. Thomas convention)",
+    "aliases": ["biphase-L Thomas", "Wikipedia Manchester"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1949-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "rule": "0 = high-to-low mid-bit; 1 = low-to-high mid-bit (inverse of IEEE)",
+      "note": "Try both if a keyfob decode gives garbage — invert bits and re-check the sync word."
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["symbol-manchester-ieee", "decoder-manchester"]
+  },
+  {
+    "id": "symbol-diff-manchester",
+    "name": "Differential Manchester",
+    "aliases": ["biphase-M", "biphase-S", "Miller-1"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1960-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "rule": "Mid-bit transition always present. Bit encoded by presence/absence of start-of-bit transition.",
+      "polarity_independent": true,
+      "canonical_uses": ["Token Ring 802.5", "ISO 14443 type A uplink"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["symbol-manchester-ieee", "decoder-diff-manchester"]
+  },
+  {
+    "id": "symbol-nrz-l",
+    "name": "NRZ-L (non-return-to-zero, level)",
+    "aliases": ["NRZ", "polar NRZ"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1950-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "rule": "Level = bit; no mid-bit transition",
+      "self_clocking": false,
+      "dc_balance": false
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["decoder-nrz", "symbol-nrzi-m"]
+  },
+  {
+    "id": "symbol-nrzi-m",
+    "name": "NRZI-mark (transition = 1)",
+    "aliases": ["NRZ-M", "HDLC line code"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1975-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ax25-spec", "proakis-digital-comm"],
+    "technical_body": {
+      "rule": "Transition at start-of-bit = 1; no transition = 0",
+      "canonical_uses": ["HDLC / AX.25 packet radio", "USB PHY"],
+      "bit_stuffing_required": "yes for HDLC (insert 0 after 5 ones)"
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["decoder-nrzi", "decoder-hdlc-bit-stuffing"]
+  },
+  {
+    "id": "symbol-rz",
+    "name": "RZ (return-to-zero)",
+    "aliases": ["unipolar RZ"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1950-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "rule": "Half symbol at level, half at zero. Self-clocking on 1-bits (via the transition to zero).",
+      "dc_balance": false
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["symbol-nrz-l", "decoder-rz"]
+  },
+  {
+    "id": "symbol-pwm",
+    "name": "Pulse-Width Modulation (bit-level)",
+    "aliases": ["PWM"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtl-433-github"],
+    "technical_body": {
+      "rule": "Fixed-period pulse; high/low duty ratio encodes the bit",
+      "canonical_uses": ["Chamberlain garage-door legacy", "cheap 433 MHz doorbells", "IR remotes (NEC, RC-5)"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["decoder-pwm", "symbol-ppm"]
+  },
+  {
+    "id": "symbol-ppm",
+    "name": "Pulse-Position Modulation (bit-level)",
+    "aliases": ["PPM"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1970-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["rtl-433-github", "rtca-do-260b"],
+    "technical_body": {
+      "rule": "Short fixed pulse; the gap between pulses encodes the bit (or, in ADS-B, position within the 1 us slot)",
+      "canonical_uses": ["Acurite / Oregon Scientific weather", "ADS-B Mode S at the bit level"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["decoder-ppm", "symbol-pwm"]
+  },
+  {
+    "id": "symbol-4b5b",
+    "name": "4B/5B block code",
+    "aliases": ["4B/5B"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1985-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["proakis-digital-comm"],
+    "technical_body": {
+      "rule": "Map every 4-bit nibble to a 5-bit code word (fixed lookup) that limits max run length; feed into NRZI",
+      "code_rate": 0.8,
+      "canonical_uses": ["100BASE-FX Ethernet", "FDDI"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["symbol-nrzi-m", "decoder-4b5b"]
+  },
+  {
+    "id": "symbol-hdlc-bit-stuffing",
+    "name": "HDLC bit-stuffing",
+    "aliases": ["zero-bit insertion"],
+    "category": "symbol_encoding",
+    "region": "universal",
+    "era_bounds": ["1975-01-01", null],
+    "still_effective_2026": true,
+    "confidence": "primary",
+    "citations": ["ax25-spec"],
+    "technical_body": {
+      "rule": "Insert a 0 after every 5 consecutive 1s in the payload. Flag byte 0x7E is unambiguous.",
+      "canonical_uses": ["HDLC WAN links", "AX.25 packet radio", "AIS"]
+    },
+    "hackrf_role": "analyze",
+    "see_also": ["decoder-hdlc-bit-stuffing", "symbol-nrzi-m"]
+  }
+]

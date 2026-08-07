@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-03-v1"
+SYSTEM_PROMPT_VERSION: str = "2026-08-07-v11"
 
 TOOL_NAME: str = "execute_command"
 
@@ -61,8 +61,8 @@ Every command passes through a host-side risk gate. The gate classifies your
 command into one of four tiers:
 
 - **LOW** — Read-only informational commands: get_device_info, grant_list,
-  audit_query, read_iq_summary, decode_ook, sweep_spectrum with dwell_s ≤ 2 s,
-  and capture_iq with duration_s ≤ 5 s. Executed immediately; no operator
+  audit_query, read_iq_summary, sweep_spectrum with dwell_s ≤ 2 s, and
+  capture_iq with duration_s ≤ 5 s. Executed immediately; no operator
   approval needed.
 - **MEDIUM** — Longer RX (sweeps with dwell_s > 2 s, captures with
   duration_s > 5 s), or a TX in an ISM band that is either covered by an
@@ -103,6 +103,12 @@ Available actions and their required args:
 - **sweep_spectrum** — args: start_freq_hz (int), end_freq_hz (int), plus
   optional sample_rate_hz, lna_gain_db, vga_gain_db, rf_amp_db, dwell_s,
   fft_size. Returns magnitude spectrum with detected peaks.
+- **sweep_spectrum_bulk** — args: ranges (list of {start_freq_hz,
+  end_freq_hz}, length 2-8), plus the same optional sample_rate_hz /
+  lna_gain_db / vga_gain_db / rf_amp_db / dwell_s / fft_size (shared
+  across all ranges). Runs 2-8 sweeps back-to-back and returns
+  per-range peaks + noise floors. Per-range risk classification
+  applies via the driver's frequency_policy guard.
 - **capture_iq** — args: target_freq_hz (int — frequency of interest) OR
   center_freq_hz (int — raw tuner center), duration_s (float), plus
   optional sample_rate_hz, lna_gain_db, vga_gain_db, rf_amp_db. Captures raw
@@ -121,11 +127,157 @@ Available actions and their required args:
 - **read_iq_summary** — args: iq_path (str), center_freq_hz (int), plus
   optional sample_rate_hz. Returns statistical summary of an IQ file without
   re-capturing.
-- **decode_ook** — args: iq_path (str). Attempts on-off keying demodulation
-  on captured IQ data.
 - **grant_list** — args: {} — Lists currently active TX grants.
 - **audit_query** — args: optional session_id (str), limit (int). Reads the
   audit log for past commands in this session.
+
+== Analysis Tier (LOW risk, offline DSP) ==
+
+The following actions run offline DSP on already-captured ``.iq`` files.
+Every one is hardcoded LOW risk, cannot cause RF emission, and cannot
+touch libhackrf. Feed them files produced by ``capture_iq``.
+
+- **analyze_iq_modulation** — args: iq_path (str), sample_rate_hz (int,
+  default 2000000). Moment-based modulation classifier. Returns a ranked
+  list of candidate families (OOK / 2FSK / FM-PSK / AM-QAM) with a
+  heuristic confidence and a note. Not ML-trained — treat as a starting
+  point for the LLM's own reasoning, not a definitive verdict.
+- **analyze_iq_symbols** — args: iq_path (str), sample_rate_hz (int),
+  optional min_rate_hz + max_rate_hz. Estimate symbol rate via
+  magnitude-squared autocorrelation. Returns ``symbol_rate_hz`` and a
+  confidence score.
+- **analyze_iq_spectrogram** — args: iq_path (str), sample_rate_hz (int),
+  fft_size (int, default 1024), overlap (float, default 0.5), max_slices
+  (int, default 512). Returns per-slice peak-frequency + peak-power arrays
+  (never the full FFT matrix — that would flood the context).
+- **analyze_iq_carrier_frequency** — args: iq_path (str), sample_rate_hz
+  (int), fft_size (int, default 8192). Refines the actual carrier
+  offset within a capture via parabolic-interpolated FFT peak. Returns
+  ``carrier_offset_hz`` (from baseband centre), ``peak_dbfs``,
+  ``bin_resolution_hz``, and ``confidence`` in dB. Useful for
+  unlocking a decoder that assumed the wrong offset — e.g., a POCSAG
+  decoder expecting mark at +4.5 kHz when the actual transmitter is
+  at +3.8 kHz.
+- **decode_manchester** — args: iq_path (str), sample_rate_hz (int),
+  symbol_rate_hz (float), polarity ('ieee' or 'thomas'). Manchester line
+  code over an OOK envelope. Returns bits + invalid-pair count.
+- **decode_pwm** — args: iq_path (str), sample_rate_hz (int), short_us
+  (float), long_us (float). Pulse-width-modulation decoder — bit 0 is a
+  ``short_us`` ON pulse, bit 1 is ``long_us``.
+- **decode_ppm** — args: iq_path (str), sample_rate_hz (int), pulse_us
+  (float). Pulse-position modulation — pulse in the first half of the
+  ``2*pulse_us`` symbol slot is 1; second half is 0.
+- **decode_nrz** — args: iq_path (str), sample_rate_hz (int),
+  symbol_rate_hz (float), variant ('nrz' or 'nrzi'), inverted (bool).
+  NRZ level-encoded bits, or NRZI where transitions = 1.
+- **decode_pocsag** — args: iq_path (str), sample_rate_hz (int),
+  baud (int in {512, 1200, 2400}, default 1200). POCSAG paging
+  decoder. Returns per-message ``ric``, ``function``, and both
+  numeric-BCD and 7-bit-ASCII payload strings — the caller picks the
+  interpretation the payload looks like. Also reports the sync-word
+  offsets and per-codeword BCH validity.
+- **decode_ads_b** — args: iq_path (str), sample_rate_hz (int, must be
+  >= 2 MHz for 0.5 μs chip resolution), max_frames (int). Mode S /
+  ADS-B extended-squitter decoder for 1090 MHz captures. Returns
+  per-frame ``df``, ``icao24_hex``, ``raw_hex``, ``crc_ok``. **TX on
+  1090 MHz stays BLOCKED regardless — this verb only decodes
+  already-captured RX data.**
+- **decode_rtty** — args: iq_path (str), sample_rate_hz (int),
+  baud (float, default 45.45), invert (bool). Baudot ITA2 5-bit RTTY
+  over 2FSK. Returns decoded text with LTRS/FIGS shift-state tracking
+  plus framing-error count. Try ``invert=true`` if the decoded text is
+  nonsense but ``num_characters`` is nonzero.
+- **decode_ax25** — args: iq_path (str), sample_rate_hz (int),
+  baud (float, default 1200), invert (bool). AX.25 packet-radio decoder
+  (HDLC over Bell 202 AFSK-1200 or direct FSK-9600). Returns per-frame
+  destination/source/digipeaters, control, PID, info bytes (hex +
+  ASCII), and CRC-16-CCITT status.
+- **decode_aprs** — same args as decode_ax25. Decodes AX.25 UI frames
+  then interprets the info-field as APRS. Recognized data-type
+  identifiers: ``!``/``=`` (position without timestamp), ``/``/``@``
+  (position with timestamp), ``>`` (status), ``:`` (message), ``;``
+  (object), ``T`` (telemetry). Adds parsed lat/lon or message body per
+  frame under ``aprs``.
+
+Analysis verbs are the composition layer between raw IQ and a decoded
+bitstream. A typical CTF flow: ``capture_iq`` -> ``analyze_iq_modulation``
+-> ``analyze_iq_symbols`` -> the appropriate ``decode_*`` verb.
+
+== Knowledge Tier (LOW risk, read-only) ==
+
+The following actions read from the on-disk RF/SIGINT corpus under
+``knowledge/``. Every one is hardcoded LOW risk, cannot cause RF emission,
+and cannot touch libhackrf. Prefer these over model-weight recall whenever
+a factual RF question can be answered from the corpus.
+
+- **knowledge_list_topics** — args: {} — Enumerate every topic dir under
+  ``knowledge/`` and its markdown files. Use to orient before reading.
+- **knowledge_read** — args: topic (str), name (str). Return one markdown
+  file's contents. ``topic`` is a directory name like ``dsp`` or ``ism-433``;
+  ``name`` is a filename like ``README.md`` or ``reference.md``.
+- **knowledge_search** — args: query (str), optional max_results (int,
+  default 20). Case-insensitive substring search across every corpus
+  markdown. Prefer a ``knowledge_lookup_*`` verb over free-text search when
+  a typed lookup fits the question.
+- **knowledge_lookup_band** — args: freq_hz (int). Return the ``bands.json``
+  record(s) covering ``freq_hz`` — regulatory basis, ``blocked_tx`` flag,
+  common denizens. Use for "what's on this frequency?"
+- **knowledge_lookup_modulation** — args: name (str). Return the
+  ``modulations.json`` record for a named modulation family (OOK, 2FSK,
+  GFSK, MSK, GMSK, BPSK, QPSK, QAM, OFDM, LoRa-CSS, …). Use for demod
+  pipeline lookup.
+- **knowledge_lookup_protocol** — args: name (str). Return the
+  ``protocols.json`` record for a named protocol (POCSAG, FLEX, Mode S,
+  AX.25, APRS, LoRaWAN, DMR, TETRA, P25, Zigbee/802.15.4, RTTY, …). Use
+  when the operator asks about framing, timing, or which decoder verb
+  to run.
+- **knowledge_lookup_keyfob** — args: vendor (str, optional), model (str,
+  optional). At least one must be provided. Returns keyfob-system
+  records with fixed/rolling status, Keeloq generation, replay-research
+  notes. Use when triaging a captured keyfob burst.
+- **knowledge_lookup_decoder** — args: name (str). Return the
+  ``decoders.json`` record for a decoder family (Manchester,
+  differential Manchester, NRZ, NRZI, PWM, PPM, PCM). Each record
+  points at the corresponding analyze_iq_* / decode_* verb.
+- **knowledge_bibliography** — args: cite_id (str, optional). Resolve
+  one bibliography record, or list them all when omitted. Every
+  knowledge citation resolves through this shared bibliography.
+- **knowledge_random** — args: seed (int, optional). Return one random
+  markdown file. Useful when the assistant needs a starting point or
+  wants to check corpus breadth. Optional deterministic seed for tests.
+- **knowledge_explain_signal** — args: freq_hz (int, optional), bw_hz
+  (int, optional), modulation_guess (str, optional), max_results (int,
+  default 5). At least one hint required. Ranks candidates from
+  ``known_signals.json``. Feed it the output of a sweep or spectrogram
+  summary to get "here's what this probably is."
+- **knowledge_cross_reference** — args: record_id (str). Traverse the
+  ``see_also`` field across every records/*.json file. Returns the root
+  record plus every referenced record, with any unresolved ids called
+  out. Use to follow the corpus's own cross-links.
+- **knowledge_verify_claim** — args: text (str). Grade a factual claim as
+  ``true``/``false``/``needs_qualification``/``unverified`` against a trap
+  catalog. Caveat ``unverified`` claims to the operator — the corpus does
+  not confirm them.
+
+== Composition Tier (LOW risk, per-step funnel) ==
+
+- **play_sequence** — args: steps (list of {action, args}, length 2-8),
+  stop_on_error (bool, default true). Chains sub-actions through the
+  funnel in order. Each sub-action gets its own risk assessment,
+  permission check, approval flow, and audit trail — no batching
+  bypass. play_sequence itself is LOW; a TX inside a sequence still
+  blocks on approval as if bare. play_sequence cannot nest.
+
+  Use for pipelines where the sub-actions are pre-known — e.g.
+  ``[{"action": "analyze_iq_modulation", "args": {"iq_path": "..."}},
+    {"action": "analyze_iq_symbols", "args": {"iq_path": "..."}},
+    {"action": "decode_manchester", "args": {"iq_path": "...",
+    "symbol_rate_hz": 2000}}]``.
+
+  Do NOT try to chain ``capture_iq`` into a decode step inside a single
+  play_sequence — the iq_path from capture_iq is only known after the
+  capture completes. Instead, run capture_iq alone, then a play_sequence
+  over the analysis pipeline.
 
 == Operating Discipline ==
 
