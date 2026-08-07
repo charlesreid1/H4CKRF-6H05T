@@ -49,15 +49,43 @@ command funnels through the same deterministic chokepoint.
 
 ---
 
+## The safety funnel
+
+Everything that could cause RF energy to leave the HackRF, or that
+opens the USB handle, or that reads raw IQ from the device, funnels
+through one deterministic chain:
+
+```
+ExecuteCommand → CommandExecutor.execute()
+                    → RiskAssessor.assess()
+                    → PermissionService.check() (for TX)
+                    → ApprovalPort.request() (for MEDIUM/HIGH)
+                    → HackrfDriver / HackrfSubprocess
+```
+
+There is no second MCP tool that reaches libhackrf. The LLM sees exactly
+one tool, `execute_command`, discriminated by `action`. Knowledge and
+analysis verbs land as new `CommandAction` values with fixed `LOW` risk —
+they inherit the full audit trail and cannot bypass the gate.
+
+---
+
 ## Module map
 
 | Package | Purpose |
 |---------|---------|
-| `hackrf_agent.ai` | LLM plumbing: `HackrfAgent` conversation loop, `LLMClient` protocol + OpenRouter impl, system prompt, `ResultFormatter` |
-| `hackrf_agent.domain` | The chokepoint and its dependencies: `CommandExecutor`, `RiskAssessor`, `FrequencyPolicy`, `PermissionService`, `AuditService`, `ApprovalPort`, `SessionPaths`, `models.py` |
-| `hackrf_agent.hw` | HackRF drivers: `HackrfDriver` (pyhackrf primary), `HackrfSubprocess` (escape hatch), `dsp.py` (FFT, peak detect, decoders) |
+| `hackrf_agent.ai` | LLM plumbing: `HackrfAgent` conversation loop, `LLMClient` protocol + OpenRouter impl, system prompt |
+| `hackrf_agent.domain` | The chokepoint and its dependencies: `CommandExecutor`, `RiskAssessor`, `FrequencyPolicy`, `PermissionService`, `AuditService`, `ApprovalPort`, `SessionPaths`, `ResultFormatter`, `handlers.py`, `models.py`. The **knowledge** tier (`knowledge_*` verbs) is implemented in `domain/knowledge.py`. The **analyze** tier (`analyze_iq_*`, `decode_*` verbs) is dispatched from `handlers.py` and runs on captured `.iq` files. |
+| `hackrf_agent.hw` | HackRF drivers: `HackrfDriver` (pyhackrf primary), `HackrfSubprocess` (escape hatch), `dsp.py` (FFT, peak detect), `analysis.py` (protocol decoders — POCSAG, ADS-B, RTTY, AX.25/APRS, Manchester, PWM, PPM, NRZ) |
 | `hackrf_agent.cli` | Human interface: Typer app, approval prompts, kill switch, grant commands, audit inspection |
+| `hackrf_agent.mcp` | MCP server: `server.py`, `tool_registry.py` (one MCP tool per `CommandAction`), `resources.py`, `approval_port.py` (elicitation-backed) |
 | `hackrf_agent.data` | Persistence: `db.py` (connection factory, migrations), `schema.sql` (DDL) |
+
+Three tiers of verbs share one funnel:
+
+- **Know** — `knowledge_*` verbs. Read-only, land in `domain/knowledge.py`, hardcoded LOW. Reads files under `knowledge/`.
+- **Analyze** — `read_iq_summary`, `analyze_iq_*`, `decode_*`. Read-only over captured IQ files. Land in `handlers.py` and `hw/analysis.py`. Hardcoded LOW.
+- **Act** — `get_device_info`, `sweep_spectrum`, `sweep_spectrum_bulk`, `capture_iq`, `transmit_iq`, `play_sequence`, `grant_list`, `audit_query`. Every RF-adjacent action goes through the funnel above.
 
 ---
 
@@ -81,7 +109,7 @@ Every `ExecuteCommand` is classified by the `RiskAssessor` into one of four tier
 
 | Tier | Meaning | Examples |
 |------|---------|----------|
-| **LOW** | Read-only, no TX, bounded duration. Executed immediately. | `get_device_info`, `sweep_spectrum` (dwell ≤ 2 s), `capture_iq` (duration ≤ 5 s), `grant_list`, `audit_query`, `read_iq_summary`, `decode_ook` |
+| **LOW** | Read-only, no TX, bounded duration. Executed immediately. | `get_device_info`, `sweep_spectrum` (dwell ≤ 2 s), `capture_iq` (duration ≤ 5 s), `grant_list`, `audit_query`, `read_iq_summary`, `analyze_iq_modulation`, `analyze_iq_symbols`, `analyze_iq_spectrogram`, `analyze_iq_carrier_frequency`, `decode_manchester`, `decode_pwm`, `decode_ppm`, `decode_nrz`, `decode_pocsag`, `decode_ads_b`, `decode_rtty`, `decode_ax25`, `decode_aprs`, all `knowledge_*` verbs |
 | **MEDIUM** | Longer capture, higher gain, disk writes, TX in known-safe hobby bands within an active grant. Requires operator approval (single `y` keypress). | `capture_iq` > 5 s, `sweep_spectrum` dwell > 2 s, `transmit_iq` in ISM band with gain ≤ 30 dB |
 | **HIGH** | TX anywhere non-trivial, high gain, unclassified band, amateur band. Requires explicit operator confirmation (type `CONFIRM`). | `transmit_iq` with gain > 30 dB in ISM, TX in amateur bands, TX in unclassified frequencies |
 | **BLOCKED** | Protected bands, illegal ranges. Refused by the host — the LLM cannot override. | ADS-B 1090 MHz, GPS L1/L2, aviation voice 118–137 MHz, maritime distress 156.8 MHz, cellular downlink |
