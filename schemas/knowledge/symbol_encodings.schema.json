@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "symbol_encodings.schema.json",
+  "title": "symbol_encodings.json",
+  "type": "array",
+  "items": {
+    "allOf": [
+      {
+        "$ref": "envelope.schema.json"
+      },
+      {
+        "properties": {
+          "category": {
+            "const": "symbol_encoding"
+          },
+          "citations": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "citations"
+        ]
+      }
+    ]
+  }
+}

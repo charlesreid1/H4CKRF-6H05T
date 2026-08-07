@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sdr_tools.schema.json",
+  "title": "sdr_tools.json",
+  "type": "array",
+  "items": {
+    "allOf": [
+      {
+        "$ref": "envelope.schema.json"
+      },
+      {
+        "properties": {
+          "category": {
+            "const": "sdr_tool"
+          },
+          "citations": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "citations"
+        ]
+      }
+    ]
+  }
+}
