@@ -122,6 +122,29 @@ async def _grant_revoke(settings: SettingsService, grant_id: UUID) -> None:
         _console.print(f"[dim]Grant {grant_id} not found or already revoked.[/]")
 
 
+@grant_app.command("revoke-all")
+def grant_revoke_all(ctx: typer.Context = typer.Context) -> None:  # type: ignore[assignment]
+    """Revoke every active TX grant. CLI companion to the runtime kill switch.
+
+    Useful when closing the laptop between sessions and wanting to be sure
+    no grant is still active. Non-active (expired or already-revoked)
+    grants are unaffected.
+    """
+    settings = _settings_from_ctx(ctx)
+    asyncio.run(_grant_revoke_all(settings))
+
+
+async def _grant_revoke_all(settings: SettingsService) -> None:
+    settings.home_dir.mkdir(parents=True, exist_ok=True)
+    await ensure_schema(settings.db_path)
+    perms = PermissionService(settings.db_path)
+    count = await perms.revoke_all_tx()
+    if count == 0:
+        _console.print("[dim]No active grants to revoke.[/]")
+    else:
+        _console.print(f"[yellow]Revoked {count}[/] active TX grant(s).")
+
+
 def _settings_from_ctx(ctx: typer.Context) -> SettingsService:
     """Read the SettingsService the top-level main.py stored in ctx.obj."""
     settings = getattr(ctx, "obj", None)

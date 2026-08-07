@@ -184,3 +184,39 @@ class TestGrantRevoke:
         )
         assert result.exit_code == 0
         assert "not found or already revoked" in result.stdout
+
+
+class TestGrantRevokeAll:
+    """Tests for ``grant revoke-all``."""
+
+    def test_revoke_all_empty(self, runner, home) -> None:
+        result = runner.invoke(
+            app, ["--home-dir", str(home), "grant", "revoke-all"]
+        )
+        assert result.exit_code == 0
+        assert "No active grants" in result.stdout
+
+    def test_revoke_all_active(self, runner, home) -> None:
+        # Issue two grants.
+        for band in ("433.05-434.79M", "902-928M"):
+            r = runner.invoke(
+                app,
+                [
+                    "--home-dir", str(home),
+                    "grant", "tx", band,
+                    "--for", "30m",
+                ],
+            )
+            assert r.exit_code == 0
+
+        result = runner.invoke(
+            app, ["--home-dir", str(home), "grant", "revoke-all"]
+        )
+        assert result.exit_code == 0
+        assert "Revoked 2" in result.stdout
+
+        # No active grants remain.
+        list_result = runner.invoke(
+            app, ["--home-dir", str(home), "grant", "list"]
+        )
+        assert "No active grants" in list_result.stdout
