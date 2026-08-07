@@ -340,20 +340,86 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`):
 
 ## Adding a New CommandAction
 
-Checklist:
+Every RF, knowledge, or analysis capability lands as a new
+`CommandAction` value — never as a second MCP tool that bypasses the
+funnel. This checklist is authoritative; a PR that skips items 1–14
+is not landing.
 
-1. Add the enum value to `CommandAction` in `models.py`.
-2. Add a handler in `handlers.py` and register in `HANDLERS`.
-3. Add risk-tier entries in `risk_assessor.py`.
-4. Add a formatter method in `result_formatter.py`.
-5. Add a `PER_ACTION_DOCS` entry in `scripts/generate_execute_command_schema.py`.
-6. Add tests: unit for the handler, matrix row in `test_full_funnel_matrix.py`.
-7. Add the action to `SYSTEM_PROMPT` in `prompts.py` so the LLM knows about it.
-8. Run `python scripts/generate_execute_command_schema.py` to regenerate docs.
-9. Run `pre-commit run --all-files` — the schema regenerator updates the docs;
-   commit the diff.
-10. Run `pytest tests/unit/ tests/integration/ tests/e2e/ -q -m "not hardware and not llm"`
-    — everything should pass.
+### The 14-item reviewer's checklist
+
+1. **New `CommandAction` value** in `src/hackrf_agent/domain/models.py`.
+   Group with related actions (knowledge tier, analysis tier, action
+   tier) and match the existing comment structure.
+2. **New args model** in `src/hackrf_agent/domain/args.py`. Pydantic
+   v2, `frozen=True`, `extra="forbid"`. Register in `ARGS_BY_ACTION`
+   and add to the `ActionArgs` discriminated union.
+3. **`RiskAssessor` classifies it deterministically** in
+   `src/hackrf_agent/domain/risk_assessor.py`. Knowledge and analysis
+   verbs are hardcoded `LOW` (add to the read-only branches).
+   TX-adjacent verbs go through the existing tier table. **The gate
+   never reads editable config** — coupling the risk tier to
+   `records/*.json` is forbidden by `plan-organization.md` Phase 6.
+4. **New handler function** in
+   `src/hackrf_agent/domain/handlers.py`, dispatched from `HANDLERS`.
+   Handlers return JSON-primitive dicts with a `kind` marker.
+5. **Executor formatter pass-through** in
+   `src/hackrf_agent/domain/executor.py:_format`. Knowledge and
+   analysis handlers already have a shared branch that returns raw +
+   strips the `kind` marker + sets `risk_tier=LOW`. Add your new
+   `kind` string to that branch (or add a dedicated `format_*` method
+   in `result_formatter.py` for hardware-side actions).
+6. **New MCP tool description entry** in
+   `src/hackrf_agent/mcp/tool_registry.py:_TOOL_DESCRIPTIONS`.
+7. **New prompt entry** in `src/hackrf_agent/ai/prompts.py`. Add
+   under the appropriate tier heading (Knowledge / Analysis / Act).
+   Bump `SYSTEM_PROMPT_VERSION` if the prompt content changes.
+8. **Schema regenerator entry** in
+   `scripts/generate_execute_command_schema.py:PER_ACTION_DOCS`. Run
+   the script; commit the resulting `docs/execute_command_schema.md`
+   and `schemas/execute_command.schema.json` changes.
+9. **Unit test for the args model** — validation, defaults, rejection
+   of out-of-range values. Add to `tests/unit/test_handlers.py` or a
+   new file if the verb has substantial DSP.
+10. **Handler test** in `tests/unit/test_handlers.py`. Exercise the
+    happy path + the reject-outside-session-root path if the handler
+    reads files.
+11. **MCP registry test** in `tests/mcp/test_tool_registry.py`. At
+    minimum a dispatch round-trip; more if the args model has
+    validation rules.
+12. **Integration test in `tests/integration/`** if the handler
+    crosses a subsystem boundary (touches the audit log, the
+    permission service, or the driver).
+13. **`CHANGELOG.md` entry** under the current "Unreleased" section.
+14. **No new import of `pyhackrf` or `hw.hackrf_driver` outside `hw/`
+    and `domain/executor.py` dispatch.** Automated grep in CI. The
+    knowledge and analysis tiers must not import hardware modules.
+
+### Corpus-side additions
+
+If the new action reads files from `knowledge/`:
+
+- Add a fixture in `tests/fixtures/knowledge/` (or synthesize one in
+  the test).
+- Include an explicit test that path traversal is rejected (any input
+  matching `../` or containing `..` must raise `KnowledgeError` or
+  `ValueError`).
+
+### If the new action is a decoder
+
+- Round-trip test — synthesize a known signal in the test, run the
+  decoder, assert the recovered payload matches. See
+  `tests/unit/test_analysis.py::TestDecodeAdsB::test_round_trips_synthetic_frame`
+  as a model.
+- Update `records/protocols.json` with a matching record. Include the
+  MCP verb name in `tools_downstream`.
+
+### Final gates
+
+```bash
+python scripts/generate_execute_command_schema.py  # regenerate docs
+pytest tests/unit/ tests/mcp/ -q                    # 596+ tests must pass
+pre-commit run --all-files                          # linters + schema drift
+```
 
 ---
 
