@@ -36,6 +36,7 @@ class RiskAssessor:
     # Duration / dwell caps
     LOW_CAPTURE_DURATION_S = 5.0  # captures ≤ this stay LOW
     LOW_SWEEP_DWELL_S = 2.0  # sweeps ≤ this stay LOW
+    BULK_AGGREGATE_LOW_MAX_S = 30.0  # n_ranges * dwell_s ≤ this stays LOW
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -250,15 +251,34 @@ class RiskAssessor:
         if dwell_s is None:
             dwell_s = 1.0
 
-        # LOW when short-dwell (≤ 2s per range); MEDIUM otherwise. The
-        # aggregate wall-clock can still be long across many ranges,
-        # but each range dispatches as an independent sub-sweep — that
-        # is the parity we want with SWEEP_SPECTRUM.
-        if dwell_s <= self.LOW_SWEEP_DWELL_S:
+        # Aggregate cost cap: n_ranges * dwell_s must stay under
+        # BULK_AGGREGATE_LOW_MAX_S for LOW. A hostile fan-out (e.g.
+        # 100 ranges × 1 s dwell) is still 100 s of RX and 100 s of
+        # holding the driver lock even though per-range dwell is 1 s.
+        aggregate_s = len(ranges) * dwell_s
+
+        # LOW only when both per-range dwell is ≤ 2s AND aggregate is
+        # bounded. MEDIUM otherwise. Each range still dispatches as an
+        # independent sub-sweep — that is the parity we want with
+        # SWEEP_SPECTRUM.
+        if (
+            dwell_s <= self.LOW_SWEEP_DWELL_S
+            and aggregate_s <= self.BULK_AGGREGATE_LOW_MAX_S
+        ):
             return RiskAssessment(
                 level=RiskLevel.LOW,
                 reason="short-dwell bulk RX sweep",
                 requires_confirmation=False,
+            )
+        if aggregate_s > self.BULK_AGGREGATE_LOW_MAX_S and dwell_s <= self.LOW_SWEEP_DWELL_S:
+            return RiskAssessment(
+                level=RiskLevel.MEDIUM,
+                reason=(
+                    f"bulk RX sweep aggregate cost "
+                    f"{aggregate_s:.1f}s exceeds LOW cap "
+                    f"({self.BULK_AGGREGATE_LOW_MAX_S:.0f}s)"
+                ),
+                requires_confirmation=True,
             )
         return RiskAssessment(
             level=RiskLevel.MEDIUM,

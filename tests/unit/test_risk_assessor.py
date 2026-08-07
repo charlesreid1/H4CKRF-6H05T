@@ -599,3 +599,75 @@ class TestUnknownAction:
         We keep the branch in the code as defense-in-depth against future
         enum changes or custom validation.
         """
+
+
+# ---------------------------------------------------------------------------
+# sweep_spectrum_bulk aggregate cost
+# ---------------------------------------------------------------------------
+
+
+class TestSweepSpectrumBulkAggregate:
+    """The per-range dwell is only one input to risk. n_ranges * dwell_s
+    (aggregate wall-clock) also matters — a hostile fan-out of 100 short
+    sweeps is still 100 s of RX and 100 s of holding the driver lock.
+    """
+
+    def _ranges(self, count: int) -> list[dict[str, int]]:
+        # Non-overlapping 1 MHz windows starting at 100 MHz.
+        return [
+            {"start_freq_hz": 100_000_000 + i * 2_000_000,
+             "end_freq_hz": 100_500_000 + i * 2_000_000}
+            for i in range(count)
+        ]
+
+    def test_15_ranges_x_1s_dwell_stays_low(self, assessor: RiskAssessor) -> None:
+        # 15 * 1 s = 15 s aggregate, ≤ 30 s cap → LOW.
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(15),
+                dwell_s=1.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.LOW
+
+    def test_16_ranges_x_2s_dwell_medium_by_aggregate(
+        self, assessor: RiskAssessor
+    ) -> None:
+        # per-range dwell = 2 s is at the LOW boundary, but 16 * 2 = 32 s
+        # aggregate exceeds the 30 s LOW cap → MEDIUM.
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(16),
+                dwell_s=2.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.MEDIUM
+        assert result.requires_confirmation is True
+        assert "aggregate" in result.reason.lower()
+
+    def test_2_ranges_x_1s_low(self, assessor: RiskAssessor) -> None:
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(2),
+                dwell_s=1.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.LOW
+
+    def test_long_per_range_dwell_medium(self, assessor: RiskAssessor) -> None:
+        # dwell > 2 s → MEDIUM regardless of aggregate.
+        result = assessor.assess(
+            make_command(
+                CommandAction.SWEEP_SPECTRUM_BULK,
+                ranges=self._ranges(2),
+                dwell_s=5.0,
+            ),
+            [],
+        )
+        assert result.level == RiskLevel.MEDIUM
