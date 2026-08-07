@@ -434,6 +434,7 @@ class CommandExecutor:
                 stop_hz=raw["stop_hz"],
                 sample_rate_hz=raw.get("sample_rate_hz", 2_000_000),
                 fft_size=raw.get("fft_size", 4096),
+                truncated=raw.get("truncated", False),
             )
         if kind == "sweep_bulk":
             sample_rate_hz = raw.get("sample_rate_hz", 2_000_000)

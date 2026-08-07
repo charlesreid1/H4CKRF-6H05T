@@ -228,6 +228,12 @@ async def _handle_sweep_spectrum(ctx: HandlerContext, args: dict[str, Any]) -> d
         dwell_s=parsed.dwell_s,
         fft_size=parsed.fft_size,
     )
+    # Single-tune sweep truncation: the driver tunes to (start+stop)/2 and
+    # captures at sample_rate_hz. Any part of the requested range outside
+    # that passband falls off the FFT — surface a `truncated` flag so the
+    # LLM knows to fall back to sweep_spectrum_bulk with explicit sub-ranges.
+    requested_span_hz = parsed.end_freq_hz - parsed.start_freq_hz
+    truncated = requested_span_hz > parsed.sample_rate_hz
     return {
         "kind": "sweep",
         "magnitude_db": spec,
@@ -236,6 +242,7 @@ async def _handle_sweep_spectrum(ctx: HandlerContext, args: dict[str, Any]) -> d
         "stop_hz": parsed.end_freq_hz,
         "sample_rate_hz": parsed.sample_rate_hz,
         "fft_size": parsed.fft_size,
+        "truncated": truncated,
     }
 
 

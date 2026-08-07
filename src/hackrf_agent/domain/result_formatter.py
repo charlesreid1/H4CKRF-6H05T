@@ -52,6 +52,7 @@ class ResultFormatter:
         sample_rate_hz: int = 2_000_000,
         fft_size: int = 4096,
         top_n: int = 5,
+        truncated: bool = False,
     ) -> dict[str, Any]:
         peaks = find_peaks(magnitude_db, freqs_hz, top_n=top_n)
         noise = estimate_noise_floor(magnitude_db)
@@ -68,6 +69,7 @@ class ResultFormatter:
             "num_bins": int(magnitude_db.size),
             "noise_floor_dbfs": float(noise),
             "peaks": annotated,
+            "truncated": bool(truncated),
         }
 
     def format_capture(

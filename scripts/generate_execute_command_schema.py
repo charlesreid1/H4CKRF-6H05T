@@ -56,7 +56,11 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
                    '{"start_freq_hz": 433000000, "end_freq_hz": 434000000}, '
                    '"justification": "...", "expected_effect": "..."}',
         "default_tier": "LOW",
-        "notes": "RX only. Always safe within legal RX-allowed bands.",
+        "notes": "RX only. Always safe within legal RX-allowed bands. "
+                 "The driver tunes to (start+stop)/2; when the requested "
+                 "span exceeds sample_rate_hz, the result carries "
+                 "truncated=true — fall back to sweep_spectrum_bulk with "
+                 "explicit sub-ranges ≤ sample_rate_hz each.",
     },
     CommandAction.SWEEP_SPECTRUM_BULK: {
         "purpose": "Sweep multiple bands in one call (2-8 ranges).",

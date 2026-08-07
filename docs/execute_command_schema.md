@@ -38,7 +38,7 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 {"action": "sweep_spectrum", "args": {"start_freq_hz": 433000000, "end_freq_hz": 434000000}, "justification": "...", "expected_effect": "..."}
 ```
 
-**Notes.** RX only. Always safe within legal RX-allowed bands.
+**Notes.** RX only. Always safe within legal RX-allowed bands. The driver tunes to (start+stop)/2; when the requested span exceeds sample_rate_hz, the result carries truncated=true — fall back to sweep_spectrum_bulk with explicit sub-ranges ≤ sample_rate_hz each.
 
 ## `capture_iq`
 

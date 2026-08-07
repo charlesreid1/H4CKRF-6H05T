@@ -88,11 +88,27 @@ class TestFormatSweep:
             "num_bins",
             "noise_floor_dbfs",
             "peaks",
+            "truncated",
         }
         assert result["num_bins"] == n
         assert isinstance(result["noise_floor_dbfs"], float)
         assert isinstance(result["peaks"], list)
+        assert result["truncated"] is False
         _assert_json_serializable(result)
+
+    def test_truncated_flag_surfaces(self, fmt: ResultFormatter) -> None:
+        """truncated=True when the caller passes it through."""
+        n = 4096
+        mag = np.zeros(n, dtype=np.float32)
+        freqs = np.arange(n, dtype=np.float64)
+        result = fmt.format_sweep(
+            magnitude_db=mag,
+            freqs_hz=freqs,
+            start_hz=100_000_000,
+            stop_hz=200_000_000,
+            truncated=True,
+        )
+        assert result["truncated"] is True
 
     def test_strong_tone_in_peaks(self, fmt: ResultFormatter) -> None:
         """A strong tone in the spectrum appears in peaks[0]."""
