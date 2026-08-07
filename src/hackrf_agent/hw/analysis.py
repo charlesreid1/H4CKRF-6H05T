@@ -707,6 +707,64 @@ def decode_nrzi(
 
 
 # ---------------------------------------------------------------------------
+# Shared 2FSK bit-stream demod (used by POCSAG, RTTY, AX.25/9600)
+# ---------------------------------------------------------------------------
+
+
+def fsk_bit_stream(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    baud: float,
+    invert: bool = False,
+) -> npt.NDArray[np.uint8]:
+    """Demodulate a 2FSK signal to a bit array at ``baud``.
+
+    Method: unwrap the phase, take the sample-to-sample derivative
+    (instantaneous frequency), and majority-vote per symbol against a
+    threshold. The threshold defaults to the midpoint of the observed
+    frequency range (min + max) / 2. That's more robust than the
+    per-capture median when one polarity is over-represented (e.g. RTTY
+    idle-mark), while still adapting to the signal's actual frequency
+    offsets.
+
+    Complex baseband means the signal centre is at 0 Hz, but LO offset
+    and IF/DC drift can push both tones away from symmetric ±deviation.
+    The midpoint estimator handles that gracefully.
+
+    The mapping "high frequency = 1" is a convention that some protocols
+    invert (POCSAG uses "high frequency = 0"). Set ``invert=True`` to
+    flip.
+
+    Returns one bit per symbol period. If the capture is shorter than
+    one symbol, returns an empty array.
+    """
+    if iq.size < 2:
+        return np.zeros(0, dtype=np.uint8)
+    phase = np.unwrap(np.angle(iq.astype(np.complex128)))
+    inst_freq = np.diff(phase)
+    # Pad the diff output with one repeated sample so slicing at ``iq.size``
+    # produces the expected number of symbols.
+    inst_freq = np.concatenate([inst_freq, inst_freq[-1:]])
+    sps = int(round(sample_rate_hz / baud))
+    if sps < 2:
+        return np.zeros(0, dtype=np.uint8)
+    n_symbols = inst_freq.size // sps
+    if n_symbols == 0:
+        return np.zeros(0, dtype=np.uint8)
+    # Per-symbol average instantaneous frequency — averaging removes
+    # sample-to-sample phase-noise jitter before the threshold decision.
+    per_symbol_freq = (
+        inst_freq[: n_symbols * sps].reshape(n_symbols, sps).mean(axis=1)
+    )
+    lo, hi = float(per_symbol_freq.min()), float(per_symbol_freq.max())
+    threshold = (lo + hi) / 2.0
+    bits = (per_symbol_freq > threshold).astype(np.uint8)
+    if invert:
+        bits = 1 - bits
+    return bits
+
+
+# ---------------------------------------------------------------------------
 # POCSAG decoder
 # ---------------------------------------------------------------------------
 
@@ -748,34 +806,10 @@ def _pocsag_2fsk_demod(
 ) -> npt.NDArray[np.uint8]:
     """Demodulate a 2FSK POCSAG stream to a bit array at ``baud``.
 
-    Uses the instantaneous-frequency method: unwrap phase, take diff,
-    threshold at the median. High frequency = 0 (mark), low frequency = 1
-    (space) per POCSAG convention. Returns one bit per symbol period.
+    POCSAG convention: high frequency = 0 (mark), low frequency = 1
+    (space). ``fsk_bit_stream`` treats high-freq as 1, so we invert.
     """
-    phase = np.unwrap(np.angle(iq.astype(np.complex128)))
-    inst_freq = np.diff(phase)
-    if inst_freq.size == 0:
-        return np.zeros(0, dtype=np.uint8)
-    # np.diff drops one sample; repeat the last value so slicing at
-    # ``iq.size`` samples produces the same number of symbols we expect
-    # from the raw sample count.
-    inst_freq = np.concatenate([inst_freq, inst_freq[-1:]])
-    threshold = float(np.median(inst_freq))
-    binary = (inst_freq > threshold).astype(np.int8)  # 1 = high freq
-
-    sps = int(round(sample_rate_hz / baud))
-    if sps < 2:
-        return np.zeros(0, dtype=np.uint8)
-    n_symbols = binary.size // sps
-    if n_symbols == 0:
-        return np.zeros(0, dtype=np.uint8)
-    trimmed = binary[: n_symbols * sps].reshape(n_symbols, sps)
-    # Majority vote per symbol.
-    above = trimmed.sum(axis=1)
-    bits = (above > (sps // 2)).astype(np.uint8)
-    # POCSAG: high frequency = 0 (mark), low frequency = 1 (space) —
-    # invert the "high-freq = 1" convention.
-    return 1 - bits
+    return fsk_bit_stream(iq, sample_rate_hz, float(baud), invert=True)
 
 
 def _bits_to_uint32_be(bits: npt.NDArray[np.uint8]) -> int:
@@ -1005,6 +1039,120 @@ def _pocsag_finalize_message(
         "numeric": _pocsag_decode_numeric(bit_stream) if bit_stream else "",
         "alpha": _pocsag_decode_alpha(bit_stream) if bit_stream else "",
         "message_bit_count": len(bit_stream),
+    }
+
+
+# ---------------------------------------------------------------------------
+# RTTY decoder
+# ---------------------------------------------------------------------------
+
+# ITA2 / Baudot 5-bit tables. Index = the 5 data bits interpreted as an
+# integer with bit 0 = first-transmitted bit (LSB-first over the wire).
+#
+# Two shift states: LTRS (letters) and FIGS (figures). The special codes
+# 0x1F and 0x1B switch shift state.
+_ITA2_LTRS: tuple[str, ...] = (
+    "\x00", "E", "\n", "A", " ", "S", "I", "U",
+    "\r", "D", "R", "J", "N", "F", "C", "K",
+    "T", "Z", "L", "W", "H", "Y", "P", "Q",
+    "O", "B", "G", "\x00", "M", "X", "V", "\x00",
+)
+_ITA2_FIGS: tuple[str, ...] = (
+    "\x00", "3", "\n", "-", " ", "'", "8", "7",
+    "\r", "$", "4", "\x07", ",", "!", ":", "(",
+    "5", "+", ")", "2", "#", "6", "0", "1",
+    "9", "?", "&", "\x00", ".", "/", ";", "\x00",
+)
+_ITA2_LTRS_CODE: int = 0x1F  # 11111 → switch to LTRS
+_ITA2_FIGS_CODE: int = 0x1B  # 11011 → switch to FIGS
+_RTTY_BAUDS: tuple[float, ...] = (45.45, 50.0, 75.0, 100.0)
+
+
+def decode_rtty(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    baud: float = 45.45,
+    invert: bool = False,
+) -> dict[str, object]:
+    """RTTY decoder (Baudot / ITA2 over 2FSK).
+
+    RTTY convention: MARK = high frequency = 1, SPACE = low frequency = 0.
+    Framing: 1 start bit (SPACE) + 5 data bits (LSB-first) + 1 or 1.5
+    stop bits (MARK). Character rate = ``baud / 7.5`` at 1.5 stop bits.
+
+    Some transmitters swap MARK/SPACE polarity — set ``invert=True`` if
+    the decoded text is nonsense but ``num_characters`` is nonzero.
+
+    Args:
+        iq: complex64 samples.
+        sample_rate_hz: capture sample rate.
+        baud: standard rates 45.45 (amateur RTTY), 50 (commercial),
+            75, 100.
+        invert: swap MARK/SPACE.
+
+    Returns:
+        ``{"baud", "text", "num_characters", "framing_errors",
+        "num_bits"}``. ``text`` uses the current shift state to map
+        every 5-bit char code; NUL chars are dropped.
+    """
+    if baud not in _RTTY_BAUDS:
+        # Not a hard error — some setups use odd rates. Just warn via a
+        # note but still attempt to decode.
+        pass
+    bits = fsk_bit_stream(iq, sample_rate_hz, baud, invert=invert)
+    if bits.size < 8:
+        return {
+            "baud": baud,
+            "text": "",
+            "num_characters": 0,
+            "framing_errors": 0,
+            "num_bits": int(bits.size),
+            "note": "too few symbols for a full character",
+        }
+
+    text_chars: list[str] = []
+    shift_ltrs = True  # start in LTRS per convention
+    framing_errors = 0
+    i = 0
+    while i < bits.size:
+        # Wait for a start bit (SPACE = 0).
+        if bits[i] != 0:
+            i += 1
+            continue
+        # Need at least 7 bits: 1 start + 5 data + 1 stop.
+        if i + 7 > bits.size:
+            break
+        data_bits = bits[i + 1 : i + 6]
+        stop_bit = bits[i + 6]
+        # Reconstruct the 5-bit code, LSB-first.
+        code = 0
+        for j in range(5):
+            code |= (int(data_bits[j]) & 1) << j
+        if stop_bit != 1:
+            framing_errors += 1
+            i += 1  # nudge and re-search
+            continue
+        # Shift-state handling.
+        if code == _ITA2_LTRS_CODE:
+            shift_ltrs = True
+        elif code == _ITA2_FIGS_CODE:
+            shift_ltrs = False
+        else:
+            table = _ITA2_LTRS if shift_ltrs else _ITA2_FIGS
+            ch = table[code]
+            if ch != "\x00":
+                text_chars.append(ch)
+        # Advance past the full character (1 start + 5 data + 1 stop).
+        # Callers who need 1.5 stop bits get them from the next start-bit
+        # search (any extra idle MARK is just re-searched over).
+        i += 7
+
+    return {
+        "baud": baud,
+        "text": "".join(text_chars),
+        "num_characters": len(text_chars),
+        "framing_errors": framing_errors,
+        "num_bits": int(bits.size),
     }
 
 

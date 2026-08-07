@@ -23,6 +23,7 @@
             "decode_nrz",
             "decode_pocsag",
             "decode_ads_b",
+            "decode_rtty",
             "knowledge_list_topics",
             "knowledge_read",
             "knowledge_search",

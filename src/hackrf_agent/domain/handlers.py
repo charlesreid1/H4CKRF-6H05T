@@ -33,6 +33,7 @@ from hackrf_agent.domain.args import (
     DecodePocsagArgs,
     DecodePpmArgs,
     DecodePwmArgs,
+    DecodeRttyArgs,
     GetDeviceInfoArgs,
     GrantListArgs,
     KnowledgeListTopicsArgs,
@@ -72,6 +73,9 @@ from hackrf_agent.hw.analysis import (
 )
 from hackrf_agent.hw.analysis import (
     decode_pwm as _decode_pwm,
+)
+from hackrf_agent.hw.analysis import (
+    decode_rtty as _decode_rtty,
 )
 from hackrf_agent.hw.analysis import (
     estimate_symbol_rate as _estimate_symbol_rate,
@@ -469,6 +473,25 @@ async def _handle_decode_ads_b(
     }
 
 
+async def _handle_decode_rtty(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = DecodeRttyArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _decode_rtty(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        baud=parsed.baud,
+        invert=parsed.invert,
+    )
+    return {
+        "kind": "decode_rtty",
+        "iq_path": str(iq_path),
+        **result,
+    }
+
+
 async def _handle_decode_nrz(
     ctx: HandlerContext, args: dict[str, Any]
 ) -> dict[str, Any]:
@@ -610,4 +633,5 @@ HANDLERS: dict[
     CommandAction.DECODE_NRZ: _handle_decode_nrz,
     CommandAction.DECODE_POCSAG: _handle_decode_pocsag,
     CommandAction.DECODE_ADS_B: _handle_decode_ads_b,
+    CommandAction.DECODE_RTTY: _handle_decode_rtty,
 }

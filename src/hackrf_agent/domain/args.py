@@ -405,6 +405,33 @@ class DecodeAdsBArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# decode_rtty
+# ---------------------------------------------------------------------------
+
+
+class DecodeRttyArgs(BaseModel):
+    """RTTY / Baudot ITA2 decoder over a 2FSK envelope."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    baud: float = Field(
+        default=45.45,
+        description="RTTY baud rate. 45.45 (amateur), 50, 75, or 100.",
+        gt=0,
+    )
+    invert: bool = Field(
+        default=False,
+        description="Swap MARK/SPACE polarity if the decoded text is nonsense.",
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
 # knowledge_list_topics
 # ---------------------------------------------------------------------------
 
@@ -535,6 +562,7 @@ ActionArgs = (
     | DecodeNrzArgs
     | DecodePocsagArgs
     | DecodeAdsBArgs
+    | DecodeRttyArgs
     | KnowledgeListTopicsArgs
     | KnowledgeReadArgs
     | KnowledgeSearchArgs
@@ -566,6 +594,7 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "decode_nrz": DecodeNrzArgs,
     "decode_pocsag": DecodePocsagArgs,
     "decode_ads_b": DecodeAdsBArgs,
+    "decode_rtty": DecodeRttyArgs,
     "knowledge_list_topics": KnowledgeListTopicsArgs,
     "knowledge_read": KnowledgeReadArgs,
     "knowledge_search": KnowledgeSearchArgs,

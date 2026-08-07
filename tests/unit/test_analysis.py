@@ -9,6 +9,7 @@ import pytest
 
 from hackrf_agent.hw.analysis import (
     MAX_IQ_FILE_BYTES,
+    _ITA2_LTRS,
     _MODES_PREAMBLE_CHIPS,
     _POCSAG_IDLE,
     _POCSAG_SYNC,
@@ -23,7 +24,9 @@ from hackrf_agent.hw.analysis import (
     decode_pocsag,
     decode_ppm,
     decode_pwm,
+    decode_rtty,
     estimate_symbol_rate,
+    fsk_bit_stream,
     load_iq_file,
     slice_ook,
     spectrogram_summary,
@@ -528,3 +531,139 @@ class TestDecodeAdsB:
         # 99.5-percentile threshold. Real payloads must fail CRC.
         for frame in result["frames"]:
             assert frame["crc_ok"] is False
+
+
+# ---------------------------------------------------------------------------
+# RTTY
+# ---------------------------------------------------------------------------
+
+
+def _synth_rtty(text: str, fs: int, baud: float) -> np.ndarray:
+    """Synthesize a 2FSK RTTY signal (Baudot ITA2, MARK=high freq)."""
+    codes = [_ITA2_LTRS.index(ch) for ch in text]
+    bits: list[int] = [1] * 20  # idle mark
+    for code in codes:
+        bits.append(0)  # start bit
+        for i in range(5):
+            bits.append((code >> i) & 1)  # LSB first
+        bits.append(1)  # stop bit
+    bits.extend([1] * 20)
+    sps = int(round(fs / baud))
+    inst_freq = np.empty(len(bits) * sps, dtype=np.float32)
+    for i, b in enumerate(bits):
+        inst_freq[i * sps : (i + 1) * sps] = 85.0 if b else -85.0
+    phase = np.cumsum(2 * np.pi * inst_freq / fs)
+    return np.exp(1j * phase).astype(np.complex64)
+
+
+class TestDecodeRtty:
+    def test_letters_roundtrip(self) -> None:
+        iq = _synth_rtty("HELLO", fs=48_000, baud=45.45)
+        result = decode_rtty(iq, sample_rate_hz=48_000, baud=45.45)
+        assert result["text"] == "HELLO"
+        assert result["num_characters"] == 5
+        assert result["framing_errors"] == 0
+
+    def test_invert_polarity(self) -> None:
+        # Synthesize with swapped MARK/SPACE at generation time — MARK
+        # becomes the low frequency and SPACE the high one. This models a
+        # transmitter that swapped its shift-key polarity.
+        text = "ABC"
+        codes = [_ITA2_LTRS.index(ch) for ch in text]
+        bits: list[int] = [1] * 20
+        for c in codes:
+            bits.append(0)
+            for i in range(5):
+                bits.append((c >> i) & 1)
+            bits.append(1)
+        bits.extend([1] * 20)
+        fs = 48_000
+        baud = 45.45
+        sps = int(round(fs / baud))
+        # Swap: MARK (bit=1) -> low freq, SPACE (bit=0) -> high freq.
+        inst_freq = np.empty(len(bits) * sps, dtype=np.float32)
+        for i, b in enumerate(bits):
+            inst_freq[i * sps : (i + 1) * sps] = -85.0 if b else 85.0
+        phase = np.cumsum(2 * np.pi * inst_freq / fs)
+        iq = np.exp(1j * phase).astype(np.complex64)
+        # Decoding with invert=True should recover the text.
+        result = decode_rtty(iq, fs, baud, invert=True)
+        assert result["text"] == text
+        # Decoding without invert should NOT recover the text.
+        result_no_invert = decode_rtty(iq, fs, baud, invert=False)
+        assert result_no_invert["text"] != text
+
+    def test_too_short_capture(self) -> None:
+        iq = np.zeros(10, dtype=np.complex64)
+        result = decode_rtty(iq, sample_rate_hz=48_000, baud=45.45)
+        assert result["num_characters"] == 0
+
+    def test_shift_state_figs_and_ltrs(self) -> None:
+        # "A1B" — needs a FIGS shift before "1" and an LTRS shift before
+        # the "B". Assemble the code stream by hand.
+        # A = LTRS index 3; 1 = FIGS index 23; B = LTRS index 25.
+        code_a = _ITA2_LTRS.index("A")
+        code_b = _ITA2_LTRS.index("B")
+        code_figs = 0x1B
+        code_1 = 23
+        code_ltrs = 0x1F
+        # bits framing: start(0) + 5 LSB-first + stop(1)
+        codes = [code_a, code_figs, code_1, code_ltrs, code_b]
+        bits: list[int] = [1] * 20
+        for c in codes:
+            bits.append(0)
+            for i in range(5):
+                bits.append((c >> i) & 1)
+            bits.append(1)
+        bits.extend([1] * 20)
+        fs = 48_000
+        baud = 45.45
+        sps = int(round(fs / baud))
+        inst_freq = np.empty(len(bits) * sps, dtype=np.float32)
+        for i, b in enumerate(bits):
+            inst_freq[i * sps : (i + 1) * sps] = 85.0 if b else -85.0
+        phase = np.cumsum(2 * np.pi * inst_freq / fs)
+        iq = np.exp(1j * phase).astype(np.complex64)
+        result = decode_rtty(iq, fs, baud)
+        assert result["text"] == "A1B"
+
+
+# ---------------------------------------------------------------------------
+# fsk_bit_stream (shared primitive)
+# ---------------------------------------------------------------------------
+
+
+class TestFskBitStream:
+    def test_recovers_alternating_bits(self) -> None:
+        # Synthesize a 1 kbps 2FSK signal with alternating 0101...
+        fs = 100_000
+        baud = 1000
+        sps = fs // baud
+        bits = [i % 2 for i in range(50)]
+        inst_freq = np.empty(len(bits) * sps, dtype=np.float32)
+        for i, b in enumerate(bits):
+            inst_freq[i * sps : (i + 1) * sps] = 2000.0 if b else -2000.0
+        phase = np.cumsum(2 * np.pi * inst_freq / fs)
+        iq = np.exp(1j * phase).astype(np.complex64)
+        recovered = fsk_bit_stream(iq, fs, baud)
+        assert recovered.tolist()[:20] == bits[:20]
+
+    def test_invert(self) -> None:
+        fs = 100_000
+        baud = 1000
+        sps = fs // baud
+        bits = [1, 1, 1, 0, 1, 0, 0, 1] * 5
+        inst_freq = np.empty(len(bits) * sps, dtype=np.float32)
+        for i, b in enumerate(bits):
+            inst_freq[i * sps : (i + 1) * sps] = 2000.0 if b else -2000.0
+        phase = np.cumsum(2 * np.pi * inst_freq / fs)
+        iq = np.exp(1j * phase).astype(np.complex64)
+        r1 = fsk_bit_stream(iq, fs, baud)
+        r2 = fsk_bit_stream(iq, fs, baud, invert=True)
+        # Inversion swaps every bit.
+        assert (r1 == 1 - r2).all()
+
+    def test_too_high_baud(self) -> None:
+        iq = np.ones(100, dtype=np.complex64)
+        recovered = fsk_bit_stream(iq, 1_000_000, 2_000_000)
+        assert recovered.size == 0

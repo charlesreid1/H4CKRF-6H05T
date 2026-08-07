@@ -199,6 +199,7 @@ class TestCommandAction:
             "decode_nrz",
             "decode_pocsag",
             "decode_ads_b",
+            "decode_rtty",
             # Knowledge tier (Phase 3)
             "knowledge_list_topics",
             "knowledge_read",

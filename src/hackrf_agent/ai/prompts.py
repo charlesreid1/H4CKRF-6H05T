@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v4"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v5"
 
 TOOL_NAME: str = "execute_command"
 
@@ -170,6 +170,11 @@ touch libhackrf. Feed them files produced by ``capture_iq``.
   per-frame ``df``, ``icao24_hex``, ``raw_hex``, ``crc_ok``. **TX on
   1090 MHz stays BLOCKED regardless — this verb only decodes
   already-captured RX data.**
+- **decode_rtty** — args: iq_path (str), sample_rate_hz (int),
+  baud (float, default 45.45), invert (bool). Baudot ITA2 5-bit RTTY
+  over 2FSK. Returns decoded text with LTRS/FIGS shift-state tracking
+  plus framing-error count. Try ``invert=true`` if the decoded text is
+  nonsense but ``num_characters`` is nonzero.
 
 Analysis verbs are the composition layer between raw IQ and a decoded
 bitstream. A typical CTF flow: ``capture_iq`` -> ``analyze_iq_modulation``

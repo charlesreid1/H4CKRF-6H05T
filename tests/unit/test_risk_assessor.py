@@ -98,6 +98,7 @@ class TestAnalysisActions:
             CommandAction.DECODE_NRZ,
             CommandAction.DECODE_POCSAG,
             CommandAction.DECODE_ADS_B,
+            CommandAction.DECODE_RTTY,
         ],
     )
     def test_always_low_no_approval(

@@ -344,6 +344,21 @@ class TestAnalysisDispatch:
                 },
             )
 
+    def test_decode_rtty(self) -> None:
+        cmd = dispatch(
+            "hackrf_decode_rtty",
+            {
+                "iq_path": "/tmp/x.iq",
+                "sample_rate_hz": 48_000,
+                "baud": 45.45,
+                "justification": "Decode RTTY",
+                "expected_effect": "Text",
+            },
+        )
+        assert cmd.action == CommandAction.DECODE_RTTY
+        assert cmd.args["baud"] == 45.45
+        assert cmd.args["invert"] is False
+
     def test_decode_nrz_rejects_bad_variant(self) -> None:
         with pytest.raises(Exception):
             dispatch(

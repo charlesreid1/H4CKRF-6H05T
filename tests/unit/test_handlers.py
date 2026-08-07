@@ -336,6 +336,41 @@ class TestAnalysisHandlers:
         )
         assert sum(result["bits"]) == 0
 
+    async def test_decode_rtty(self, ctx: HandlerContext) -> None:
+        import numpy as np
+        from hackrf_agent.hw.analysis import _ITA2_LTRS
+        fs = 48_000
+        baud = 45.45
+        text = "HI"
+        codes = [_ITA2_LTRS.index(ch) for ch in text]
+        bits: list[int] = [1] * 20
+        for c in codes:
+            bits.append(0)
+            for i in range(5):
+                bits.append((c >> i) & 1)
+            bits.append(1)
+        bits.extend([1] * 20)
+        sps = int(round(fs / baud))
+        inst_freq = np.empty(len(bits) * sps, dtype=np.float32)
+        for i, b in enumerate(bits):
+            inst_freq[i * sps : (i + 1) * sps] = 85.0 if b else -85.0
+        phase = np.cumsum(2 * np.pi * inst_freq / fs)
+        iq = np.exp(1j * phase).astype(np.complex64)
+        i8 = (iq.real * 127).astype(np.int8)
+        q8 = (iq.imag * 127).astype(np.int8)
+        interleaved = np.empty(2 * i8.size, dtype=np.int8)
+        interleaved[0::2] = i8
+        interleaved[1::2] = q8
+        iq_path = ctx.session_paths.new_iq_path("rtty-test")
+        iq_path.parent.mkdir(parents=True, exist_ok=True)
+        iq_path.write_bytes(interleaved.tobytes())
+        result = await HANDLERS[CommandAction.DECODE_RTTY](
+            ctx,
+            {"iq_path": str(iq_path), "sample_rate_hz": fs, "baud": baud},
+        )
+        assert result["text"] == text
+        assert result["framing_errors"] == 0
+
     async def test_decode_pocsag(self, ctx: HandlerContext) -> None:
         import numpy as np
         from hackrf_agent.hw.analysis import _POCSAG_IDLE, _POCSAG_SYNC

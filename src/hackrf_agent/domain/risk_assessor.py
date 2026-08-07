@@ -96,6 +96,7 @@ class RiskAssessor:
             CommandAction.DECODE_NRZ,
             CommandAction.DECODE_POCSAG,
             CommandAction.DECODE_ADS_B,
+            CommandAction.DECODE_RTTY,
         ):
             return RiskAssessment(
                 level=RiskLevel.LOW,

@@ -234,6 +234,20 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
                  "stays BLOCKED regardless. Returns per-frame df, "
                  "icao24_hex, raw_hex, crc_ok.",
     },
+    CommandAction.DECODE_RTTY: {
+        "purpose": "RTTY / Baudot ITA2 decoder over a 2FSK envelope.",
+        "args_doc": "iq_path (str), sample_rate_hz (int), baud (float, "
+                    "default 45.45), invert (bool, default false).",
+        "example": '{"action": "decode_rtty", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000, '
+                   '"baud": 45.45}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns decoded text (with LTRS/FIGS shift-state "
+                 "tracking) plus framing_errors count. Try invert=true "
+                 "if the decoded text is nonsense but num_characters is "
+                 "nonzero — some transmitters swap MARK/SPACE polarity.",
+    },
     CommandAction.KNOWLEDGE_LIST_TOPICS: {
         "purpose": "Enumerate every topic dir under knowledge/ and its markdown files.",
         "args_doc": "No arguments.",

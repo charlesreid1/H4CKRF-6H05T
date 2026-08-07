@@ -280,6 +280,22 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Read-only over already-captured IQ. TX on 1090 MHz stays BLOCKED regardless. Returns per-frame df, icao24_hex, raw_hex, crc_ok.
 
+## `decode_rtty`
+
+**Purpose.** RTTY / Baudot ITA2 decoder over a 2FSK envelope.
+
+**Args.** iq_path (str), sample_rate_hz (int), baud (float, default 45.45), invert (bool, default false).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "decode_rtty", "args": {"iq_path": "...", "sample_rate_hz": 2000000, "baud": 45.45}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns decoded text (with LTRS/FIGS shift-state tracking) plus framing_errors count. Try invert=true if the decoded text is nonsense but num_characters is nonzero — some transmitters swap MARK/SPACE polarity.
+
 ## `knowledge_list_topics`
 
 **Purpose.** Enumerate every topic dir under knowledge/ and its markdown files.

@@ -43,6 +43,7 @@ _TOOL_DESCRIPTIONS: dict[str, str] = {
     "decode_nrz": "NRZ / NRZI line-code decoder. variant='nrz' or 'nrzi'; symbol_rate_hz required.",
     "decode_pocsag": "POCSAG paging decoder (baud 512/1200/2400). Args: iq_path, sample_rate_hz, baud. Returns per-message ric, function, numeric+alpha payloads. LOW risk; reads from disk only.",
     "decode_ads_b": "Mode S / ADS-B decoder for 1090 MHz captures. Requires sample_rate_hz >= 2 MHz. Returns per-frame df, icao24, raw hex, and CRC status. Read-only; RX-only band. TX on 1090 MHz remains BLOCKED regardless.",
+    "decode_rtty": "RTTY / Baudot ITA2 decoder over 2FSK. Args: iq_path, sample_rate_hz, baud (default 45.45), invert. Returns decoded text with shift-state tracking. LOW risk; reads from disk only.",
     "knowledge_list_topics": "Enumerate every topic dir under knowledge/ and its markdown files. Read-only; no RF activity.",
     "knowledge_read": "Return one markdown file from knowledge/<topic>/<name>. Read-only; path-traversal-safe.",
     "knowledge_search": "Case-insensitive substring search across every corpus markdown file. Read-only.",
