@@ -61,6 +61,10 @@ _EXEMPT_PATH_SEGMENTS: tuple[str, ...] = (
     "test_no_placeholders.py",
     # The regenerator test also references decode_ook stub as a phrase.
     "test_schema_regenerator.py",
+    # CHANGELOG describes changes, including cleanups — legitimately
+    # mentions "placeholder", "[planned]", etc. when explaining what
+    # was removed.
+    "CHANGELOG.md",
 )
 
 def _pattern_for(phrase: str) -> str:
@@ -90,7 +94,8 @@ def _iter_files() -> list[Path]:
     files: list[Path] = []
     for root in SEARCH_ROOTS:
         if root.is_file():
-            files.append(root)
+            if not _is_exempt(root):
+                files.append(root)
             continue
         if not root.is_dir():
             continue

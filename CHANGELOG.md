@@ -2,6 +2,62 @@
 
 ## Unreleased
 
+### Last-mile pass (CTF readiness)
+
+**Group A — plan-file references purged.** Every `plan-*.md` link
+removed from the shipped surface (Readme, CHANGELOG, docs/,
+knowledge/, scripts/, src/, tests/). Replaced with self-contained
+statements or pointers to `docs/architecture.md` and
+`knowledge/MANIFEST.md`. `attic/README.md` documents that
+directory as the archive for historical build plans.
+
+**Group B — docs match code.** `docs/architecture.md` and
+`docs/mcp.md` no longer describe the knowledge tier as
+`[planned]` — it exists. `docs/mcp.md` tools table now
+auto-generates from `CommandAction` (grouped Know / Analyze /
+Act / Compose); the generator gains a `--check` mode for CI drift
+detection. `docs/development.md` project layout tree refreshed to
+match the current `src/` and `tests/` (adds MCP, analysis, capture
+budget, lore/mcp CLI). `(Part N)` scaffolding stripped throughout.
+
+**Group C — placeholders removed.** `DECODE_OOK` deleted from the
+surface (breaking); callers switch to `decode_manchester` /
+`decode_nrz`. `Skeleton — Tier N` markers removed from 25
+knowledge READMEs. `(planned)`, `not yet implemented`, `deferred`
+prose fixed to reflect the current verb set. Driver docstring on
+`transmit_iq` no longer claims it's "not CLI-exposed" (it is —
+via chat and via the MCP tool). `_handle_play_sequence`
+docstring re-labels itself as a defence-in-depth guard rather
+than a stub.
+
+**Group D — safety hardening.** `AuditService.rotate(keep_days)` +
+`AuditService.stats()` + `hackrf-agent audit rotate|stats` CLI
+verbs; `ROTATED` event type. `MAX_TX_SECONDS` env var for
+session-level cumulative TX budget (mirrors the capture budget).
+`sweep_spectrum_bulk` aggregate-cost cap (`n_ranges * dwell_s >
+30 s` → MEDIUM). `hackrf-agent grant revoke-all` CLI verb.
+`hackrf-agent doctor --strict` pre-flight (pyhackrf importable,
+firmware line, corpus discoverable, records validate, audit DB
+size). API-key check downgraded to soft warning under the default
+doctor. Driver-lock release regression test.
+
+**Group E — capability polish.** POCSAG sync-word search
+vectorised via `sliding_window_view`; both polarities folded into
+one pass. `sweep_spectrum` surfaces a `truncated` flag when
+requested span exceeds `sample_rate_hz`. Every `capture_iq` writes
+a SigMF sidecar (`.sigmf-meta`) so URH / Inspectrum / gqrx can
+open the file without hand-configured metadata.
+
+**Group F — regression guardrails.** `test_no_placeholders.py`
+greps the shipped surface for drift phrases (placeholder / TODO /
+`[planned]` / `Skeleton — Tier` / `plan-*`) — every hit is a bug.
+`test_doc_freshness.py` asserts every `CommandAction` is
+enumerated in the auto-generated docs. `test_corpus_records_valid.py`
+runs the corpus validator; pre-commit hook does the same on any
+records-file change. Ruff config ratcheted to include RUF; ruff
+auto-fix pass cleaned 56 findings; per-file ignores catalogue the
+pre-existing tail.
+
 ### Added
 
 - **`MAX_CAPTURE_MINUTES` env var** — session-level cumulative-capture
