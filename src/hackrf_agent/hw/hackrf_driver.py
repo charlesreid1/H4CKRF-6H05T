@@ -238,13 +238,14 @@ class HackrfDriver:
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float64]]:
         """RX-only sweep across [start_hz, stop_hz].
 
-        For the day-1 implementation we tune to ``(start+stop)//2``, sample
-        at ``sample_rate_hz`` for ``dwell_s``, and return one FFT centered
+        This driver tunes to ``(start+stop)//2``, samples at
+        ``sample_rate_hz`` for ``dwell_s``, and returns one FFT centered
         there. If ``(stop-start) > sample_rate_hz`` the tail of the
         requested range falls outside the captured bandwidth — the
-        executor (Part 5) is responsible for detecting that.
-
-        Multi-tune sweeping (``hackrf_sweep``-style) is deferred.
+        executor detects this and either flags ``truncated`` in the
+        result or, for wider coverage, callers should use
+        ``sweep_spectrum_bulk`` and pass explicit sub-ranges, each
+        ≤ ``sample_rate_hz`` wide.
 
         Returns:
             ``(magnitude_db, freqs_hz)`` — both shape ``(fft_size,)``.
@@ -334,7 +335,7 @@ class HackrfDriver:
         return out_path
 
     # ------------------------------------------------------------------
-    # Public API — transmit IQ (wired but not yet CLI-exposed)
+    # Public API — transmit IQ
     # ------------------------------------------------------------------
 
     async def transmit_iq(
