@@ -145,6 +145,18 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
         "default_tier": "LOW",
         "notes": "Returns symbol_rate_hz + confidence + lag_samples.",
     },
+    CommandAction.ANALYZE_IQ_CARRIER_FREQUENCY: {
+        "purpose": "Refine the actual carrier-frequency offset in a capture.",
+        "args_doc": "iq_path (str), sample_rate_hz (int), "
+                    "fft_size (int, default 8192, 256-65536).",
+        "example": '{"action": "analyze_iq_carrier_frequency", "args": '
+                   '{"iq_path": "...", "sample_rate_hz": 2000000}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns carrier_offset_hz (from baseband centre), "
+                 "peak_dbfs, bin_resolution_hz, confidence (dB peak-to-"
+                 "noise). Sub-bin refinement via parabolic interpolation.",
+    },
     CommandAction.ANALYZE_IQ_SPECTROGRAM: {
         "purpose": "Compact per-slice spectrogram summary (peak freq + power).",
         "args_doc": "iq_path (str), sample_rate_hz (int), fft_size (int, "

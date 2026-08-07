@@ -21,6 +21,7 @@ import numpy as np
 import numpy.typing as npt
 
 from hackrf_agent.domain.args import (
+    AnalyzeIqCarrierFrequencyArgs,
     AnalyzeIqModulationArgs,
     AnalyzeIqSpectrogramArgs,
     AnalyzeIqSymbolsArgs,
@@ -61,6 +62,9 @@ from hackrf_agent.domain.knowledge import (
 )
 from hackrf_agent.hw.analysis import (
     classify_modulation as _classify_modulation,
+)
+from hackrf_agent.hw.analysis import (
+    estimate_carrier_frequency as _estimate_carrier_frequency,
 )
 from hackrf_agent.hw.analysis import (
     decode_ads_b as _decode_ads_b,
@@ -384,6 +388,26 @@ async def _handle_analyze_iq_symbols(
     )
     return {
         "kind": "analyze_iq_symbols",
+        "iq_path": str(iq_path),
+        "sample_rate_hz": parsed.sample_rate_hz,
+        "num_samples": int(iq.size),
+        **result,
+    }
+
+
+async def _handle_analyze_iq_carrier_frequency(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = AnalyzeIqCarrierFrequencyArgs(**args)
+    iq_path = _resolve_iq_path(ctx, parsed.iq_path)
+    iq = _load_iq_file(iq_path)
+    result = _estimate_carrier_frequency(
+        iq,
+        sample_rate_hz=parsed.sample_rate_hz,
+        fft_size=parsed.fft_size,
+    )
+    return {
+        "kind": "analyze_iq_carrier_frequency",
         "iq_path": str(iq_path),
         "sample_rate_hz": parsed.sample_rate_hz,
         "num_samples": int(iq.size),
@@ -804,6 +828,7 @@ HANDLERS: dict[
     CommandAction.ANALYZE_IQ_MODULATION: _handle_analyze_iq_modulation,
     CommandAction.ANALYZE_IQ_SYMBOLS: _handle_analyze_iq_symbols,
     CommandAction.ANALYZE_IQ_SPECTROGRAM: _handle_analyze_iq_spectrogram,
+    CommandAction.ANALYZE_IQ_CARRIER_FREQUENCY: _handle_analyze_iq_carrier_frequency,
     CommandAction.DECODE_MANCHESTER: _handle_decode_manchester,
     CommandAction.DECODE_PWM: _handle_decode_pwm,
     CommandAction.DECODE_PPM: _handle_decode_ppm,

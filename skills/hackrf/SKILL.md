@@ -59,6 +59,8 @@ There is one tool: `execute_command`. Every call is discriminated by
 - `analyze_iq_modulation` — moment-based classifier over a `.iq` file
 - `analyze_iq_symbols` — edge-interval symbol-rate estimator
 - `analyze_iq_spectrogram` — compact per-slice peak-freq + power
+- `analyze_iq_carrier_frequency` — refine actual carrier offset via
+  parabolic-interpolated FFT peak (unlock a decoder with wrong offset)
 - `decode_manchester`, `decode_pwm`, `decode_ppm`, `decode_nrz` —
   line-code decoders
 - `decode_pocsag` — POCSAG paging (baud 512/1200/2400)

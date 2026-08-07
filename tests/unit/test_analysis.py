@@ -28,6 +28,7 @@ from hackrf_agent.hw.analysis import (
     decode_ppm,
     decode_pwm,
     decode_rtty,
+    estimate_carrier_frequency,
     estimate_symbol_rate,
     fsk_bit_stream,
     load_iq_file,
@@ -869,3 +870,56 @@ class TestDecodeAprs:
         assert aprs["lon"] > 0
         assert abs(aprs["lat"] - -33.86666666) < 1e-5
         assert abs(aprs["lon"] - 151.21666666) < 1e-5
+
+
+class TestEstimateCarrierFrequency:
+    """estimate_carrier_frequency finds the strongest tone in the capture."""
+
+    def _synth_tone(
+        self, freq_hz: float, sample_rate_hz: int, num_samples: int = 8192
+    ) -> np.ndarray:
+        t = np.arange(num_samples) / sample_rate_hz
+        # Complex exponential at freq_hz (positive freq = above baseband centre).
+        return (np.exp(2j * np.pi * freq_hz * t)).astype(np.complex64)
+
+    def test_finds_positive_offset(self) -> None:
+        fs = 2_000_000
+        offset = 100_000.0
+        iq = self._synth_tone(offset, fs)
+        result = estimate_carrier_frequency(iq, fs, fft_size=8192)
+        # Bin resolution is fs/fft = ~244 Hz; expect < 1 bin accuracy after
+        # parabolic refinement.
+        assert abs(result["carrier_offset_hz"] - offset) < 500.0
+        assert result["confidence"] > 10.0
+
+    def test_finds_negative_offset(self) -> None:
+        fs = 2_000_000
+        offset = -250_000.0
+        iq = self._synth_tone(offset, fs)
+        result = estimate_carrier_frequency(iq, fs, fft_size=8192)
+        assert abs(result["carrier_offset_hz"] - offset) < 500.0
+
+    def test_zero_offset(self) -> None:
+        fs = 2_000_000
+        iq = self._synth_tone(0.0, fs)
+        result = estimate_carrier_frequency(iq, fs, fft_size=8192)
+        assert abs(result["carrier_offset_hz"]) < 500.0
+
+    def test_returns_bin_resolution(self) -> None:
+        fs = 2_000_000
+        iq = self._synth_tone(50_000.0, fs)
+        result = estimate_carrier_frequency(iq, fs, fft_size=8192)
+        assert result["bin_resolution_hz"] == pytest.approx(fs / 8192)
+
+    def test_short_iq_returns_zero(self) -> None:
+        fs = 2_000_000
+        iq = np.zeros(128, dtype=np.complex64)
+        result = estimate_carrier_frequency(iq, fs, fft_size=8192)
+        assert result["carrier_offset_hz"] == 0.0
+        assert result["confidence"] == 0.0
+
+    def test_all_zeros_returns_zero_confidence(self) -> None:
+        fs = 2_000_000
+        iq = np.zeros(8192, dtype=np.complex64)
+        result = estimate_carrier_frequency(iq, fs, fft_size=8192)
+        assert result["confidence"] == 0.0

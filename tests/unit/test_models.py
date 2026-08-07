@@ -193,6 +193,7 @@ class TestCommandAction:
             "analyze_iq_modulation",
             "analyze_iq_symbols",
             "analyze_iq_spectrogram",
+            "analyze_iq_carrier_frequency",
             "decode_manchester",
             "decode_pwm",
             "decode_ppm",

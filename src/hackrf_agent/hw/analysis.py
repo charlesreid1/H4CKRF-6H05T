@@ -342,6 +342,98 @@ def estimate_symbol_rate(
 
 
 # ---------------------------------------------------------------------------
+# Carrier-frequency estimation
+# ---------------------------------------------------------------------------
+
+
+def estimate_carrier_frequency(
+    iq: npt.NDArray[np.complex64],
+    sample_rate_hz: int,
+    fft_size: int = 8192,
+) -> dict[str, float]:
+    """Estimate the carrier-frequency offset of the strongest signal in *iq*.
+
+    Method: take a windowed FFT, find the largest bin, refine to
+    sub-bin precision by parabolic interpolation across the three
+    highest bins. Returns an offset *from baseband centre* (i.e. from
+    0 Hz in the captured band). Positive values mean "above the tuned
+    center frequency"; negative means "below."
+
+    Useful for unlocking decoders that assumed the wrong carrier
+    offset — e.g., a POCSAG decoder that expects the mark tone at
+    ``+4.5 kHz`` when the actual offset is ``+3.8 kHz`` due to
+    transmitter drift or an off-tune capture.
+
+    Args:
+        iq: complex64 samples.
+        sample_rate_hz: capture sample rate.
+        fft_size: FFT bin count (default 8192; larger = finer freq
+                  resolution, slower).
+
+    Returns:
+        ``{"carrier_offset_hz": float, "peak_dbfs": float,
+           "bin_resolution_hz": float, "confidence": float}``.
+        ``confidence`` is peak-power minus noise-floor in dB, clamped
+        to [0, 60]; 0 means "nothing distinguishable."
+    """
+    if iq.size < fft_size:
+        return {
+            "carrier_offset_hz": 0.0,
+            "peak_dbfs": -np.inf,
+            "bin_resolution_hz": float(sample_rate_hz) / fft_size,
+            "confidence": 0.0,
+        }
+    # Use the middle-most fft_size samples so short-window transients
+    # don't dominate. If iq is much larger, this is a modest speedup;
+    # if iq is only slightly larger, this is a no-op.
+    start = (iq.size - fft_size) // 2
+    window = np.hanning(fft_size).astype(np.float32)
+    spectrum = np.fft.fftshift(np.fft.fft(iq[start : start + fft_size] * window))
+    mag_sq = (spectrum.real ** 2 + spectrum.imag ** 2).astype(np.float64)
+
+    peak_bin = int(np.argmax(mag_sq))
+    peak_power = mag_sq[peak_bin]
+    if peak_power <= 0:
+        return {
+            "carrier_offset_hz": 0.0,
+            "peak_dbfs": -np.inf,
+            "bin_resolution_hz": float(sample_rate_hz) / fft_size,
+            "confidence": 0.0,
+        }
+
+    # Parabolic sub-bin refinement across the three highest bins.
+    delta = 0.0
+    if 0 < peak_bin < fft_size - 1:
+        a = mag_sq[peak_bin - 1]
+        b = mag_sq[peak_bin]
+        c = mag_sq[peak_bin + 1]
+        denom = a - 2.0 * b + c
+        if denom != 0.0:
+            delta = 0.5 * (a - c) / denom
+            # Clamp: parabolic refinement is only meaningful within ±0.5 bins.
+            if delta < -0.5:
+                delta = -0.5
+            elif delta > 0.5:
+                delta = 0.5
+
+    bin_hz = float(sample_rate_hz) / fft_size
+    # After fftshift, bin (fft_size / 2) is DC. Positive delta shifts
+    # the peak toward higher frequencies; negative toward lower.
+    offset_hz = (peak_bin - fft_size / 2 + delta) * bin_hz
+
+    peak_dbfs = 10.0 * float(np.log10(peak_power / (fft_size * fft_size)))
+    noise_floor = 10.0 * float(np.log10(np.median(mag_sq) / (fft_size * fft_size) + 1e-30))
+    confidence = max(0.0, min(60.0, peak_dbfs - noise_floor))
+
+    return {
+        "carrier_offset_hz": float(offset_hz),
+        "peak_dbfs": peak_dbfs,
+        "bin_resolution_hz": bin_hz,
+        "confidence": confidence,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Spectrogram summary
 # ---------------------------------------------------------------------------
 

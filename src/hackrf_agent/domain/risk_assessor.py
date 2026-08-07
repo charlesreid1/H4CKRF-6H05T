@@ -97,6 +97,7 @@ class RiskAssessor:
             CommandAction.ANALYZE_IQ_MODULATION,
             CommandAction.ANALYZE_IQ_SYMBOLS,
             CommandAction.ANALYZE_IQ_SPECTROGRAM,
+            CommandAction.ANALYZE_IQ_CARRIER_FREQUENCY,
             CommandAction.DECODE_MANCHESTER,
             CommandAction.DECODE_PWM,
             CommandAction.DECODE_PPM,

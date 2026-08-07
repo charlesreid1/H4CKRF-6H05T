@@ -37,6 +37,7 @@ _TOOL_DESCRIPTIONS: dict[str, str] = {
     "analyze_iq_modulation": "Moment-based modulation classifier over a captured .iq file. Returns ranked candidate families. LOW risk; reads from disk only.",
     "analyze_iq_symbols": "Estimate symbol rate from a captured .iq file via magnitude-squared autocorrelation. LOW risk; reads from disk only.",
     "analyze_iq_spectrogram": "Compact per-slice spectrogram summary (peak frequency + power per slice). LOW risk; reads from disk only.",
+    "analyze_iq_carrier_frequency": "Refine the actual carrier-frequency offset in a capture via parabolic-interpolated FFT peak. Returns offset from baseband centre + confidence in dB. Useful for unlocking a decoder that assumed the wrong offset. LOW risk; reads from disk only.",
     "decode_manchester": "Manchester line-code decoder over an OOK envelope. Args include symbol_rate_hz and polarity (ieee|thomas).",
     "decode_pwm": "Pulse-width-modulation decoder over an OOK envelope. Args: short_us and long_us pulse widths.",
     "decode_ppm": "Pulse-position-modulation decoder over an OOK envelope. Args: pulse_us (symbol period is 2x).",

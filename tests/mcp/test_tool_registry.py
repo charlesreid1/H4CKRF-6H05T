@@ -214,6 +214,31 @@ class TestAnalysisDispatch:
         assert cmd.args["sample_rate_hz"] == 2_000_000
         assert cmd.args["min_rate_hz"] == 100.0
 
+    def test_analyze_iq_carrier_frequency(self) -> None:
+        cmd = dispatch(
+            "hackrf_analyze_iq_carrier_frequency",
+            {
+                "iq_path": "/tmp/x.iq",
+                "sample_rate_hz": 2_000_000,
+                "justification": "Refine carrier offset",
+                "expected_effect": "carrier_offset_hz + confidence",
+            },
+        )
+        assert cmd.action == CommandAction.ANALYZE_IQ_CARRIER_FREQUENCY
+        assert cmd.args["fft_size"] == 8192
+
+    def test_analyze_iq_carrier_frequency_rejects_small_fft(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_analyze_iq_carrier_frequency",
+                {
+                    "iq_path": "/tmp/x.iq",
+                    "fft_size": 64,
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )
+
     def test_analyze_iq_spectrogram(self) -> None:
         cmd = dispatch(
             "hackrf_analyze_iq_spectrogram",

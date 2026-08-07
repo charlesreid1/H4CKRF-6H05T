@@ -30,6 +30,7 @@ class CommandAction(str, Enum):  # noqa: UP042
     ANALYZE_IQ_MODULATION = "analyze_iq_modulation"
     ANALYZE_IQ_SYMBOLS = "analyze_iq_symbols"
     ANALYZE_IQ_SPECTROGRAM = "analyze_iq_spectrogram"
+    ANALYZE_IQ_CARRIER_FREQUENCY = "analyze_iq_carrier_frequency"
     DECODE_MANCHESTER = "decode_manchester"
     DECODE_PWM = "decode_pwm"
     DECODE_PPM = "decode_ppm"

@@ -252,6 +252,30 @@ class AnalyzeIqSpectrogramArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# analyze_iq_carrier_frequency
+# ---------------------------------------------------------------------------
+
+
+class AnalyzeIqCarrierFrequencyArgs(BaseModel):
+    """Refine the actual carrier-frequency offset within a capture."""
+
+    iq_path: str = Field(..., description="Path to .iq file (must be under session root)")
+    sample_rate_hz: int = Field(default=2_000_000, gt=0)
+    fft_size: int = Field(
+        default=8192,
+        description="FFT bin count. Larger = finer freq resolution, slower.",
+        ge=256,
+        le=65536,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    @property
+    def iq_path_resolved(self) -> Path:
+        return Path(self.iq_path)
+
+
+# ---------------------------------------------------------------------------
 # decode_manchester
 # ---------------------------------------------------------------------------
 
@@ -767,6 +791,7 @@ ActionArgs = (
     | AnalyzeIqModulationArgs
     | AnalyzeIqSymbolsArgs
     | AnalyzeIqSpectrogramArgs
+    | AnalyzeIqCarrierFrequencyArgs
     | DecodeManchesterArgs
     | DecodePwmArgs
     | DecodePpmArgs
@@ -808,6 +833,7 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "analyze_iq_modulation": AnalyzeIqModulationArgs,
     "analyze_iq_symbols": AnalyzeIqSymbolsArgs,
     "analyze_iq_spectrogram": AnalyzeIqSpectrogramArgs,
+    "analyze_iq_carrier_frequency": AnalyzeIqCarrierFrequencyArgs,
     "decode_manchester": DecodeManchesterArgs,
     "decode_pwm": DecodePwmArgs,
     "decode_ppm": DecodePpmArgs,

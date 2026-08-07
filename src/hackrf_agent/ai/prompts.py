@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v7"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v8"
 
 TOOL_NAME: str = "execute_command"
 
@@ -146,6 +146,14 @@ touch libhackrf. Feed them files produced by ``capture_iq``.
   fft_size (int, default 1024), overlap (float, default 0.5), max_slices
   (int, default 512). Returns per-slice peak-frequency + peak-power arrays
   (never the full FFT matrix — that would flood the context).
+- **analyze_iq_carrier_frequency** — args: iq_path (str), sample_rate_hz
+  (int), fft_size (int, default 8192). Refines the actual carrier
+  offset within a capture via parabolic-interpolated FFT peak. Returns
+  ``carrier_offset_hz`` (from baseband centre), ``peak_dbfs``,
+  ``bin_resolution_hz``, and ``confidence`` in dB. Useful for
+  unlocking a decoder that assumed the wrong offset — e.g., a POCSAG
+  decoder expecting mark at +4.5 kHz when the actual transmitter is
+  at +3.8 kHz.
 - **decode_manchester** — args: iq_path (str), sample_rate_hz (int),
   symbol_rate_hz (float), polarity ('ieee' or 'thomas'). Manchester line
   code over an OOK envelope. Returns bits + invalid-pair count.

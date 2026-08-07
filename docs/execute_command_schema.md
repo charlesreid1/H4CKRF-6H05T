@@ -184,6 +184,22 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Returns arrays of peak_freqs_hz + peak_dbfs — one entry per slice, subsampled to max_slices when needed. Never returns the full FFT matrix.
 
+## `analyze_iq_carrier_frequency`
+
+**Purpose.** Refine the actual carrier-frequency offset in a capture.
+
+**Args.** iq_path (str), sample_rate_hz (int), fft_size (int, default 8192, 256-65536).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "analyze_iq_carrier_frequency", "args": {"iq_path": "...", "sample_rate_hz": 2000000}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns carrier_offset_hz (from baseband centre), peak_dbfs, bin_resolution_hz, confidence (dB peak-to-noise). Sub-bin refinement via parabolic interpolation.
+
 ## `decode_manchester`
 
 **Purpose.** Manchester line-code decoder over an OOK envelope.
