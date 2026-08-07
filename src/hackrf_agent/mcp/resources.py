@@ -67,6 +67,17 @@ def list_resources(session_id: str) -> list[Resource]:
             description="Metadata about the current MCP session.",
             mime_type="application/json",
         ),
+        Resource(
+            name="Sessions — events",
+            uri=f"hackrf://sessions/{session_id}/events",
+            description=(
+                f"Structured audit-event stream for session {session_id}. "
+                f"Same data as hackrf://audit/session/{session_id} but under a "
+                f"stable URI the assistant can read repeatedly to catch new "
+                f"events instead of calling audit_query."
+            ),
+            mime_type="application/json",
+        ),
     ]
 
 
@@ -95,6 +106,19 @@ async def read_resource(
     if uri.startswith("hackrf://audit/session/"):
         sid = uri[len("hackrf://audit/session/"):].split("?")[0]
         rows = await audit.query(session_id=sid)
+        return _json_result(uri, _format_audit_rows(rows))
+
+    # --- sessions/{id}/events ---
+    # Stable per-session events stream. Same data as audit/session/{id}
+    # but under a URI shaped so the assistant can subscribe rather than
+    # calling audit_query every turn. Supports ?limit=N; defaults to 200
+    # so an event history is available without paging.
+    if uri.startswith("hackrf://sessions/") and "/events" in uri:
+        prefix = "hackrf://sessions/"
+        rest = uri[len(prefix):]
+        sid = rest.split("/events", 1)[0]
+        limit = _parse_query_int(uri, "limit", 200)
+        rows = await audit.query(session_id=sid, limit=limit)
         return _json_result(uri, _format_audit_rows(rows))
 
     # --- grants/active ---

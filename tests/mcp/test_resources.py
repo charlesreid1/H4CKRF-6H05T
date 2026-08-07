@@ -2,13 +2,24 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+from pathlib import Path
 
 import pytest
 
-from hackrf_agent.mcp.resources import list_resources
+from hackrf_agent.data.db import ensure_schema
+from hackrf_agent.domain.audit_service import AuditService, make_event, new_trace_id
+from hackrf_agent.domain.models import (
+    AuditEventType,
+    CommandAction,
+    CommandResult,
+    RiskLevel,
+)
+from hackrf_agent.domain.permission_service import PermissionService
+from hackrf_agent.domain.session import new_session
+from hackrf_agent.mcp.resources import list_resources, read_resource
 from hackrf_agent.mcp.serialization import command_result_to_content, error_to_content
-from hackrf_agent.domain.models import CommandAction, CommandResult
 
 
 class TestResourceList:
@@ -20,6 +31,7 @@ class TestResourceList:
         assert "hackrf://grants/active" in uris
         assert "hackrf://grants/all" in uris
         assert "hackrf://sessions/current" in uris
+        assert "hackrf://sessions/test-session-123/events" in uris
 
     def test_all_resources_have_mime_type(self) -> None:
         for r in list_resources("x"):
@@ -64,6 +76,99 @@ class TestSerialization:
         parsed = json.loads(blocks[1].text)
         assert "peaks" in parsed
 
+class TestSessionEventsResource:
+    """hackrf://sessions/<id>/events reads from the audit log."""
+
+    async def test_events_uri_returns_audit_rows(self, tmp_path: Path) -> None:
+        db = tmp_path / "audit.db"
+        await ensure_schema(db)
+        perms = PermissionService(db)
+        session_paths = new_session(tmp_path / "sessions")
+
+        async with AuditService(db) as audit:
+            # Seed a couple of events under session "s-events".
+            trace = new_trace_id()
+            await audit.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s-events",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                    action=CommandAction.GET_DEVICE_INFO,
+                )
+            )
+            await audit.log(
+                make_event(
+                    trace_id=trace,
+                    session_id="s-events",
+                    event=AuditEventType.EXECUTED,
+                    action=CommandAction.GET_DEVICE_INFO,
+                    risk_level=RiskLevel.LOW,
+                )
+            )
+            # Also seed one under a different session to confirm filtering.
+            await audit.log(
+                make_event(
+                    trace_id=new_trace_id(),
+                    session_id="other-session",
+                    event=AuditEventType.COMMAND_RECEIVED,
+                    action=CommandAction.GRANT_LIST,
+                )
+            )
+
+            # Yield to let the async audit writer drain the queue.
+            await asyncio.sleep(0.05)
+
+            result = await read_resource(
+                "hackrf://sessions/s-events/events",
+                audit=audit,
+                permissions=perms,
+                session_paths=session_paths,
+                session_id="s-events",
+            )
+        assert result is not None
+        text = result.contents[0].text
+        parsed = json.loads(text)
+        assert isinstance(parsed, list)
+        session_ids = {row["session_id"] for row in parsed}
+        assert session_ids == {"s-events"}
+        events = [row["event"] for row in parsed]
+        assert "COMMAND_RECEIVED" in events
+        assert "EXECUTED" in events
+
+    async def test_events_uri_respects_limit_query(
+        self, tmp_path: Path
+    ) -> None:
+        db = tmp_path / "audit.db"
+        await ensure_schema(db)
+        perms = PermissionService(db)
+        session_paths = new_session(tmp_path / "sessions")
+
+        async with AuditService(db) as audit:
+            for _ in range(5):
+                await audit.log(
+                    make_event(
+                        trace_id=new_trace_id(),
+                        session_id="s-limit",
+                        event=AuditEventType.COMMAND_RECEIVED,
+                        action=CommandAction.GET_DEVICE_INFO,
+                    )
+                )
+            # Yield to let the async audit writer drain the queue.
+            await asyncio.sleep(0.05)
+
+            result = await read_resource(
+                "hackrf://sessions/s-limit/events?limit=2",
+                audit=audit,
+                permissions=perms,
+                session_paths=session_paths,
+                session_id="s-limit",
+            )
+        assert result is not None
+        parsed = json.loads(result.contents[0].text)
+        assert len(parsed) == 2
+
+
+class TestErrorContent:
     def test_error_to_content(self) -> None:
         blocks = error_to_content(
             action="hackrf_transmit_iq",

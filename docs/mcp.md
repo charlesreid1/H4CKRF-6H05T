@@ -194,6 +194,7 @@ them; tools remain available for ad-hoc queries.
 | `hackrf://grants/active`             | `PermissionService.list_active()`      |
 | `hackrf://grants/all`                | `PermissionService.list_all()`         |
 | `hackrf://sessions/current`          | `SessionPaths` for this MCP session    |
+| `hackrf://sessions/{id}/events`      | `AuditService.query(session_id=id)`, stable per-session URI so the assistant can subscribe rather than calling `audit_query` every turn. Optional `?limit=N` (default 200). |
 
 IQ files are **not** exposed as resources. They can be GB-sized. The tool
 that produces them returns the on-disk path, and hosts that want to load
