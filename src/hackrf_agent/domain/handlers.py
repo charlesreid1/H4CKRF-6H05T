@@ -32,7 +32,6 @@ from hackrf_agent.domain.args import (
     DecodeAx25Args,
     DecodeManchesterArgs,
     DecodeNrzArgs,
-    DecodeOokArgs,
     DecodePocsagArgs,
     DecodePpmArgs,
     DecodePwmArgs,
@@ -352,14 +351,6 @@ async def _handle_read_iq_summary(ctx: HandlerContext, args: dict[str, Any]) -> 
         "center_hz": parsed.center_freq_hz,
         "sample_rate_hz": parsed.sample_rate_hz,
     }
-
-
-async def _handle_decode_ook(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
-    parsed = DecodeOokArgs(**args)
-    iq_path = parsed.iq_path_resolved
-    if not ctx.session_paths.is_within(iq_path):
-        raise ValueError(f"iq_path {iq_path} escapes session root {ctx.session_paths.root}")
-    return {"kind": "decode_ook", "iq_path": iq_path}
 
 
 async def _handle_grant_list(ctx: HandlerContext, args: dict[str, Any]) -> dict[str, Any]:
@@ -867,7 +858,6 @@ HANDLERS: dict[
     CommandAction.CAPTURE_IQ: _handle_capture_iq,
     CommandAction.TRANSMIT_IQ: _handle_transmit_iq,
     CommandAction.READ_IQ_SUMMARY: _handle_read_iq_summary,
-    CommandAction.DECODE_OOK: _handle_decode_ook,
     CommandAction.GRANT_LIST: _handle_grant_list,
     CommandAction.AUDIT_QUERY: _handle_audit_query,
     CommandAction.KNOWLEDGE_LIST_TOPICS: _handle_knowledge_list_topics,

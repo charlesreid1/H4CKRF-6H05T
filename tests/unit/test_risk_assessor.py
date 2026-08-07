@@ -70,7 +70,6 @@ class TestReadOnlyActions:
             CommandAction.GRANT_LIST,
             CommandAction.AUDIT_QUERY,
             CommandAction.READ_IQ_SUMMARY,
-            CommandAction.DECODE_OOK,
         ],
     )
     def test_always_low(

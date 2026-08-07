@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-06-v10"
+SYSTEM_PROMPT_VERSION: str = "2026-08-07-v11"
 
 TOOL_NAME: str = "execute_command"
 
@@ -61,8 +61,8 @@ Every command passes through a host-side risk gate. The gate classifies your
 command into one of four tiers:
 
 - **LOW** — Read-only informational commands: get_device_info, grant_list,
-  audit_query, read_iq_summary, decode_ook, sweep_spectrum with dwell_s ≤ 2 s,
-  and capture_iq with duration_s ≤ 5 s. Executed immediately; no operator
+  audit_query, read_iq_summary, sweep_spectrum with dwell_s ≤ 2 s, and
+  capture_iq with duration_s ≤ 5 s. Executed immediately; no operator
   approval needed.
 - **MEDIUM** — Longer RX (sweeps with dwell_s > 2 s, captures with
   duration_s > 5 s), or a TX in an ISM band that is either covered by an
@@ -127,8 +127,6 @@ Available actions and their required args:
 - **read_iq_summary** — args: iq_path (str), center_freq_hz (int), plus
   optional sample_rate_hz. Returns statistical summary of an IQ file without
   re-capturing.
-- **decode_ook** — args: iq_path (str). Attempts on-off keying demodulation
-  on captured IQ data.
 - **grant_list** — args: {} — Lists currently active TX grants.
 - **audit_query** — args: optional session_id (str), limit (int). Reads the
   audit log for past commands in this session.

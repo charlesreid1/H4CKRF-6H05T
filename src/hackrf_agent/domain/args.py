@@ -142,25 +142,6 @@ class ReadIqSummaryArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# decode_ook
-# ---------------------------------------------------------------------------
-
-
-class DecodeOokArgs(BaseModel):
-    """Attempt OOK bit decoding of an .iq file (placeholder)."""
-
-    iq_path: str = Field(
-        ..., description="Path to .iq file (must be under session root)"
-    )
-
-    model_config = {"frozen": True, "extra": "forbid"}
-
-    @property
-    def iq_path_resolved(self) -> Path:
-        return Path(self.iq_path)
-
-
-# ---------------------------------------------------------------------------
 # grant_list
 # ---------------------------------------------------------------------------
 
@@ -894,7 +875,6 @@ ActionArgs = (
     | CaptureIqArgs
     | TransmitIqArgs
     | ReadIqSummaryArgs
-    | DecodeOokArgs
     | GrantListArgs
     | AuditQueryArgs
     | AnalyzeIqModulationArgs
@@ -938,7 +918,6 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "capture_iq": CaptureIqArgs,
     "transmit_iq": TransmitIqArgs,
     "read_iq_summary": ReadIqSummaryArgs,
-    "decode_ook": DecodeOokArgs,
     "grant_list": GrantListArgs,
     "audit_query": AuditQueryArgs,
     "analyze_iq_modulation": AnalyzeIqModulationArgs,

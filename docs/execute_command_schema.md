@@ -88,22 +88,6 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** No hardware access; runs FFT on disk contents.
 
-## `decode_ook`
-
-**Purpose.** Attempt OOK bit decoding of an .iq file (placeholder).
-
-**Args.** iq_path (str).
-
-**Default risk tier.** LOW
-
-**Example envelope.**
-
-```json
-{"action": "decode_ook", "args": {"iq_path": "..."}, "justification": "...", "expected_effect": "..."}
-```
-
-**Notes.** Placeholder — returns empty bits + a note until Part 9.
-
 ## `grant_list`
 
 **Purpose.** List currently active TX grants.

@@ -435,8 +435,6 @@ class CommandExecutor:
                 sample_rate_hz=raw["sample_rate_hz"],
                 session_paths=self._session_paths,
             )
-        if kind == "decode_ook":
-            return f.format_decode_ook(iq_path=raw["iq_path"])
         if kind == "grant_list":
             return f.format_grant_list(raw["grants"])
         if kind == "audit_query":

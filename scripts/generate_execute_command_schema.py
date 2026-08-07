@@ -126,14 +126,6 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
         "default_tier": "LOW",
         "notes": "No hardware access; runs FFT on disk contents.",
     },
-    CommandAction.DECODE_OOK: {
-        "purpose": "Attempt OOK bit decoding of an .iq file (placeholder).",
-        "args_doc": "iq_path (str).",
-        "example": '{"action": "decode_ook", "args": {"iq_path": "..."}, '
-                   '"justification": "...", "expected_effect": "..."}',
-        "default_tier": "LOW",
-        "notes": "Placeholder — returns empty bits + a note until Part 9.",
-    },
     CommandAction.GRANT_LIST: {
         "purpose": "List currently active TX grants.",
         "args_doc": "No arguments.",

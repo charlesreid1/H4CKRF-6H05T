@@ -186,10 +186,9 @@ class TestCommandAction:
             "capture_iq",
             "transmit_iq",
             "read_iq_summary",
-            "decode_ook",
             "grant_list",
             "audit_query",
-            # Analysis tier (Phase 3)
+            # Analysis tier
             "analyze_iq_modulation",
             "analyze_iq_symbols",
             "analyze_iq_spectrogram",

@@ -150,20 +150,6 @@ class ResultFormatter:
             session_paths=session_paths,
         )
 
-    def format_decode_ook(
-        self,
-        *,
-        iq_path: Path,
-        note: str = "OOK decoding not yet implemented",
-    ) -> dict[str, Any]:
-        # Placeholder for Part 5 — decode_ook is a future action; the
-        # executor still needs a formatter to return something structured.
-        return {
-            "iq_path": str(iq_path),
-            "bits": [],
-            "note": note,
-        }
-
     def format_grant_list(self, grants: list[Any]) -> dict[str, Any]:
         # `grants` is a list of hackrf_agent.domain.models.Grant.
         return {

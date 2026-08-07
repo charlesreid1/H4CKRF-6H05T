@@ -56,7 +56,6 @@ class RiskAssessor:
             CommandAction.GRANT_LIST,
             CommandAction.AUDIT_QUERY,
             CommandAction.READ_IQ_SUMMARY,
-            CommandAction.DECODE_OOK,
             CommandAction.PLAY_SEQUENCE,
         ):
             return RiskAssessment(

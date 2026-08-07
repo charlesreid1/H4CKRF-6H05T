@@ -149,7 +149,6 @@ not filling them in. They land in the audit log verbatim.
 | `hackrf_sweep_spectrum` | `SWEEP_SPECTRUM` | LOW | RX only |
 | `hackrf_capture_iq` | `CAPTURE_IQ` | LOW under 5s; MEDIUM above | RX only |
 | `hackrf_transmit_iq` | `TRANSMIT_IQ` | MEDIUM in-grant ISM; HIGH out-of-grant; BLOCKED in protected bands | TX |
-| `hackrf_decode_ook` | `DECODE_OOK` | LOW | none |
 | `hackrf_grant_list` | `GRANT_LIST` | LOW | none |
 | `hackrf_audit_query` | `AUDIT_QUERY` | LOW | none |
 | `hackrf_sweep_spectrum_bulk` | `SWEEP_SPECTRUM_BULK` | LOW at dwell_s <= 2s; MEDIUM above | RX only |

@@ -27,7 +27,8 @@ Three tiers, from knowing to analyzing to acting:
   `decode_nrz`, `decode_pocsag`, `decode_ads_b`, `decode_rtty`,
   `decode_ax25`, `decode_aprs`). All `LOW` risk, cannot touch hardware.
 - **Act** — the HackRF surface (`get_device_info`, `sweep_spectrum`,
-  `capture_iq`, `transmit_iq`, `grant_list`, `audit_query`, `decode_ook`).
+  `capture_iq`, `transmit_iq`, `grant_list`, `audit_query`,
+  `sweep_spectrum_bulk`, `play_sequence`).
   Every action goes through the funnel below.
 
 ---

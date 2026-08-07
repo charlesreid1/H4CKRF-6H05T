@@ -22,7 +22,6 @@ class CommandAction(str, Enum):  # noqa: UP042
     CAPTURE_IQ = "capture_iq"
     TRANSMIT_IQ = "transmit_iq"
     READ_IQ_SUMMARY = "read_iq_summary"
-    DECODE_OOK = "decode_ook"
     GRANT_LIST = "grant_list"
     AUDIT_QUERY = "audit_query"
     # Analysis tier — offline DSP on already-captured .iq files.

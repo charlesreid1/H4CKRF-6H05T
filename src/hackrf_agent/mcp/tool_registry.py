@@ -32,7 +32,6 @@ _TOOL_DESCRIPTIONS: dict[str, str] = {
     "capture_iq": "RX capture raw IQ samples to disk. Short captures (≤5s) are LOW risk; longer captures require approval.",
     "transmit_iq": "TX from an existing .iq file. Requires an active grant. HIGH risk in unclassified bands.",
     "read_iq_summary": "Re-summarize a previously captured .iq file. No hardware access; reads from disk only.",
-    "decode_ook": "Attempt OOK bit decoding of an .iq file (placeholder). No hardware access.",
     "grant_list": "List currently active TX grants. Read-only administrative action.",
     "audit_query": "Query the audit log for recent events. Read-only administrative action.",
     "analyze_iq_modulation": "Moment-based modulation classifier over a captured .iq file. Returns ranked candidate families. LOW risk; reads from disk only.",

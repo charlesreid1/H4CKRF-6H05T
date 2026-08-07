@@ -221,18 +221,6 @@ class TestAuditQuery:
         assert result["rows"] == []
 
 
-class TestDecodeOok:
-    async def test_placeholder(self, ctx: HandlerContext) -> None:
-        iq_path = ctx.session_paths.new_iq_path("ook")
-        iq_path.parent.mkdir(parents=True, exist_ok=True)
-        iq_path.write_bytes(b"\x00\x01" * 50)
-
-        result = await HANDLERS[CommandAction.DECODE_OOK](ctx, {"iq_path": str(iq_path)})
-        assert result["kind"] == "decode_ook"
-        # No driver calls.
-        assert len(ctx.driver.calls) == 0
-
-
 class TestAnalysisHandlers:
     """Analysis handlers read an .iq file from the session dir and produce
     JSON-primitive summaries. None invokes the driver."""

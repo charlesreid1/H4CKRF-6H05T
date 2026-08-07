@@ -210,12 +210,6 @@ class TestAllFormatsJson:
             )
         )
 
-    def test_decode_ook_json(self, fmt: ResultFormatter) -> None:
-        result = fmt.format_decode_ook(iq_path=Path("/tmp/x.iq"))
-        assert result["bits"] == []
-        assert "note" in result
-        _assert_json_serializable(result)
-
     def test_grant_list_empty_json(self, fmt: ResultFormatter) -> None:
         result = fmt.format_grant_list([])
         assert result == {"count": 0, "grants": []}
