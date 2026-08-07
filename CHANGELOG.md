@@ -109,7 +109,7 @@
 - `skills/hackrf/SKILL.md` — assistant guidance for when + how to
   reach the MCP.
 - `docs/rf_cheatsheet.md`, `docs/ctf_playbook.md` — quick-reference
-  placeholders.
+  guides.
 
 ## v0.1.0 (unreleased)
 
