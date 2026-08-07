@@ -72,10 +72,11 @@ capture_iq(target_freq_hz=162_000_000,   # covers both A and B
 - **Can:** Sweep, capture, recognize GMSK modulation
   (`analyze_iq_modulation` will surface constant-envelope; the caller
   correlates with band knowledge).
-- **Cannot yet:** Full AIS decoding. Requires GMSK demod +
-  bit-stuffing + CRC-16 + 6-bit payload decode. Out of scope for now
-  but a natural future addition.
-- **Cannot:** Voice channel decoding — needs FM demod verb.
+- **Cannot:** Full AIS decoding — requires GMSK demod + bit-stuffing
+  + CRC-16 + 6-bit payload decode; use `AIS-catcher` or `rtl_ais`
+  externally on the captured IQ.
+- **Cannot:** Voice channel decoding; capture and post-process
+  outside the MCP.
 
 ## CTF flag patterns
 

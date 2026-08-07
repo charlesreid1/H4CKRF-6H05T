@@ -71,8 +71,8 @@ capture_iq(target_freq_hz=433_925_000,
            duration_s=5.0)
 ```
 
-Then `read_iq_summary` and `analyze_iq_modulation` (planned) to
-identify the signal.
+Then `read_iq_summary` and `analyze_iq_modulation` to identify the
+signal.
 
 ## 4. Choosing gain for an unknown band
 

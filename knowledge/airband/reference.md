@@ -66,10 +66,10 @@ capture_iq(target_freq_hz=124_275_000,   # a specific tower channel
 
 ## What this MCP can and cannot decode
 
-- **Can:** Sweep, identify channel activity, capture the raw IQ,
-  compute envelope for AM demod.
-- **Cannot yet:** Full AM voice demod verb. Coming in a future phase
-  (`decode_am`).
+- **Can:** Sweep, identify channel activity, capture the raw IQ.
+  For manual AM demod from a capture, use `analyze_iq_modulation`
+  to confirm the family, then work with `hw.dsp.iq_to_envelope` +
+  audio playback tools of choice.
 - **Cannot:** ACARS message decoding (custom MSK protocol; use
   `acarsdec` externally).
 

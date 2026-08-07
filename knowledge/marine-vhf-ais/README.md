@@ -4,4 +4,3 @@
 the distress channel; RX-only by default for everything else.** AIS
 message decoding on captured IQ is fair game.
 
-*Skeleton — Tier 2.*

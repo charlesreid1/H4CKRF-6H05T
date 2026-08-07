@@ -5,4 +5,3 @@ BLOCKED in `RiskAssessor` and every record about ADS-B leads with that
 fact. `decode_ads_b` operates on captured IQ files, never on the live
 transceiver's TX path.
 
-*Skeleton — Tier 2.*

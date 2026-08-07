@@ -4,4 +4,3 @@
 timing is tight), Zigbee/802.15.4. WiFi handoff to
 [P1N3NUT5](https://github.com/charlesreid1/P1N3NUT5).
 
-*Skeleton — Tier 2.*

@@ -12,8 +12,8 @@ time-domain envelope plot: a square-ish on/off pattern.
 where the frequency separation is smaller than your FFT bin width).
 
 **Next step:** `read_iq_summary` to confirm burst structure;
-`decode_manchester` (planned) with a symbol rate around 1–4 kbps for
-most 315/433 MHz keyfobs.
+`decode_manchester` with a symbol rate around 1–4 kbps for most
+315/433 MHz keyfobs.
 
 ## 2FSK
 

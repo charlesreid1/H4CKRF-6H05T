@@ -98,7 +98,8 @@ should note the limitation.
 
 - Every `reference.md` cites at least one primary source at the
   bottom. No primary cite → the record does not load. Enforced by
-  CI (planned) and by the JSON schema (planned).
+  `scripts/validate_knowledge_records.py` and the machine-readable
+  schemas under `schemas/knowledge/`.
 - Community-tier citations are OK for records tagged
   `confidence: community` or `confidence: folklore`, but the record
   itself must note the limitation.

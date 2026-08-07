@@ -7,4 +7,3 @@ spectrogram sketches, canonical use cases.
 Numeric properties for each family live in `records/modulations.json`;
 prose walkthroughs live here.
 
-*Skeleton — Tier 1.*
