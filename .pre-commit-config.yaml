@@ -32,3 +32,13 @@ repos:
         language: system
         pass_filenames: false
         stages: [push]
+
+      - id: validate-knowledge-records
+        name: knowledge/records/*.json validate against schemas/knowledge/
+        entry: python scripts/validate_knowledge_records.py
+        language: system
+        files: >
+          ^(knowledge/records/.*\.json|
+            schemas/knowledge/.*\.json|
+            scripts/validate_knowledge_records\.py)$
+        pass_filenames: false
