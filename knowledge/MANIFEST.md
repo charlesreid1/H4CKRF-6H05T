@@ -31,7 +31,9 @@ lookups are preferred whenever a `knowledge_lookup_*` verb exists.
 
 - Numbers live in `records/*.json`. Prose lives in `<topic>/*.md`.
 - Retrieval tools bind to records, not to free text.
-- Every record cites a source (see `records/bibliography.json` when it lands).
+- Every record cites a source; every citation resolves to
+  `records/bibliography.json` (enforced by
+  `scripts/validate_knowledge_records.py`).
 - Every claim carries `era_bounds`, `region`, and `confidence` in
   `{primary, secondary, community, folklore}`.
 - The BLOCKED band table stays hardcoded in `RiskAssessor`. The
@@ -55,61 +57,93 @@ Each `<topic>/` ships up to four files:
 
 Not every topic earns all five; author the split as the topic warrants.
 
-## Topics — seed list
+## Cheatsheet
 
-Tier 1 — Foundations (write first):
+See `cheatsheet.md` — the single densest page. Everything an operator
+would want to memorize plus a jump-off to the per-topic files.
+
+## Topics
+
+### Tier 1 — Foundations
 
 - `dsp/` — IQ representation, sample rate, decimation, FFT windowing,
   spectrograms, filter design basics.
 - `sdr-fundamentals/` — Nyquist, aliasing, IQ imbalance, DC spike,
   gain staging, ADC quantization, `target_freq_hz` vs `center_freq_hz`.
-- `modulation/` — AM, FM, SSB, ASK, OOK, FSK, GFSK, MSK, GMSK, PSK, QAM,
-  OFDM. Spectral signatures + canonical uses.
-- `hackrf-hardware/` — MAX2837/RFFC5072 chipset, split TX/RX architecture,
-  half-duplex, 8-bit ADC and its dynamic-range implications.
-- `iq-formats/` — `.iq`, `.cf32`, `.cs8`, `.cs16`, SigMF metadata.
+- `hackrf-hardware/` — MAX2837/RFFC5072 chipset, split TX/RX
+  architecture, half-duplex, 8-bit ADC.
+- `iq-formats/` — `.iq`, `.cs8`, `.cu8`, `.cs16`, `.cf32`, WAV, SigMF.
 - `regulatory/` — FCC Part 15 §15.231, §15.247, §15.249, ISM band table,
   Part 97, plus why each BLOCKED band is blocked.
 
-Tier 2 — Common bands and signals (write next):
+### Tier 2 — Modulation
 
-- `ism-315/` — NA keyfobs, TPMS, some garage doors.
-- `ism-433/` — EU ISM, weather stations, keyfobs, garage doors, EU TPMS.
-- `ism-868-915/` — EU 868 / US 915 LPWAN, LoRa, Z-Wave, Sigfox.
-- `ism-2400/` — Bluetooth Classic + BLE (observation only), Zigbee.
-- `ads-b/` — Mode S extended squitter at 1090 MHz. **RX-only.**
+- `modulation/` — umbrella + at-a-glance table.
+- `modulation/am-fm-ssb/` — analog modulation.
+- `modulation/ask-ook/` — 315/433 MHz keyfob PHY family.
+- `modulation/fsk-gfsk-msk-gmsk/` — POCSAG, BLE, GSM, AIS, DMR PHYs.
+- `modulation/psk-qam/` — satellite downlinks, TETRA.
+- `modulation/ofdm/` — WiFi, LTE, DVB-T, DAB, 5G.
+- `modulation/lora-css/` — LoRa chirp spread spectrum.
+- `modulation/dsss-fhss/` — GPS L1 C/A, older WiFi, Bluetooth Classic.
+
+### Tier 3 — Common bands and signals
+
+- `ism-315/`, `ism-433/`, `ism-868-915/`, `ism-2400/` — the sub-GHz
+  and 2.4 GHz clusters.
+- `ads-b/` — Mode S at 1090 MHz. **RX only.**
 - `pocsag-flex/` — POCSAG 512/1200/2400 and FLEX paging.
-- `aprs/` — Automatic Packet Reporting System (AX.25 over Bell 202
-  AFSK-1200); paired with the `decode_aprs` MCP verb.
-- `keyfobs/` — fixed vs rolling, Keeloq, HITAG2, Passive Keyless Entry.
-- `garage-doors/` — Genie, Chamberlain, LiftMaster generations.
-- `weather-stations/` — Acurite, Fine Offset, La Crosse, Oregon Scientific.
-- `tpm/` — TPMS PHY notes and per-vendor framing.
-- `lora/` — LoRa PHY, spreading factors, LoRaWAN framing.
-- `zigbee-802154/` — 802.15.4 PHY, MAC framing, channels 11–26.
-- `dmr/`, `tetra/`, `p25/` — digital voice trunking. RX-only unless licensed.
-- `airband/` — 118–137 MHz AM aviation voice. **BLOCKED for TX.**
-- `marine-vhf-ais/` — 156–162 MHz, AIS at 161.975/162.025.
-- `satellite/` — NOAA APT, GOES HRIT, Iridium, ISS voice, GPS L1 (RX-only).
+- `aprs/` — AX.25 over Bell 202 AFSK-1200.
+- `keyfobs/`, `garage-doors/` — fixed / rolling / crypto-rolling.
+- `weather-stations/` — Acurite, Fine Offset, La Crosse, Oregon
+  Scientific.
+- `tpm/` — TPMS PHY notes.
+- `lora/` — LoRa PHY + LoRaWAN framing.
+- `zigbee-802154/` — 802.15.4 PHY.
+- `dmr/`, `tetra/`, `p25/` — digital voice trunking.
+- `airband/` — 118-137 MHz AM. **BLOCKED for TX.**
+- `marine-vhf-ais/` — 156-162 MHz + AIS at 161.975/162.025.
+- `satellite/` — NOAA APT, GOES HRIT, Iridium, ISS voice, GPS L1
+  (RX-only).
 
-Tier 3 — Analysis and decoders:
+### Tier 4 — Analysis, decoders, tool chain
 
-- `iq-analysis/` — waterfall reading, symbol-timing recovery, SNR
-  estimation.
-- `demodulators/` — AM/FM/OOK/FSK/PSK demod pipelines in numpy prose.
+- `iq-analysis/` — waterfall reading, symbol-timing recovery, SNR.
+- `demodulators/` — AM/FM/OOK/FSK/PSK numpy demod pipelines.
 - `decoders/` — Manchester, differential Manchester, NRZ, NRZI, PWM,
   PPM, PCM.
-- `crc-fec/` — CRC-8/16, common preambles, Reed-Solomon in POCSAG,
-  Hamming.
-- `crypto-in-rf/` — Keeloq (NLFSR), HITAG2, rolling counters vs replay.
+- `crc-fec/` — CRC-8/16, Hamming, BCH, Reed-Solomon.
+- `crypto-in-rf/` — Keeloq, HITAG2, rolling counters vs replay.
+- `gnu-radio-primer/` — block model + three canonical flowgraphs.
+- `urh/` — the four panes (signal / analysis / generation / simulator).
+- `inspectrum/` — precision cursor tool.
+- `rtl-433/` — sub-GHz catalog decoder.
+- `multimon-ng/` — audio-side legacy decoder.
+- `dump1090-readsb/` — ADS-B decoder.
+- `gqrx-cubicsdr-sdrpp/` — GUI receivers.
+- `hackrf-transfer-and-sweep/` — vendor CLI.
+- `sigmf-metadata/` — community IQ container format.
+- `signal-generation-with-numpy/` — upstream side (generate IQ files).
+- `transmit-pipeline/` — downstream side (safety-gated `transmit_iq`).
+- `antennas/` — dipole, monopole, Yagi, biquad, patch, discone.
 
-Tier 4 — CTF-facing:
+### Tier 5 — CTF-facing
 
-- `ctf/` — one file per subgenre: `rf-triage`, `spectrogram-reading`,
-  `unknown-keyfob`, `replay-vs-analyze`, `waterfall-stego`, `packet-flag`,
-  `two-tone-cipher`, `numbers-station-decode`, `paging-decode`,
-  `ads-b-recon`.
+- `ctf/rf-triage.md`, `spectrogram-reading.md`, `signal-classification.md`
+- `ctf/unknown-keyfob.md`, `garage-door-forensics.md`,
+  `weather-station-flag.md`, `replay-vs-analyze.md`
+- `ctf/lora-flag.md`, `frequency-hop-flag.md`
+- `ctf/ads-b-recon.md`, `paging-decode.md`
+- `ctf/waterfall-stego.md`, `spectrum-map-flag.md`,
+  `two-tone-cipher.md`, `numbers-station-decode.md`
+- `ctf/packet-flag.md`, `crc-audit.md`, `whitening-audit.md`
 
-Every topic dir ships an empty `README.md` at repo skeleton time so the
-`knowledge_list_topics` MCP verb discovers the structure on day one, even
-before the walkthroughs are written.
+### Tier 6 — Closing coverage
+
+- `history/` — chronological timeline of SDR + automotive RF security +
+  digital voice trunking + HackRF ecosystem milestones.
+- `glossary/` — every recurring acronym in the corpus.
+- `bibliography/` — prose companion to `records/bibliography.json`.
+
+Every topic dir ships at least a `README.md` so `knowledge_list_topics`
+discovers the structure on day one.
