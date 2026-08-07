@@ -75,6 +75,7 @@ class AuditEventType(str, Enum):  # noqa: UP042
     EXECUTED = "EXECUTED"
     RESULT = "RESULT"
     BLOCKED = "BLOCKED"
+    ROTATED = "ROTATED"
 
 
 # ---------------------------------------------------------------------------
