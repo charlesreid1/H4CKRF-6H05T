@@ -287,4 +287,18 @@ class CommandExecutor:
             return f.format_grant_list(raw["grants"])
         if kind == "audit_query":
             return f.format_audit_query(raw["rows"])
+        if kind in (
+            "knowledge_list_topics",
+            "knowledge_read",
+            "knowledge_search",
+            "knowledge_lookup_band",
+            "knowledge_lookup_modulation",
+            "knowledge_verify_claim",
+        ):
+            # Knowledge handlers return JSON-primitive payloads directly.
+            # Strip the internal "kind" marker before returning.
+            out = dict(raw)
+            out.pop("kind", None)
+            out["risk_tier"] = RiskLevel.LOW.value
+            return out
         raise ValueError(f"unknown formatter kind: {kind!r}")

@@ -175,6 +175,81 @@ class TestDecodeOok:
         assert len(ctx.driver.calls) == 0
 
 
+class TestKnowledgeHandlers:
+    """Every knowledge handler is read-only and never invokes the driver."""
+
+    async def test_list_topics(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LIST_TOPICS](ctx, {})
+        assert "topics" in result
+        assert isinstance(result["topics"], list)
+        assert len(ctx.driver.calls) == 0
+
+    async def test_read(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_READ](
+            ctx, {"topic": "dsp", "name": "reference.md"}
+        )
+        assert result["kind"] == "knowledge_read"
+        assert result["topic"] == "dsp"
+        assert "content" in result
+        assert len(ctx.driver.calls) == 0
+
+    async def test_search(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_SEARCH](
+            ctx, {"query": "Nyquist", "max_results": 5}
+        )
+        assert "hits" in result
+        assert isinstance(result["hits"], list)
+        assert len(ctx.driver.calls) == 0
+
+    async def test_lookup_band_matches_iq_433(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_BAND](
+            ctx, {"freq_hz": 433_920_000}
+        )
+        ids = [r["id"] for r in result["matches"]]
+        assert "band-ism-433" in ids
+        assert len(ctx.driver.calls) == 0
+
+    async def test_lookup_band_flags_blocked_at_1090(
+        self, ctx: HandlerContext
+    ) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_BAND](
+            ctx, {"freq_hz": 1_090_000_000}
+        )
+        assert result["matches"]
+        assert any(r.get("blocked_tx") for r in result["matches"])
+
+    async def test_lookup_modulation(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_MODULATION](
+            ctx, {"name": "GFSK"}
+        )
+        assert result["record"] is not None
+        assert result["record"]["id"] == "modulation-gfsk"
+        assert len(ctx.driver.calls) == 0
+
+    async def test_lookup_modulation_miss_returns_none(
+        self, ctx: HandlerContext
+    ) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_LOOKUP_MODULATION](
+            ctx, {"name": "not-a-real-mod"}
+        )
+        assert result["record"] is None
+
+    async def test_verify_claim_false_on_ads_b_tx(
+        self, ctx: HandlerContext
+    ) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_VERIFY_CLAIM](
+            ctx, {"text": "the hackrf can tx on ADS-B"}
+        )
+        assert result["verdict"] == "false"
+        assert len(ctx.driver.calls) == 0
+
+    async def test_verify_claim_unverified(self, ctx: HandlerContext) -> None:
+        result = await HANDLERS[CommandAction.KNOWLEDGE_VERIFY_CLAIM](
+            ctx, {"text": "yesterday was Tuesday"}
+        )
+        assert result["verdict"] == "unverified"
+
+
 class TestDispatchTable:
     def test_every_action_has_handler(self) -> None:
         """set(HANDLERS) == set(CommandAction) — every action mapped."""

@@ -122,6 +122,65 @@ PER_ACTION_DOCS: dict[CommandAction, dict[str, str]] = {
         "default_tier": "LOW",
         "notes": "Read-only.",
     },
+    CommandAction.KNOWLEDGE_LIST_TOPICS: {
+        "purpose": "Enumerate every topic dir under knowledge/ and its markdown files.",
+        "args_doc": "No arguments.",
+        "example": '{"action": "knowledge_list_topics", "args": {}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Read-only; reads from disk under knowledge/. Never touches libhackrf.",
+    },
+    CommandAction.KNOWLEDGE_READ: {
+        "purpose": "Return the contents of one markdown file under knowledge/<topic>/.",
+        "args_doc": "topic (str, e.g. 'dsp'), name (str, e.g. 'README.md').",
+        "example": '{"action": "knowledge_read", "args": '
+                   '{"topic": "dsp", "name": "reference.md"}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Path-traversal-safe (topic/name matched against safe-name regexes). "
+                 "1 MB per-file cap. Only .md files are readable via this verb; "
+                 "records/*.json is exposed via knowledge_lookup_* verbs.",
+    },
+    CommandAction.KNOWLEDGE_SEARCH: {
+        "purpose": "Case-insensitive substring search across every corpus markdown file.",
+        "args_doc": "query (str), max_results (int, default 20, 1-200).",
+        "example": '{"action": "knowledge_search", "args": '
+                   '{"query": "Manchester", "max_results": 10}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Prefer a knowledge_lookup_* verb when a typed lookup fits the question.",
+    },
+    CommandAction.KNOWLEDGE_LOOKUP_BAND: {
+        "purpose": "Return the bands.json record(s) covering freq_hz.",
+        "args_doc": "freq_hz (int, 1 Hz-6 GHz).",
+        "example": '{"action": "knowledge_lookup_band", "args": '
+                   '{"freq_hz": 433920000}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Multiple matches are possible where allocations overlap "
+                 "(e.g. EU ISM 433 sits inside US amateur 70 cm).",
+    },
+    CommandAction.KNOWLEDGE_LOOKUP_MODULATION: {
+        "purpose": "Return the modulations.json record for a named modulation family.",
+        "args_doc": "name (str, e.g. 'OOK', 'GFSK', '2FSK', 'LoRa').",
+        "example": '{"action": "knowledge_lookup_modulation", "args": '
+                   '{"name": "GFSK"}, "justification": "...", '
+                   '"expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Matches on name, id, or aliases (case-insensitive). "
+                 "Returns null when no record matches.",
+    },
+    CommandAction.KNOWLEDGE_VERIFY_CLAIM: {
+        "purpose": "Grade a factual claim against the trap catalog.",
+        "args_doc": "text (str, 1-1000 chars).",
+        "example": '{"action": "knowledge_verify_claim", "args": '
+                   '{"text": "The HackRF can transmit on ADS-B."}, '
+                   '"justification": "...", "expected_effect": "..."}',
+        "default_tier": "LOW",
+        "notes": "Returns verdict in {true, false, needs_qualification, unverified} "
+                 "with citations. 'unverified' means no trap fired — caveat "
+                 "accordingly.",
+    },
 }
 
 

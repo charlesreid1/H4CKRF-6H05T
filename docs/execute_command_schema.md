@@ -136,3 +136,99 @@ The one tool exposed to the LLM. Every RF action goes through it. The envelope s
 
 **Notes.** Read-only.
 
+## `knowledge_list_topics`
+
+**Purpose.** Enumerate every topic dir under knowledge/ and its markdown files.
+
+**Args.** No arguments.
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_list_topics", "args": {}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Read-only; reads from disk under knowledge/. Never touches libhackrf.
+
+## `knowledge_read`
+
+**Purpose.** Return the contents of one markdown file under knowledge/<topic>/.
+
+**Args.** topic (str, e.g. 'dsp'), name (str, e.g. 'README.md').
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_read", "args": {"topic": "dsp", "name": "reference.md"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Path-traversal-safe (topic/name matched against safe-name regexes). 1 MB per-file cap. Only .md files are readable via this verb; records/*.json is exposed via knowledge_lookup_* verbs.
+
+## `knowledge_search`
+
+**Purpose.** Case-insensitive substring search across every corpus markdown file.
+
+**Args.** query (str), max_results (int, default 20, 1-200).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_search", "args": {"query": "Manchester", "max_results": 10}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Prefer a knowledge_lookup_* verb when a typed lookup fits the question.
+
+## `knowledge_lookup_band`
+
+**Purpose.** Return the bands.json record(s) covering freq_hz.
+
+**Args.** freq_hz (int, 1 Hz-6 GHz).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_lookup_band", "args": {"freq_hz": 433920000}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Multiple matches are possible where allocations overlap (e.g. EU ISM 433 sits inside US amateur 70 cm).
+
+## `knowledge_lookup_modulation`
+
+**Purpose.** Return the modulations.json record for a named modulation family.
+
+**Args.** name (str, e.g. 'OOK', 'GFSK', '2FSK', 'LoRa').
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_lookup_modulation", "args": {"name": "GFSK"}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Matches on name, id, or aliases (case-insensitive). Returns null when no record matches.
+
+## `knowledge_verify_claim`
+
+**Purpose.** Grade a factual claim against the trap catalog.
+
+**Args.** text (str, 1-1000 chars).
+
+**Default risk tier.** LOW
+
+**Example envelope.**
+
+```json
+{"action": "knowledge_verify_claim", "args": {"text": "The HackRF can transmit on ADS-B."}, "justification": "...", "expected_effect": "..."}
+```
+
+**Notes.** Returns verdict in {true, false, needs_qualification, unverified} with citations. 'unverified' means no trap fired — caveat accordingly.
+

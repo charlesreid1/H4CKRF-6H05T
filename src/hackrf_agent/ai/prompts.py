@@ -14,7 +14,7 @@ from hackrf_agent.domain.models import ExecuteCommand
 # Constants
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_VERSION: str = "2026-08-03-v1"
+SYSTEM_PROMPT_VERSION: str = "2026-08-06-v2"
 
 TOOL_NAME: str = "execute_command"
 
@@ -126,6 +126,34 @@ Available actions and their required args:
 - **grant_list** — args: {} — Lists currently active TX grants.
 - **audit_query** — args: optional session_id (str), limit (int). Reads the
   audit log for past commands in this session.
+
+== Knowledge Tier (LOW risk, read-only) ==
+
+The following actions read from the on-disk RF/SIGINT corpus under
+``knowledge/``. Every one is hardcoded LOW risk, cannot cause RF emission,
+and cannot touch libhackrf. Prefer these over model-weight recall whenever
+a factual RF question can be answered from the corpus.
+
+- **knowledge_list_topics** — args: {} — Enumerate every topic dir under
+  ``knowledge/`` and its markdown files. Use to orient before reading.
+- **knowledge_read** — args: topic (str), name (str). Return one markdown
+  file's contents. ``topic`` is a directory name like ``dsp`` or ``ism-433``;
+  ``name`` is a filename like ``README.md`` or ``reference.md``.
+- **knowledge_search** — args: query (str), optional max_results (int,
+  default 20). Case-insensitive substring search across every corpus
+  markdown. Prefer a ``knowledge_lookup_*`` verb over free-text search when
+  a typed lookup fits the question.
+- **knowledge_lookup_band** — args: freq_hz (int). Return the ``bands.json``
+  record(s) covering ``freq_hz`` — regulatory basis, ``blocked_tx`` flag,
+  common denizens. Use for "what's on this frequency?"
+- **knowledge_lookup_modulation** — args: name (str). Return the
+  ``modulations.json`` record for a named modulation family (OOK, 2FSK,
+  GFSK, MSK, GMSK, BPSK, QPSK, QAM, OFDM, LoRa-CSS, …). Use for demod
+  pipeline lookup.
+- **knowledge_verify_claim** — args: text (str). Grade a factual claim as
+  ``true``/``false``/``needs_qualification``/``unverified`` against a trap
+  catalog. Caveat ``unverified`` claims to the operator — the corpus does
+  not confirm them.
 
 == Operating Discipline ==
 

@@ -26,11 +26,38 @@ from hackrf_agent.domain.args import (
     DecodeOokArgs,
     GetDeviceInfoArgs,
     GrantListArgs,
+    KnowledgeListTopicsArgs,
+    KnowledgeLookupBandArgs,
+    KnowledgeLookupModulationArgs,
+    KnowledgeReadArgs,
+    KnowledgeSearchArgs,
+    KnowledgeVerifyClaimArgs,
     ReadIqSummaryArgs,
     SweepSpectrumArgs,
     TransmitIqArgs,
 )
 from hackrf_agent.domain.audit_service import AuditService
+from hackrf_agent.domain.knowledge import (
+    default_paths as _default_knowledge_paths,
+)
+from hackrf_agent.domain.knowledge import (
+    list_topics as _knowledge_list_topics,
+)
+from hackrf_agent.domain.knowledge import (
+    lookup_band as _knowledge_lookup_band,
+)
+from hackrf_agent.domain.knowledge import (
+    lookup_modulation as _knowledge_lookup_modulation,
+)
+from hackrf_agent.domain.knowledge import (
+    read_file as _knowledge_read_file,
+)
+from hackrf_agent.domain.knowledge import (
+    search as _knowledge_search,
+)
+from hackrf_agent.domain.knowledge import (
+    verify_claim as _knowledge_verify_claim,
+)
 from hackrf_agent.domain.models import CommandAction, DeviceInfo
 from hackrf_agent.domain.permission_service import PermissionService
 from hackrf_agent.domain.session import SessionPaths
@@ -221,6 +248,87 @@ async def _handle_audit_query(ctx: HandlerContext, args: dict[str, Any]) -> dict
 
 
 # ---------------------------------------------------------------------------
+# Knowledge-tier handlers — read-only corpus access.
+#
+# All six route through hackrf_agent.domain.knowledge, which enforces path
+# traversal and file-size limits at the boundary. None of them touch
+# libhackrf, capture IQ, or open a driver handle. RiskAssessor classifies
+# every one as hardcoded LOW.
+# ---------------------------------------------------------------------------
+
+
+async def _handle_knowledge_list_topics(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    _parsed = KnowledgeListTopicsArgs(**args)
+    paths = _default_knowledge_paths()
+    topics = _knowledge_list_topics(paths)
+    return {"kind": "knowledge_list_topics", "topics": topics}
+
+
+async def _handle_knowledge_read(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeReadArgs(**args)
+    paths = _default_knowledge_paths()
+    payload = _knowledge_read_file(paths, parsed.topic, parsed.name)
+    return {"kind": "knowledge_read", **payload}
+
+
+async def _handle_knowledge_search(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeSearchArgs(**args)
+    paths = _default_knowledge_paths()
+    hits = _knowledge_search(paths, parsed.query, max_results=parsed.max_results)
+    return {
+        "kind": "knowledge_search",
+        "query": parsed.query,
+        "max_results": parsed.max_results,
+        "hits": hits,
+        "truncated": len(hits) >= parsed.max_results,
+    }
+
+
+async def _handle_knowledge_lookup_band(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeLookupBandArgs(**args)
+    paths = _default_knowledge_paths()
+    matches = _knowledge_lookup_band(paths, parsed.freq_hz)
+    return {
+        "kind": "knowledge_lookup_band",
+        "freq_hz": parsed.freq_hz,
+        "matches": matches,
+    }
+
+
+async def _handle_knowledge_lookup_modulation(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeLookupModulationArgs(**args)
+    paths = _default_knowledge_paths()
+    record = _knowledge_lookup_modulation(paths, parsed.name)
+    return {
+        "kind": "knowledge_lookup_modulation",
+        "name": parsed.name,
+        "record": record,
+    }
+
+
+async def _handle_knowledge_verify_claim(
+    ctx: HandlerContext, args: dict[str, Any]
+) -> dict[str, Any]:
+    parsed = KnowledgeVerifyClaimArgs(**args)
+    verdict = _knowledge_verify_claim(parsed.text)
+    return {
+        "kind": "knowledge_verify_claim",
+        "text": parsed.text,
+        **verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Dispatch table
 # ---------------------------------------------------------------------------
 
@@ -236,4 +344,10 @@ HANDLERS: dict[
     CommandAction.DECODE_OOK: _handle_decode_ook,
     CommandAction.GRANT_LIST: _handle_grant_list,
     CommandAction.AUDIT_QUERY: _handle_audit_query,
+    CommandAction.KNOWLEDGE_LIST_TOPICS: _handle_knowledge_list_topics,
+    CommandAction.KNOWLEDGE_READ: _handle_knowledge_read,
+    CommandAction.KNOWLEDGE_SEARCH: _handle_knowledge_search,
+    CommandAction.KNOWLEDGE_LOOKUP_BAND: _handle_knowledge_lookup_band,
+    CommandAction.KNOWLEDGE_LOOKUP_MODULATION: _handle_knowledge_lookup_modulation,
+    CommandAction.KNOWLEDGE_VERIFY_CLAIM: _handle_knowledge_verify_claim,
 }

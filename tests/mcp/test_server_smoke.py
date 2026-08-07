@@ -132,16 +132,19 @@ async def _make_deps(
 
 
 class TestListTools:
-    async def test_lists_all_eight_tools(
+    async def test_lists_all_command_action_tools(
         self, db_path: Path, session_paths, fake_driver: FakeDriver
     ) -> None:
+        from hackrf_agent.domain.models import CommandAction
+
         deps = await _make_deps(db_path, session_paths, fake_driver)
         try:
 
             async def _test(session: ClientSession) -> None:
                 result = await session.list_tools()
                 tool_names = [t.name for t in result.tools]
-                assert len(tool_names) == 8
+                # One MCP tool per CommandAction, prefixed hackrf_.
+                assert len(tool_names) == len(list(CommandAction))
                 for name in tool_names:
                     assert name.startswith("hackrf_"), f"Bad tool name: {name}"
 

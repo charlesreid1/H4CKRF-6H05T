@@ -177,9 +177,10 @@ class TestGrant:
 
 
 class TestCommandAction:
-    def test_exactly_eight_values(self) -> None:
+    def test_expected_values(self) -> None:
         values = {m.value for m in CommandAction}
         expected = {
+            # Hardware / audit tier
             "get_device_info",
             "sweep_spectrum",
             "capture_iq",
@@ -188,6 +189,13 @@ class TestCommandAction:
             "decode_ook",
             "grant_list",
             "audit_query",
+            # Knowledge tier (Phase 3)
+            "knowledge_list_topics",
+            "knowledge_read",
+            "knowledge_search",
+            "knowledge_lookup_band",
+            "knowledge_lookup_modulation",
+            "knowledge_verify_claim",
         }
         assert values == expected
 

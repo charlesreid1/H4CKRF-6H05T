@@ -182,3 +182,91 @@ class TestDispatch:
         )
         assert cmd.action == CommandAction.GRANT_LIST
         assert cmd.args == {}
+
+
+class TestKnowledgeDispatch:
+    """Dispatch surface for the knowledge tier — every verb round-trips."""
+
+    def test_list_topics(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_list_topics",
+            {
+                "justification": "Orient the operator in the corpus",
+                "expected_effect": "List of topic dirs and their files",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_LIST_TOPICS
+        assert cmd.args == {}
+
+    def test_read(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_read",
+            {
+                "topic": "dsp",
+                "name": "reference.md",
+                "justification": "Pull DSP reference",
+                "expected_effect": "Return dsp/reference.md contents",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_READ
+        assert cmd.args == {"topic": "dsp", "name": "reference.md"}
+
+    def test_search(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_search",
+            {
+                "query": "Manchester",
+                "justification": "Find Manchester references",
+                "expected_effect": "List of matching lines",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_SEARCH
+        assert cmd.args["query"] == "Manchester"
+        assert cmd.args["max_results"] == 20  # default
+
+    def test_lookup_band(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_lookup_band",
+            {
+                "freq_hz": 433_920_000,
+                "justification": "Identify the ISM 433 band",
+                "expected_effect": "Band record with blocked_tx flag",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_LOOKUP_BAND
+        assert cmd.args["freq_hz"] == 433_920_000
+
+    def test_lookup_modulation(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_lookup_modulation",
+            {
+                "name": "GFSK",
+                "justification": "Look up GFSK demod pipeline",
+                "expected_effect": "modulations.json record",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_LOOKUP_MODULATION
+        assert cmd.args["name"] == "GFSK"
+
+    def test_verify_claim(self) -> None:
+        cmd = dispatch(
+            "hackrf_knowledge_verify_claim",
+            {
+                "text": "The HackRF is full-duplex",
+                "justification": "Sanity-check a claim",
+                "expected_effect": "verdict + citation",
+            },
+        )
+        assert cmd.action == CommandAction.KNOWLEDGE_VERIFY_CLAIM
+        assert cmd.args["text"] == "The HackRF is full-duplex"
+
+    def test_read_rejects_missing_topic(self) -> None:
+        with pytest.raises(Exception):
+            dispatch(
+                "hackrf_knowledge_read",
+                {
+                    "name": "reference.md",
+                    "justification": "x",
+                    "expected_effect": "y",
+                },
+            )

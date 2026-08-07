@@ -64,6 +64,25 @@ class RiskAssessor:
                 requires_confirmation=False,
             )
 
+        # A2. Knowledge tier — read-only corpus access. Always LOW.
+        # These handlers never touch libhackrf, never cause RF emission,
+        # and never write to disk. Any TX-adjacent knowledge verb added
+        # in the future must NOT be added here — it belongs in its own
+        # tier assessment.
+        if action in (
+            CommandAction.KNOWLEDGE_LIST_TOPICS,
+            CommandAction.KNOWLEDGE_READ,
+            CommandAction.KNOWLEDGE_SEARCH,
+            CommandAction.KNOWLEDGE_LOOKUP_BAND,
+            CommandAction.KNOWLEDGE_LOOKUP_MODULATION,
+            CommandAction.KNOWLEDGE_VERIFY_CLAIM,
+        ):
+            return RiskAssessment(
+                level=RiskLevel.LOW,
+                reason="read-only knowledge-corpus access",
+                requires_confirmation=False,
+            )
+
         # B. SWEEP_SPECTRUM
         if action == CommandAction.SWEEP_SPECTRUM:
             return self._assess_sweep(args)

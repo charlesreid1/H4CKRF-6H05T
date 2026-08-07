@@ -13,7 +13,13 @@
             "read_iq_summary",
             "decode_ook",
             "grant_list",
-            "audit_query"
+            "audit_query",
+            "knowledge_list_topics",
+            "knowledge_read",
+            "knowledge_search",
+            "knowledge_lookup_band",
+            "knowledge_lookup_modulation",
+            "knowledge_verify_claim"
           ],
           "type": "string"
         }

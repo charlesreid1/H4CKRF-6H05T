@@ -34,6 +34,12 @@ _TOOL_DESCRIPTIONS: dict[str, str] = {
     "decode_ook": "Attempt OOK bit decoding of an .iq file (placeholder). No hardware access.",
     "grant_list": "List currently active TX grants. Read-only administrative action.",
     "audit_query": "Query the audit log for recent events. Read-only administrative action.",
+    "knowledge_list_topics": "Enumerate every topic dir under knowledge/ and its markdown files. Read-only; no RF activity.",
+    "knowledge_read": "Return one markdown file from knowledge/<topic>/<name>. Read-only; path-traversal-safe.",
+    "knowledge_search": "Case-insensitive substring search across every corpus markdown file. Read-only.",
+    "knowledge_lookup_band": "Given freq_hz, return the bands.json record(s) covering that frequency. Read-only.",
+    "knowledge_lookup_modulation": "Given a modulation name/alias, return the modulations.json record. Read-only.",
+    "knowledge_verify_claim": "Grade a factual claim against the trap catalog (true/false/needs_qualification/unverified). Read-only.",
 }
 
 # Fields that every tool schema must include (in addition to action-specific args).

@@ -25,6 +25,14 @@ class CommandAction(str, Enum):  # noqa: UP042
     DECODE_OOK = "decode_ook"
     GRANT_LIST = "grant_list"
     AUDIT_QUERY = "audit_query"
+    # Knowledge tier — read-only corpus access. Hardcoded LOW risk.
+    # See knowledge/ MANIFEST.md and plan-organization.md Phase 3.
+    KNOWLEDGE_LIST_TOPICS = "knowledge_list_topics"
+    KNOWLEDGE_READ = "knowledge_read"
+    KNOWLEDGE_SEARCH = "knowledge_search"
+    KNOWLEDGE_LOOKUP_BAND = "knowledge_lookup_band"
+    KNOWLEDGE_LOOKUP_MODULATION = "knowledge_lookup_modulation"
+    KNOWLEDGE_VERIFY_CLAIM = "knowledge_verify_claim"
 
 
 class RiskLevel(str, Enum):  # noqa: UP042

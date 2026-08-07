@@ -186,6 +186,114 @@ class AuditQueryArgs(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# knowledge_list_topics
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeListTopicsArgs(BaseModel):
+    """No arguments — enumerate every topic dir under knowledge/."""
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_read
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeReadArgs(BaseModel):
+    """Return the contents of one markdown file under knowledge/<topic>/."""
+
+    topic: str = Field(
+        ...,
+        description="Topic directory name (e.g. 'dsp', 'ism-433'). Must match [a-z0-9][a-z0-9-]*.",
+        min_length=1,
+        max_length=64,
+    )
+    name: str = Field(
+        ...,
+        description="Markdown filename inside the topic dir (e.g. 'README.md', 'reference.md').",
+        min_length=1,
+        max_length=128,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_search
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeSearchArgs(BaseModel):
+    """Case-insensitive substring search across every corpus markdown file."""
+
+    query: str = Field(..., description="Substring to search for (case-insensitive).", min_length=1, max_length=200)
+    max_results: int = Field(
+        default=20,
+        description="Maximum number of hits to return (1-200).",
+        ge=1,
+        le=200,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_band
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupBandArgs(BaseModel):
+    """Given a frequency in Hz, return the bands.json record(s) covering it."""
+
+    freq_hz: int = Field(
+        ...,
+        description="Frequency of interest in Hz.",
+        gt=0,
+        le=6_000_000_000,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_lookup_modulation
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeLookupModulationArgs(BaseModel):
+    """Given a modulation name/alias, return the modulations.json record."""
+
+    name: str = Field(
+        ...,
+        description="Modulation family name or alias (e.g. 'OOK', 'GFSK', '2FSK', 'LoRa').",
+        min_length=1,
+        max_length=64,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# knowledge_verify_claim
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeVerifyClaimArgs(BaseModel):
+    """Grade a factual claim against the trap catalog."""
+
+    text: str = Field(
+        ...,
+        description="The claim to verify, as free text.",
+        min_length=1,
+        max_length=1000,
+    )
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
 # Discriminated union (for generating a single tool schema in the chat prompt)
 # ---------------------------------------------------------------------------
 
@@ -199,6 +307,12 @@ ActionArgs = (
     | DecodeOokArgs
     | GrantListArgs
     | AuditQueryArgs
+    | KnowledgeListTopicsArgs
+    | KnowledgeReadArgs
+    | KnowledgeSearchArgs
+    | KnowledgeLookupBandArgs
+    | KnowledgeLookupModulationArgs
+    | KnowledgeVerifyClaimArgs
 )
 
 
@@ -215,4 +329,10 @@ ARGS_BY_ACTION: dict[str, type[BaseModel]] = {
     "decode_ook": DecodeOokArgs,
     "grant_list": GrantListArgs,
     "audit_query": AuditQueryArgs,
+    "knowledge_list_topics": KnowledgeListTopicsArgs,
+    "knowledge_read": KnowledgeReadArgs,
+    "knowledge_search": KnowledgeSearchArgs,
+    "knowledge_lookup_band": KnowledgeLookupBandArgs,
+    "knowledge_lookup_modulation": KnowledgeLookupModulationArgs,
+    "knowledge_verify_claim": KnowledgeVerifyClaimArgs,
 }
