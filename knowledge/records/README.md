@@ -58,6 +58,7 @@ Notable rules:
 - `symbol_encodings.json` — line codings (`symbol_encoding`).
 - `protocols.json` — RF protocols (`protocol_phy`).
 - `iq_formats.json` — capture container formats (`iq_format`).
+  *(Note the underscore — matches plan-knowledge.md.)*
 - `decoders.json` — decoder families (`decoder_family`).
 - `fec_codes.json` — CRC/Hamming/BCH/RS (`fec_code`).
 - `crypto_in_rf.json` — Keeloq, HITAG2, GSM A5/*, TETRA TEA*
