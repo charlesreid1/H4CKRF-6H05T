@@ -819,11 +819,13 @@ async def _handle_knowledge_cross_reference(
 async def _handle_play_sequence(
     ctx: HandlerContext, args: dict[str, Any]
 ) -> dict[str, Any]:
-    """play_sequence is executed at the CommandExecutor layer.
+    """Defence-in-depth guard: play_sequence is dispatched at the executor layer.
 
-    This handler is a stub kept here so `set(HANDLERS) == set(CommandAction)`.
-    If the executor forgets to intercept play_sequence, this hard-fails
-    rather than silently returning something surprising.
+    This handler fires only if the executor's early-return branch is bypassed,
+    and hard-fails so the mistake surfaces immediately rather than silently
+    returning something surprising. The entry in HANDLERS also keeps
+    ``set(HANDLERS) == set(CommandAction)`` — a completeness invariant asserted
+    by the test suite.
     """
     raise RuntimeError(
         "play_sequence must be dispatched at the CommandExecutor layer, "
