@@ -4,6 +4,25 @@
 
 ### Added
 
+- **`MAX_CAPTURE_MINUTES` env var** — session-level cumulative-capture
+  budget. When set to a positive number, the sum of every
+  `capture_iq`'s `duration_s` in the session must stay under that
+  cap; a call that would push the total over is refused with
+  `BLOCKED` before any RF activity. Belt-and-suspenders to the
+  per-command duration limits.
+- **`sweep_spectrum_bulk` verb.** Sweep 2-8 bands in one call.
+  Shared sample_rate/gain/dwell/fft_size across ranges. Simpler
+  than a play_sequence-of-sweeps when the ranges are known
+  up-front. Per-range risk classification applies.
+- **`play_sequence` verb.** Chain 2-8 sub-actions through the
+  funnel in order. Each sub-action re-enters `CommandExecutor.
+  execute()` with its own trace_id, risk assessment, permission
+  check, approval flow, and audit trail. No batching bypass.
+  Cannot nest inside itself. `play_sequence` itself is LOW.
+- **`analyze_iq_carrier_frequency` verb.** Refines the actual
+  carrier-frequency offset in a captured .iq file via
+  parabolic-interpolated FFT peak. Useful for unlocking a decoder
+  that assumed the wrong offset.
 - **Seven additional knowledge-tier verbs** — `knowledge_lookup_protocol`,
   `knowledge_lookup_keyfob`, `knowledge_lookup_decoder`,
   `knowledge_bibliography`, `knowledge_random`, `knowledge_explain_signal`,

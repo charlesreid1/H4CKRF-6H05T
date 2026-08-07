@@ -12,6 +12,7 @@ import pytest
 from hackrf_agent.data.db import ensure_schema
 from hackrf_agent.domain.approval import FakeApprovalPort
 from hackrf_agent.domain.audit_service import AuditService
+from hackrf_agent.domain.capture_budget import CaptureBudget
 from hackrf_agent.domain.executor import CommandExecutor
 from hackrf_agent.domain.models import (
     AuditEventType,
@@ -380,6 +381,79 @@ class TestEndToEnd:
         rows = await bench["audit"].query(limit=500)
         for r in rows:
             assert r.session_id == "s1"
+
+
+class TestCaptureBudget:
+    """MAX_CAPTURE_MINUTES enforces cumulative session capture time."""
+
+    @pytest.fixture
+    async def capped_bench(self, tmp_path: Path):
+        db = tmp_path / "agent.db"
+        await ensure_schema(db)
+        perms = PermissionService(db)
+        driver = FakeDriver()
+        approval = FakeApprovalPort(answer=True)
+        async with AuditService(db) as audit:
+            session = new_session(tmp_path / "sessions")
+            executor = CommandExecutor(
+                session_id="s1",
+                risk_assessor=RiskAssessor(),
+                permissions=perms,
+                audit=audit,
+                driver=driver,
+                formatter=ResultFormatter(),
+                approval=approval,
+                session_paths=session,
+                # 10-second cumulative cap.
+                capture_budget=CaptureBudget(max_seconds=10.0),
+            )
+            yield {
+                "executor": executor,
+                "driver": driver,
+                "audit": audit,
+            }
+
+    async def test_first_capture_under_cap_succeeds(self, capped_bench) -> None:
+        result = await capped_bench["executor"].execute(
+            make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=3.0)
+        )
+        assert result.success is True
+
+    async def test_over_cap_in_one_call_refused(self, capped_bench) -> None:
+        # 30s > 10s cap in a single call.
+        result = await capped_bench["executor"].execute(
+            make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=30.0)
+        )
+        assert result.success is False
+        assert "capture budget" in result.message.lower()
+        # Driver was NOT called — refusal happened before dispatch.
+        assert not any(c[0] == "capture_iq" for c in capped_bench["driver"].calls)
+
+    async def test_multiple_calls_accumulate(self, capped_bench) -> None:
+        # 3 + 4 = 7 (under cap) → both succeed. 7 + 4 = 11 (over) → 3rd refused.
+        r1 = await capped_bench["executor"].execute(
+            make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=3.0)
+        )
+        r2 = await capped_bench["executor"].execute(
+            make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=4.0)
+        )
+        r3 = await capped_bench["executor"].execute(
+            make_cmd("capture_iq", center_freq_hz=433_000_000, duration_s=4.0)
+        )
+        assert r1.success is True
+        assert r2.success is True
+        assert r3.success is False
+
+    async def test_sweep_not_affected(self, capped_bench) -> None:
+        """The budget only applies to capture_iq, not sweep_spectrum."""
+        result = await capped_bench["executor"].execute(
+            make_cmd(
+                "sweep_spectrum",
+                start_freq_hz=433_000_000,
+                end_freq_hz=434_000_000,
+            )
+        )
+        assert result.success is True
 
 
 class TestPlaySequence:

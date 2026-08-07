@@ -15,6 +15,7 @@ from hackrf_agent.domain.audit_service import (
     make_event,
     new_trace_id,
 )
+from hackrf_agent.domain.capture_budget import CaptureBudget
 from hackrf_agent.domain.handlers import HANDLERS, DriverProtocol, HandlerContext
 from hackrf_agent.domain.models import (
     AuditEventType,
@@ -55,6 +56,7 @@ class CommandExecutor:
         formatter: ResultFormatter,
         approval: ApprovalPort,
         session_paths: SessionPaths,
+        capture_budget: CaptureBudget | None = None,
     ) -> None:
         self._session_id = session_id
         self._risk = risk_assessor
@@ -63,6 +65,9 @@ class CommandExecutor:
         self._formatter = formatter
         self._approval = approval
         self._session_paths = session_paths
+        # Read the MAX_CAPTURE_MINUTES budget from the env by default.
+        # Callers can inject a preset budget for tests.
+        self._capture_budget = capture_budget or CaptureBudget.from_env()
         self._handler_ctx = HandlerContext(
             driver=driver,
             permissions=permissions,
@@ -115,6 +120,38 @@ class CommandExecutor:
                 blocked_reason=risk.blocked_reason,
             )
         )
+
+        # 2b. Session-level capture budget (MAX_CAPTURE_MINUTES).
+        # Applies to capture_iq only. A capture that would push the
+        # cumulative session duration past the cap is refused before any
+        # RF activity — even if the per-command duration is inside the
+        # normal LOW/MEDIUM tier limits. Belt-and-suspenders.
+        if command.action == CommandAction.CAPTURE_IQ:
+            duration_s = command.args.get("duration_s")
+            if isinstance(duration_s, (int, float)):
+                if self._capture_budget.would_exceed(float(duration_s)):
+                    reason = (
+                        f"session capture budget exhausted: requested "
+                        f"{duration_s}s, {self._capture_budget.remaining_seconds():.1f}s "
+                        f"remaining"
+                    )
+                    await self._audit.log(
+                        make_event(
+                            trace_id=trace_id,
+                            session_id=self._session_id,
+                            event=AuditEventType.BLOCKED,
+                            action=command.action,
+                            risk_level=RiskLevel.BLOCKED,
+                            blocked_reason=reason,
+                            duration_ms=int((time.perf_counter() - t0) * 1000),
+                        )
+                    )
+                    return CommandResult(
+                        success=False,
+                        action=command.action,
+                        message=f"Action blocked by capture budget: {reason}",
+                        error=reason,
+                    )
 
         # 3. BLOCKED short-circuit
         if risk.level == RiskLevel.BLOCKED:
@@ -213,6 +250,11 @@ class CommandExecutor:
             success = True
             error: str | None = None
             message = f"Completed {command.action.value}."
+            # Charge the capture budget on successful capture_iq only.
+            if command.action == CommandAction.CAPTURE_IQ:
+                duration_s = command.args.get("duration_s")
+                if isinstance(duration_s, (int, float)):
+                    self._capture_budget.charge(float(duration_s))
         except HackrfError as e:
             data = {}
             success = False

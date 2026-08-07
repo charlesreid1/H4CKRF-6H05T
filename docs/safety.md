@@ -223,6 +223,30 @@ Ctrl-C event, TX is frozen until you explicitly re-issue a grant with
 
 ---
 
+## Capture Budget (`MAX_CAPTURE_MINUTES`)
+
+Belt-and-suspenders to the per-command duration limits in `RiskAssessor._assess_capture_iq`.
+When `MAX_CAPTURE_MINUTES` is set in the environment (positive number, e.g. `10`
+or `1.5`), the cumulative sum of every `capture_iq` call's `duration_s` in the
+session must stay under that cap. Any call that would push the total over the
+cap is refused with `BLOCKED` before any RF activity — the driver is never
+invoked. The counter is per-executor-instance (i.e. per session); restarting
+the process resets it.
+
+When unset (or set to `""` / `0` / a negative / non-numeric value), the budget
+is disabled and captures are bounded only by per-command duration limits.
+
+```bash
+export MAX_CAPTURE_MINUTES=10
+hackrf-agent chat
+# Cumulative capture_iq duration in this session is capped at 600 seconds.
+```
+
+The cap applies only to `capture_iq`; `sweep_spectrum` and `sweep_spectrum_bulk`
+are not affected.
+
+---
+
 ## What This Software Does NOT Protect Against
 
 - **Prompt injection.** A compromised or adversarial prompt can propose bad
