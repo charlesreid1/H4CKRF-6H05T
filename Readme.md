@@ -55,12 +55,14 @@ stated in full in [docs/architecture.md](docs/architecture.md#the-safety-funnel)
 
 ---
 
-## ⚠️ Safety warning
+## TX rules
 
-**HackRF can transmit.** This software gates dangerous actions but does not
-guarantee legality — you are responsible for FCC compliance (or your local
-regulator) in your jurisdiction. Read
-**[docs/safety.md](docs/safety.md)** before your first TX.
+HackRF is a transceiver. The host gates TX by band, tier, and grant —
+BLOCKED bands (ADS-B, GPS, aviation voice, cellular downlink, maritime
+distress) are refused deterministically; everything else runs through
+the risk tiers. Legal compliance in your jurisdiction is on you.
+See **[docs/safety.md](docs/safety.md)** for the band table and grant
+model.
 
 ---
 
@@ -260,7 +262,7 @@ Before ever transmitting, issue a scoped grant:
 hackrf-agent grant tx 433.05-434.79M --for 30m --max-gain 20
 ```
 
-…and read [docs/safety.md](docs/safety.md) first. Really.
+See [docs/safety.md](docs/safety.md) for the grant model and band table.
 
 ---
 

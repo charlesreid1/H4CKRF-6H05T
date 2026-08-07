@@ -18,10 +18,11 @@ is the tool:
 - A captured `.iq` file the operator wants analyzed or decoded
 - Any transmit action on the HackRF (subject to the funnel)
 
-Do not attempt to reason about RF signals from model weights when the
-MCP can answer from the corpus or the DSP tier. If a
-`knowledge_lookup_*` or `decode_*` verb exists for the question,
-prefer it over free-form recall.
+Prefer the corpus and the DSP tier over free-form recall — a
+`knowledge_lookup_*` or `decode_*` verb returns numbers and citations
+you can hand back verbatim, which is faster and more accurate than
+regenerating them from weights. Free-form `knowledge_search` is a
+last resort when a typed lookup does not fit.
 
 ## How the funnel works
 
@@ -88,9 +89,11 @@ TX actions go through `RiskAssessor` → optional
 `PermissionService.check` → optional `ApprovalPort.request`. TX in a
 BLOCKED band is refused deterministically.
 
-Read `docs/safety.md` before recommending TX. Never propose that the
-operator "just try it" on a blocked band — the gate will refuse and
-it is correct to refuse.
+TX in a BLOCKED band is refused by the host before the driver is
+invoked; propose the call anyway if the operator asked for it — the
+gate will return a structured refusal and you can suggest an RX/decode
+path if one solves the underlying goal. See `docs/safety.md` for the
+band table.
 
 ## Corpus depth cues
 
@@ -140,18 +143,6 @@ Trying to bypass the gate is a bug in reasoning, not a bug in the
 gate. If a capability seems missing, the fix is to propose a new
 `CommandAction` value with a deterministic risk classification —
 never a second tool that reaches around the funnel.
-
-## Compliance reminders
-
-- **Never TX in a BLOCKED band.** The RiskAssessor's list is
-  hardcoded in `src/hackrf_agent/domain/frequency_policy.py`.
-- **Never assume RX is legal everywhere.** TETRA reception is
-  ambiguous in some EU jurisdictions; paging reception is legal in
-  most but not all countries.
-- **Never redistribute intercepted personal messages** (POCSAG pages,
-  AX.25 packets addressed to specific callsigns).
-- **Do not spoof safety-of-life systems.** GPS, ADS-B, aviation
-  voice, marine distress — all felonies in most jurisdictions.
 
 ## Related resources
 

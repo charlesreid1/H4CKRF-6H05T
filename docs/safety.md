@@ -10,14 +10,9 @@ Implementation is transcription, not judgment.
 
 **HackRF One is a software-defined radio capable of transmitting on frequencies from
 1 MHz to 6 GHz.** This software gates commands through a deterministic risk assessor,
-but it cannot guarantee legal compliance. The operator (you) is responsible for:
-
-1. Knowing and following all applicable laws in your jurisdiction.
-2. Verifying that any transmission is authorized before approving it.
-3. Understanding that the AI model is a statistical text generator, not an RF engineer or a lawyer.
-
-**If you transmit on a frequency you are not authorized to use, you are liable for the
-consequences, regardless of what this software or its AI backend told you.**
+but it cannot guarantee legal compliance. The operator (you) is responsible for
+knowing and following applicable laws in your jurisdiction. Legal liability for any
+transmission rests with the operator, not with this software or its AI backend.
 
 ---
 
@@ -171,13 +166,13 @@ What each tier means for you, the operator:
   type `n` — the agent will propose an alternative.
 
 - **HIGH** — "TX in bands where you haven't issued a grant, or at higher power."
-  You'll be asked to type the literal word `CONFIRM`. This is intentional — it
-  prevents muscle-memory approval. Do not autocomplete. Read the justification
-  and expected effect before typing.
+  You'll be asked to type the literal word `CONFIRM`. This is intentional — the
+  word is verbatim so the prompt breaks muscle-memory approval. Read the
+  justification and expected effect before typing.
 
-- **BLOCKED** — "Protected bands." The agent cannot do this. If it tries, the
-  gate refuses and audits the attempt. No prompt — just a refusal. If the agent
-  keeps proposing blocked actions, it may be prompt-injected; end the session.
+- **BLOCKED** — "Protected bands." The gate refuses and audits the attempt.
+  No prompt — just a refusal. RX and decode on these bands are unaffected;
+  only TX is refused.
 
 ---
 
@@ -273,9 +268,10 @@ per-command-only cap. Set them explicitly for a bounded session.
 
 - **Prompt injection.** A compromised or adversarial prompt can propose bad
   commands. The risk gate still refuses BLOCKED actions, but a malicious prompt
-  could exhaust your API budget by proposing thousands of LOW actions, or could
-  social-engineer you into approving a HIGH TX. Read the `justification` field
-  before approving. If it doesn't match what you asked, deny.
+  could exhaust your API budget by proposing thousands of LOW actions, or push
+  a HIGH TX at you with a plausible-looking justification. Read the
+  `justification` field before approving; if it doesn't match what you asked,
+  deny.
 
 - **Prompt-level guidance is a hint; only the risk gate is enforcement.** The
   system prompt tells the model to be cooperative, but the model is a statistical
