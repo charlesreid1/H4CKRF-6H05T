@@ -913,19 +913,36 @@ def _bits_to_uint32_be(bits: npt.NDArray[np.uint8]) -> int:
 
 
 def _pocsag_find_sync(bits: npt.NDArray[np.uint8]) -> list[int]:
-    """Return start indices of every occurrence of the 32-bit sync word."""
+    """Return start indices of every occurrence of the 32-bit sync word.
+
+    Vectorised sliding-window compare via ``np.lib.stride_tricks``. On a
+    30 s POCSAG capture the previous Python-loop implementation was
+    ~36 000 iterations of ``np.array_equal``; this is one boolean
+    ``.all(axis=1)`` over the same window.
+    """
+    return _pocsag_find_sync_both(bits)[0]
+
+
+def _pocsag_find_sync_both(
+    bits: npt.NDArray[np.uint8],
+) -> tuple[list[int], list[int]]:
+    """Return (hits_positive, hits_negative_polarity) in a single sliding pass.
+
+    Callers that need to try both polarities should call this rather than
+    running the search twice — the same sliding-window view is reused.
+    """
     if bits.size < 32:
-        return []
+        return ([], [])
     sync_bits = np.array(
         [(_POCSAG_SYNC >> (31 - i)) & 1 for i in range(32)], dtype=np.uint8
     )
-    hits: list[int] = []
-    # Sliding window; small enough for direct comparison.
-    end = bits.size - 32 + 1
-    for i in range(end):
-        if np.array_equal(bits[i : i + 32], sync_bits):
-            hits.append(i)
-    return hits
+    windows = np.lib.stride_tricks.sliding_window_view(bits, 32)
+    match_pos = (windows == sync_bits).all(axis=1)
+    match_neg = (windows == (1 - sync_bits)).all(axis=1)
+    return (
+        np.flatnonzero(match_pos).tolist(),
+        np.flatnonzero(match_neg).tolist(),
+    )
 
 
 def _pocsag_parse_codeword(
@@ -1054,11 +1071,10 @@ def decode_pocsag(
 
     # Try both polarities — the "which tone is 0/1" convention varies by
     # transmitter. Pick the polarity that yields more sync-word hits.
-    inv = 1 - bits
-    hits_pos = _pocsag_find_sync(bits)
-    hits_neg = _pocsag_find_sync(inv)
+    # A single vectorised pass finds both.
+    hits_pos, hits_neg = _pocsag_find_sync_both(bits)
     if len(hits_neg) > len(hits_pos):
-        bits = inv
+        bits = 1 - bits
         sync_offsets = hits_neg
     else:
         sync_offsets = hits_pos
