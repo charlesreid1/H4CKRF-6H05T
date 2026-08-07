@@ -7,6 +7,7 @@ Zero LLM involvement — testable end-to-end with hand-crafted
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any
 
 from hackrf_agent.domain.approval import ApprovalPort
@@ -16,6 +17,7 @@ from hackrf_agent.domain.audit_service import (
     new_trace_id,
 )
 from hackrf_agent.domain.capture_budget import CaptureBudget
+from hackrf_agent.domain.tx_budget import TxBudget
 from hackrf_agent.domain.handlers import HANDLERS, DriverProtocol, HandlerContext
 from hackrf_agent.domain.models import (
     AuditEventType,
@@ -57,6 +59,7 @@ class CommandExecutor:
         approval: ApprovalPort,
         session_paths: SessionPaths,
         capture_budget: CaptureBudget | None = None,
+        tx_budget: TxBudget | None = None,
     ) -> None:
         self._session_id = session_id
         self._risk = risk_assessor
@@ -65,9 +68,10 @@ class CommandExecutor:
         self._formatter = formatter
         self._approval = approval
         self._session_paths = session_paths
-        # Read the MAX_CAPTURE_MINUTES budget from the env by default.
-        # Callers can inject a preset budget for tests.
+        # Read the MAX_CAPTURE_MINUTES / MAX_TX_SECONDS budgets from the env
+        # by default. Callers can inject preset budgets for tests.
         self._capture_budget = capture_budget or CaptureBudget.from_env()
+        self._tx_budget = tx_budget or TxBudget.from_env()
         self._handler_ctx = HandlerContext(
             driver=driver,
             permissions=permissions,
@@ -152,6 +156,37 @@ class CommandExecutor:
                         message=f"Action blocked by capture budget: {reason}",
                         error=reason,
                     )
+
+        # 2c. Session-level TX budget (MAX_TX_SECONDS).
+        # Applies to transmit_iq only. Estimates the requested TX duration
+        # from the .iq file size and sample_rate_hz — cs8 = 2 bytes/sample —
+        # and refuses before dispatch if the cumulative session TX would
+        # push over the cap. Budget is charged again with the *actual*
+        # duration returned by the driver on success.
+        if command.action == CommandAction.TRANSMIT_IQ and self._tx_budget.max_seconds is not None:
+            expected_s = _estimate_tx_duration_s(command.args)
+            if expected_s is not None and self._tx_budget.would_exceed(expected_s):
+                reason = (
+                    f"session TX budget exhausted: requested ~{expected_s:.1f}s, "
+                    f"{self._tx_budget.remaining_seconds():.1f}s remaining"
+                )
+                await self._audit.log(
+                    make_event(
+                        trace_id=trace_id,
+                        session_id=self._session_id,
+                        event=AuditEventType.BLOCKED,
+                        action=command.action,
+                        risk_level=RiskLevel.BLOCKED,
+                        blocked_reason=reason,
+                        duration_ms=int((time.perf_counter() - t0) * 1000),
+                    )
+                )
+                return CommandResult(
+                    success=False,
+                    action=command.action,
+                    message=f"Action blocked by TX budget: {reason}",
+                    error=reason,
+                )
 
         # 3. BLOCKED short-circuit
         if risk.level == RiskLevel.BLOCKED:
@@ -255,6 +290,12 @@ class CommandExecutor:
                 duration_s = command.args.get("duration_s")
                 if isinstance(duration_s, (int, float)):
                     self._capture_budget.charge(float(duration_s))
+            # Charge the TX budget on successful transmit_iq. Prefer the
+            # driver-measured duration_s in raw over the pre-flight estimate.
+            elif command.action == CommandAction.TRANSMIT_IQ:
+                actual_s = raw.get("duration_s") if isinstance(raw, dict) else None
+                if isinstance(actual_s, (int, float)):
+                    self._tx_budget.charge(float(actual_s))
         except HackrfError as e:
             data = {}
             success = False
@@ -474,3 +515,24 @@ class CommandExecutor:
             out["risk_tier"] = RiskLevel.LOW.value
             return out
         raise ValueError(f"unknown formatter kind: {kind!r}")
+
+
+def _estimate_tx_duration_s(args: dict[str, Any]) -> float | None:
+    """Estimate the on-air duration of a transmit_iq request from its args.
+
+    The IQ file is interleaved int8 (``cs8``) — 2 bytes per sample. Duration
+    is ``file_size_bytes / (sample_rate_hz * 2)``. Returns None if the file
+    is missing or the args are malformed; the TX budget pre-flight then
+    falls back to charging the actual driver-measured duration on success.
+    """
+    iq_path_raw = args.get("iq_path")
+    sample_rate_raw = args.get("sample_rate_hz", 2_000_000)
+    if not isinstance(iq_path_raw, (str, Path)):
+        return None
+    if not isinstance(sample_rate_raw, (int, float)) or sample_rate_raw <= 0:
+        return None
+    try:
+        size = Path(iq_path_raw).stat().st_size
+    except (OSError, FileNotFoundError):
+        return None
+    return size / (float(sample_rate_raw) * 2.0)
