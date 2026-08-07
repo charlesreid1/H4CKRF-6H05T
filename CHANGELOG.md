@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Knowledge tier — six new `CommandAction` verbs.** Read-only corpus
+  access, hardcoded `LOW` risk, funnels through the existing
+  `CommandExecutor` chokepoint. Verbs: `knowledge_list_topics`,
+  `knowledge_read`, `knowledge_search`, `knowledge_lookup_band`,
+  `knowledge_lookup_modulation`, `knowledge_verify_claim`. Backed by the
+  on-disk corpus at `knowledge/` (Tier-1 topics + `bands.json`,
+  `modulations.json`, `iq_formats.json`, `bibliography.json` seeded).
+- New module `hackrf_agent.domain.knowledge` — `KnowledgePaths` with
+  path-traversal-safe resolvers, plus pure functions for corpus reads and
+  record lookups. Discovers the corpus via `HACKRF_KNOWLEDGE_DIR` env
+  var or an upward walk to `knowledge/MANIFEST.md`.
+- `knowledge/` corpus scaffolding: 30 topic dirs (Tier 1-4) with
+  README.md stubs; Tier-1 topics `dsp/`, `sdr-fundamentals/`,
+  `modulation/`, `hackrf-hardware/`, `iq-formats/`, `regulatory/`
+  authored to full `reference.md` / `walkthrough.md` / `recognition.md`
+  depth. See `plan-organization.md` and `plan-knowledge.md`.
+- `skills/hackrf/SKILL.md` — assistant guidance for when + how to
+  reach the MCP.
+- `docs/rf_cheatsheet.md`, `docs/ctf_playbook.md` — quick-reference
+  placeholders.
+
 ## v0.1.0 (unreleased)
 
 Initial release. Eight-Part implementation complete:
