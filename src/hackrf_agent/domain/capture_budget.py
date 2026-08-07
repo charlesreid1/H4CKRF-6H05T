@@ -19,7 +19,7 @@ process resets the counter.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -30,7 +30,7 @@ class CaptureBudget:
     accumulated_seconds: float = 0.0
 
     @classmethod
-    def from_env(cls, env_var: str = "MAX_CAPTURE_MINUTES") -> "CaptureBudget":
+    def from_env(cls, env_var: str = "MAX_CAPTURE_MINUTES") -> CaptureBudget:
         """Construct from an env var. Empty / unset / non-numeric → disabled."""
         raw = os.environ.get(env_var, "").strip()
         if not raw:

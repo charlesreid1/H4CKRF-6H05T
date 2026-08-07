@@ -183,11 +183,10 @@ class AuditService:
         the timestamp range covered. Safe to call while the writer is
         running — uses a fresh read connection.
         """
-        async with open_connection(self._db_path) as conn:
-            async with conn.execute(
-                "SELECT COUNT(*), MIN(timestamp), MAX(timestamp) FROM audit;"
-            ) as cur:
-                row = await cur.fetchone()
+        async with open_connection(self._db_path) as conn, conn.execute(
+            "SELECT COUNT(*), MIN(timestamp), MAX(timestamp) FROM audit;"
+        ) as cur:
+            row = await cur.fetchone()
         row_count = int(row[0]) if row else 0
         oldest = float(row[1]) if row and row[1] is not None else None
         newest = float(row[2]) if row and row[2] is not None else None

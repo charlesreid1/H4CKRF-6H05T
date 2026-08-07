@@ -38,7 +38,7 @@ def active_grant(
     *,
     expired: bool = False,
 ) -> Grant:
-    expires_at = _utcnow() - timedelta(hours=1) if expired else _utcnow() + timedelta(hours=1)  # noqa: SIM108
+    expires_at = _utcnow() - timedelta(hours=1) if expired else _utcnow() + timedelta(hours=1)
     return Grant(
         band_start_hz=start_hz,
         band_stop_hz=stop_hz,

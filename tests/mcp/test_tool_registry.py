@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import pytest
-from mcp.types import CallToolRequestParams, Tool
 
-from hackrf_agent.domain.models import CommandAction, ExecuteCommand
+from hackrf_agent.domain.models import CommandAction
 from hackrf_agent.mcp.tool_registry import (
     ALL_TOOLS,
-    build_tool,
     dispatch,
     list_tools,
 )

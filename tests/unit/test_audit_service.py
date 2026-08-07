@@ -311,8 +311,8 @@ class TestHelpers:
 class TestQueryOrdering:
     async def test_query_returns_last_n_not_first_n(self, tmp_path):
         """limit=3 with 10 events should return events 8,9,10 (most recent)."""
-        from hackrf_agent.domain.audit_service import AuditService, make_event
         from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService, make_event
 
         db = tmp_path / "agent.db"
         await ensure_schema(db)
@@ -347,8 +347,9 @@ class TestQueryOrdering:
 class TestRotate:
     async def test_deletes_older_than_cutoff_keeps_newer(self, tmp_path):
         import time as _time
-        from hackrf_agent.domain.audit_service import AuditService, make_event
+
         from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService, make_event
 
         db = tmp_path / "agent.db"
         await ensure_schema(db)
@@ -379,8 +380,9 @@ class TestRotate:
 
     async def test_logs_rotated_event_before_delete(self, tmp_path):
         import time as _time
-        from hackrf_agent.domain.audit_service import AuditService, make_event
+
         from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService, make_event
 
         db = tmp_path / "agent.db"
         await ensure_schema(db)
@@ -401,8 +403,8 @@ class TestRotate:
         assert len(rows) == 1
 
     async def test_rejects_nonpositive_keep_days(self, tmp_path):
-        from hackrf_agent.domain.audit_service import AuditService
         from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService
 
         db = tmp_path / "agent.db"
         await ensure_schema(db)
@@ -413,8 +415,8 @@ class TestRotate:
 
 class TestStats:
     async def test_empty_db(self, tmp_path):
-        from hackrf_agent.domain.audit_service import AuditService
         from hackrf_agent.data.db import ensure_schema
+        from hackrf_agent.domain.audit_service import AuditService
 
         db = tmp_path / "agent.db"
         await ensure_schema(db)

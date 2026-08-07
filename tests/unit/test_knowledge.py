@@ -28,7 +28,6 @@ from hackrf_agent.domain.knowledge import (
     verify_claim,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -205,7 +204,7 @@ class TestReadFile:
 class TestSearch:
     def test_finds_case_insensitive(self, synthetic_corpus: KnowledgePaths) -> None:
         hits = search(synthetic_corpus, "MANCHESTER")
-        assert any("dsp" == h["topic"] for h in hits)
+        assert any(h["topic"] == "dsp" for h in hits)
 
     def test_max_results_caps(self, synthetic_corpus: KnowledgePaths) -> None:
         # 'dsp' appears in multiple files; cap at 1.

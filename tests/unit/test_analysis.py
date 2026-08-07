@@ -8,11 +8,11 @@ import numpy as np
 import pytest
 
 from hackrf_agent.hw.analysis import (
-    MAX_IQ_FILE_BYTES,
     _ITA2_LTRS,
     _MODES_PREAMBLE_CHIPS,
     _POCSAG_IDLE,
     _POCSAG_SYNC,
+    MAX_IQ_FILE_BYTES,
     _ax25_crc16,
     _modes_crc24,
     _pocsag_bch_syndrome,
@@ -35,7 +35,6 @@ from hackrf_agent.hw.analysis import (
     slice_ook,
     spectrogram_summary,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures — synthetic signals

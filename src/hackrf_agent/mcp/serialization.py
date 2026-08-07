@@ -9,7 +9,6 @@ related domain objects into ``TextContent`` blocks suitable for
 from __future__ import annotations
 
 import json
-from typing import Any
 
 from mcp.types import TextContent
 

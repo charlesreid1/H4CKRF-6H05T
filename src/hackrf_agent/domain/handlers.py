@@ -60,55 +60,10 @@ from hackrf_agent.domain.args import (
 )
 from hackrf_agent.domain.audit_service import AuditService
 from hackrf_agent.domain.knowledge import (
-    default_paths as _default_knowledge_paths,
-)
-from hackrf_agent.hw.analysis import (
-    classify_modulation as _classify_modulation,
-)
-from hackrf_agent.hw.analysis import (
-    estimate_carrier_frequency as _estimate_carrier_frequency,
-)
-from hackrf_agent.hw.analysis import (
-    decode_ads_b as _decode_ads_b,
-)
-from hackrf_agent.hw.analysis import (
-    decode_aprs as _decode_aprs,
-)
-from hackrf_agent.hw.analysis import (
-    decode_ax25 as _decode_ax25,
-)
-from hackrf_agent.hw.analysis import (
-    decode_manchester as _decode_manchester,
-)
-from hackrf_agent.hw.analysis import (
-    decode_nrz as _decode_nrz,
-)
-from hackrf_agent.hw.analysis import (
-    decode_nrzi as _decode_nrzi,
-)
-from hackrf_agent.hw.analysis import (
-    decode_ppm as _decode_ppm,
-)
-from hackrf_agent.hw.analysis import (
-    decode_pocsag as _decode_pocsag,
-)
-from hackrf_agent.hw.analysis import (
-    decode_pwm as _decode_pwm,
-)
-from hackrf_agent.hw.analysis import (
-    decode_rtty as _decode_rtty,
-)
-from hackrf_agent.hw.analysis import (
-    estimate_symbol_rate as _estimate_symbol_rate,
-)
-from hackrf_agent.hw.analysis import (
-    load_iq_file as _load_iq_file,
-)
-from hackrf_agent.hw.analysis import (
-    spectrogram_summary as _spectrogram_summary,
+    cross_reference as _knowledge_cross_reference,
 )
 from hackrf_agent.domain.knowledge import (
-    cross_reference as _knowledge_cross_reference,
+    default_paths as _default_knowledge_paths,
 )
 from hackrf_agent.domain.knowledge import (
     explain_signal as _knowledge_explain_signal,
@@ -149,6 +104,51 @@ from hackrf_agent.domain.knowledge import (
 from hackrf_agent.domain.models import CommandAction, DeviceInfo
 from hackrf_agent.domain.permission_service import PermissionService
 from hackrf_agent.domain.session import SessionPaths
+from hackrf_agent.hw.analysis import (
+    classify_modulation as _classify_modulation,
+)
+from hackrf_agent.hw.analysis import (
+    decode_ads_b as _decode_ads_b,
+)
+from hackrf_agent.hw.analysis import (
+    decode_aprs as _decode_aprs,
+)
+from hackrf_agent.hw.analysis import (
+    decode_ax25 as _decode_ax25,
+)
+from hackrf_agent.hw.analysis import (
+    decode_manchester as _decode_manchester,
+)
+from hackrf_agent.hw.analysis import (
+    decode_nrz as _decode_nrz,
+)
+from hackrf_agent.hw.analysis import (
+    decode_nrzi as _decode_nrzi,
+)
+from hackrf_agent.hw.analysis import (
+    decode_pocsag as _decode_pocsag,
+)
+from hackrf_agent.hw.analysis import (
+    decode_ppm as _decode_ppm,
+)
+from hackrf_agent.hw.analysis import (
+    decode_pwm as _decode_pwm,
+)
+from hackrf_agent.hw.analysis import (
+    decode_rtty as _decode_rtty,
+)
+from hackrf_agent.hw.analysis import (
+    estimate_carrier_frequency as _estimate_carrier_frequency,
+)
+from hackrf_agent.hw.analysis import (
+    estimate_symbol_rate as _estimate_symbol_rate,
+)
+from hackrf_agent.hw.analysis import (
+    load_iq_file as _load_iq_file,
+)
+from hackrf_agent.hw.analysis import (
+    spectrogram_summary as _spectrogram_summary,
+)
 
 
 class DriverProtocol(Protocol):
@@ -320,7 +320,7 @@ async def _handle_capture_iq(ctx: HandlerContext, args: dict[str, Any]) -> dict[
         sample_rate_hz=parsed.sample_rate_hz,
         center_hz=effective_center_hz,
         capture_start_iso=_datetime.datetime.fromtimestamp(
-            start_ts, tz=_datetime.timezone.utc
+            start_ts, tz=_datetime.UTC
         ).isoformat(),
     )
     return {

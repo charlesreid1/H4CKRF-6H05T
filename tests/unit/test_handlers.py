@@ -474,6 +474,7 @@ class TestAnalysisHandlers:
 
     async def test_decode_rtty(self, ctx: HandlerContext) -> None:
         import numpy as np
+
         from hackrf_agent.hw.analysis import _ITA2_LTRS
         fs = 48_000
         baud = 45.45
@@ -509,6 +510,7 @@ class TestAnalysisHandlers:
 
     async def test_decode_pocsag(self, ctx: HandlerContext) -> None:
         import numpy as np
+
         from hackrf_agent.hw.analysis import _POCSAG_IDLE, _POCSAG_SYNC
         fs = 1_200_000
         baud = 1200
@@ -548,6 +550,7 @@ class TestAnalysisHandlers:
 
     async def test_decode_ads_b(self, ctx: HandlerContext) -> None:
         import numpy as np
+
         from hackrf_agent.hw.analysis import _MODES_PREAMBLE_CHIPS
         fs = 2_000_000
         msg_hex = "8D4840D6202CC371C32CE0576098"

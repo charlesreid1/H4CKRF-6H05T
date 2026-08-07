@@ -17,7 +17,6 @@ from hackrf_agent.domain.audit_service import (
     new_trace_id,
 )
 from hackrf_agent.domain.capture_budget import CaptureBudget
-from hackrf_agent.domain.tx_budget import TxBudget
 from hackrf_agent.domain.handlers import HANDLERS, DriverProtocol, HandlerContext
 from hackrf_agent.domain.models import (
     AuditEventType,
@@ -30,6 +29,7 @@ from hackrf_agent.domain.permission_service import PermissionService
 from hackrf_agent.domain.result_formatter import ResultFormatter
 from hackrf_agent.domain.risk_assessor import RiskAssessor
 from hackrf_agent.domain.session import SessionPaths
+from hackrf_agent.domain.tx_budget import TxBudget
 from hackrf_agent.hw.exceptions import HackrfError
 
 
@@ -348,7 +348,7 @@ class CommandExecutor:
 
         try:
             parsed = PlaySequenceArgs(**command.args)
-        except Exception as e:  # noqa: BLE001 — surface pydantic errors as failures
+        except Exception as e:
             return CommandResult(
                 success=False,
                 action=command.action,

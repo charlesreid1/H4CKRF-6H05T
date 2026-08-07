@@ -82,7 +82,7 @@ def _to_hz(number_str: str, unit: str) -> int:
     if mult is None:  # unreachable — regex constrains unit
         raise ValueError(f"unknown unit {unit!r}")
     value = float(number_str) * mult
-    if value <= 0 or value != int(value) and mult == 1:
+    if value <= 0 or (value != int(value) and mult == 1):
         # Fractional raw-Hz is nonsense; fractional M/G is fine.
         raise ValueError(f"non-integer Hz value from {number_str}{unit}")
     return int(value)

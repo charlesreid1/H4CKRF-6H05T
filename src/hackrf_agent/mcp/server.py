@@ -32,12 +32,11 @@ from hackrf_agent.cli.settings import SettingsService
 from hackrf_agent.data.db import ensure_schema
 from hackrf_agent.domain.audit_service import AuditService
 from hackrf_agent.domain.executor import CommandExecutor
+from hackrf_agent.domain.handlers import DriverProtocol
 from hackrf_agent.domain.permission_service import PermissionService
 from hackrf_agent.domain.result_formatter import ResultFormatter
 from hackrf_agent.domain.risk_assessor import RiskAssessor
-from hackrf_agent.domain.session import new_session, SessionPaths
-from hackrf_agent.domain.handlers import DriverProtocol
-
+from hackrf_agent.domain.session import SessionPaths, new_session
 from hackrf_agent.mcp.approval_port import McpApprovalPort, _current_session
 from hackrf_agent.mcp.logging_config import configure as configure_logging
 from hackrf_agent.mcp.resources import list_resources as build_resource_list

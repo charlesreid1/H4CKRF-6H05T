@@ -5,6 +5,7 @@ None of these tests call the real OpenRouter API.
 
 import json
 import os
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

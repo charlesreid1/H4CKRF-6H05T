@@ -63,7 +63,7 @@ async def _run_checks(settings: SettingsService, *, strict: bool) -> list[Check]
     try:
         await ensure_schema(settings.db_path)
         checks.append(Check("db_schema", True, str(settings.db_path), hard=True))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         checks.append(Check("db_schema", False, str(e), hard=True))
 
     # 3. API key present. SOFT — the MCP server itself doesn't need it,
@@ -113,7 +113,7 @@ def _check_pyhackrf_importable() -> Check:
     """python-hackrf importable — normally only checked lazily on connect."""
     try:
         import hackrf as _hackrf  # noqa: F401
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return Check(
             "pyhackrf",
             False,
@@ -152,7 +152,7 @@ def _check_corpus_discoverable() -> Check:
 
     try:
         paths = default_paths()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return Check("corpus", False, f"discover failed: {e}", hard=True)
     manifest = paths.root / "MANIFEST.md"
     if not manifest.is_file():
@@ -168,7 +168,7 @@ def _check_records_valid() -> Check:
 
     try:
         paths = default_paths()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return Check("records", False, f"corpus root missing: {e}", hard=True)
     script = paths.root.parent / "scripts" / "validate_knowledge_records.py"
     if not script.is_file():

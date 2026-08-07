@@ -100,7 +100,7 @@ class OpenRouterClient:
         max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> None:
         try:
-            import openai  # noqa: PLC0415
+            import openai
         except ImportError as e:
             raise RuntimeError(
                 "openai SDK not installed; run `pip install hackrf-agent[openrouter]`"

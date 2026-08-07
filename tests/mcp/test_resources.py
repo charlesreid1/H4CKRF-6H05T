@@ -6,8 +6,6 @@ import asyncio
 import json
 from pathlib import Path
 
-import pytest
-
 from hackrf_agent.data.db import ensure_schema
 from hackrf_agent.domain.audit_service import AuditService, make_event, new_trace_id
 from hackrf_agent.domain.models import (

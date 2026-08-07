@@ -137,7 +137,9 @@ class HackrfDriver:
 
     async def __aenter__(self) -> HackrfDriver:
         try:
-            from python_hackrf import pyhackrf  # noqa: PLC0415  # pyright: ignore[reportMissingImports]
+            from python_hackrf import (
+                pyhackrf,  # pyright: ignore[reportMissingImports]
+            )
         except ImportError as e:
             raise HackrfNotFoundError(
                 "python-hackrf not installed; run `pip install hackrf-agent[hackrf]`"
@@ -442,7 +444,7 @@ class HackrfDriver:
         finally:
             try:
                 await loop.run_in_executor(None, self._device.pyhackrf_stop_rx)
-            except Exception:  # noqa: BLE001 — best-effort stop on already-stopped device
+            except Exception:
                 pass
 
         # Concatenate and trim to exact requested length.
@@ -539,7 +541,7 @@ class HackrfDriver:
             file_handle.close()
             try:
                 await loop.run_in_executor(None, self._device.pyhackrf_stop_tx)
-            except Exception:  # noqa: BLE001 — best-effort stop
+            except Exception:
                 pass
 
         if self._stop_event.is_set():

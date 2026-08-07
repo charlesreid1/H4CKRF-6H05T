@@ -78,5 +78,5 @@ class KillSwitch:
         try:
             n = await self.permissions.revoke_all_tx()
             logger.info("kill switch: revoked %d TX grants", n)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.exception("kill switch: TX revoke failed: %s", e)

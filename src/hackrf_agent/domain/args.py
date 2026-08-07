@@ -10,11 +10,9 @@ Every model is ``frozen=True`` because handlers read args, never mutate them.
 from __future__ import annotations
 
 from pathlib import Path
-
 from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
-
 
 # ---------------------------------------------------------------------------
 # get_device_info
@@ -79,7 +77,7 @@ class CaptureIqArgs(BaseModel):
     rf_amp_db: int = Field(default=0, description="RF amp gain in dB (0-14)")
 
     @model_validator(mode="after")
-    def _one_of_center_or_target(self) -> "CaptureIqArgs":
+    def _one_of_center_or_target(self) -> CaptureIqArgs:
         have_center = self.center_freq_hz is not None
         have_target = self.target_freq_hz is not None
         if have_center == have_target:
@@ -298,7 +296,7 @@ class DecodePwmArgs(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
 
     @model_validator(mode="after")
-    def _short_less_than_long(self) -> "DecodePwmArgs":
+    def _short_less_than_long(self) -> DecodePwmArgs:
         if self.short_us >= self.long_us:
             raise ValueError(
                 f"short_us ({self.short_us}) must be < long_us ({self.long_us})"
@@ -373,7 +371,7 @@ class DecodePocsagArgs(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
 
     @model_validator(mode="after")
-    def _valid_baud(self) -> "DecodePocsagArgs":
+    def _valid_baud(self) -> DecodePocsagArgs:
         if self.baud not in (512, 1200, 2400):
             raise ValueError(f"baud must be 512, 1200, or 2400; got {self.baud}")
         return self
@@ -614,7 +612,7 @@ class KnowledgeLookupKeyfobArgs(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
 
     @model_validator(mode="after")
-    def _at_least_one(self) -> "KnowledgeLookupKeyfobArgs":
+    def _at_least_one(self) -> KnowledgeLookupKeyfobArgs:
         if not (self.vendor or "").strip() and not (self.model or "").strip():
             raise ValueError("must supply at least one of vendor or model")
         return self
@@ -709,7 +707,7 @@ class KnowledgeExplainSignalArgs(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
 
     @model_validator(mode="after")
-    def _at_least_one_hint(self) -> "KnowledgeExplainSignalArgs":
+    def _at_least_one_hint(self) -> KnowledgeExplainSignalArgs:
         if (
             self.freq_hz is None
             and self.bw_hz is None
@@ -771,7 +769,7 @@ class SweepRange(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
 
     @model_validator(mode="after")
-    def _range_ordered(self) -> "SweepRange":
+    def _range_ordered(self) -> SweepRange:
         if self.start_freq_hz >= self.end_freq_hz:
             raise ValueError(
                 f"start_freq_hz ({self.start_freq_hz}) must be < "
@@ -855,7 +853,7 @@ class PlaySequenceArgs(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
 
     @model_validator(mode="after")
-    def _no_nested_play_sequence(self) -> "PlaySequenceArgs":
+    def _no_nested_play_sequence(self) -> PlaySequenceArgs:
         for i, step in enumerate(self.steps):
             if step.action == "play_sequence":
                 raise ValueError(

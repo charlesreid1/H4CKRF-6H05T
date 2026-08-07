@@ -9,10 +9,7 @@ approve/deny/CONFIRM flows produce the expected outcomes.
 from __future__ import annotations
 
 import asyncio
-import json
 from pathlib import Path
-
-import pytest
 
 from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
@@ -26,10 +23,8 @@ from hackrf_agent.domain.result_formatter import ResultFormatter
 from hackrf_agent.domain.risk_assessor import RiskAssessor
 from hackrf_agent.domain.session import new_session
 from hackrf_agent.mcp.approval_port import McpApprovalPort
-from hackrf_agent.mcp.server import create_server, ServerDeps
-
+from hackrf_agent.mcp.server import ServerDeps, create_server
 from tests.support.fake_driver import FakeDriver
-
 
 # ---------------------------------------------------------------------------
 # Helper: run a client/server pair with an elicitation callback

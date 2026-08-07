@@ -31,7 +31,7 @@ class TxBudget:
     accumulated_seconds: float = 0.0
 
     @classmethod
-    def from_env(cls, env_var: str = "MAX_TX_SECONDS") -> "TxBudget":
+    def from_env(cls, env_var: str = "MAX_TX_SECONDS") -> TxBudget:
         """Construct from an env var. Empty / unset / non-numeric → disabled."""
         raw = os.environ.get(env_var, "").strip()
         if not raw:
