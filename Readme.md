@@ -19,14 +19,14 @@ Three tiers, from knowing to analyzing to acting:
 
 - **Know** — corpus tools (`knowledge_list_topics`, `knowledge_read`,
   `knowledge_search`, `knowledge_lookup_band`, `knowledge_lookup_modulation`,
-  `knowledge_lookup_protocol`, `knowledge_verify_claim`). All read-only, all
-  `LOW` risk, cannot cause RF emission. *[planned — see
-  [plan-organization.md](plan-organization.md)]*
+  `knowledge_verify_claim`). All read-only, all `LOW` risk, cannot cause RF
+  emission.
 - **Analyze** — DSP tools that operate on already-captured `.iq` files
-  (`read_iq_summary` today; `analyze_iq_modulation`, `analyze_iq_symbols`,
-  `decode_manchester`, `decode_pwm`, `decode_pocsag`, `decode_ads_b` planned).
-  Cannot touch hardware.
-- **Act** — the existing HackRF surface (`get_device_info`, `sweep_spectrum`,
+  (`read_iq_summary`, `analyze_iq_modulation`, `analyze_iq_symbols`,
+  `analyze_iq_spectrogram`, `decode_manchester`, `decode_pwm`, `decode_ppm`,
+  `decode_nrz`, `decode_pocsag`, `decode_ads_b`, `decode_rtty`,
+  `decode_ax25`, `decode_aprs`). All `LOW` risk, cannot touch hardware.
+- **Act** — the HackRF surface (`get_device_info`, `sweep_spectrum`,
   `capture_iq`, `transmit_iq`, `grant_list`, `audit_query`, `decode_ook`).
   Every action goes through the funnel below.
 
